@@ -5,22 +5,6 @@ from tempfile import NamedTemporaryFile
 import os
 
 
-def execute(query, param_obj):
-    """
-    Execute sql query
-    """
-    db_path = './data/files.db'
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute(query, param_obj)
-
-    res = c.fetchall()
-
-    conn.commit()
-    conn.close()    
-
-    return res
-
 def get_variants(id, ref = None, start = 17148269, end = 17157211):
     """ 
     Return URIs of variants
@@ -30,25 +14,8 @@ def get_variants(id, ref = None, start = 17148269, end = 17157211):
     result = execute(query, param_obj)  
 
     if( len(result) != 0 ):
-        # data = result[0]
-        # file = data[0] + data[1]
-        urls = []
-        partition_amt = 10000000 # 10 million
-        partitions = int( (end - start) / partition_amt )
-        if( partitions >= 1 and start != None and end != None ):
-            slice_start = start
-            slice_end = 0
-            for i in range(partitions):
-                slice_end = slice_start + partition_amt
-                create_slice(urls, id, ref, slice_start, slice_end)
-                slice_start = slice_end
-            create_slice(urls, id, ref, slice_start, end)
-        else:
-            url = f"http://{request.host}/data?id={id}"
-            if( ref is not None ):
-                url += f"&ref={ref}"
-            urls.append(url)
-
+        partition_amt = 10000000
+        urls = create_slices(partition_amt, id, ref, start, end)
         response = {
                 'format': 'VCF',
                 'urls': urls 
@@ -80,14 +47,48 @@ def get_data(id, ref=None, format=None, start=None, end=None):
 
 
 # helpers
-def create_slice(arr, id, ref, slice_start, slice_end):
+
+def execute(query, param_obj):
+    """
+    Execute sql query
+    """
+    db_path = './data/files.db'
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute(query, param_obj)
+
+    res = c.fetchall()
+
+    conn.commit()
+    conn.close()    
+
+    return res
+
+def _create_slice(arr, id, ref, slice_start, slice_end):
     """
     Creates slice and appends it to array of urls (mutated)
     """
     url = f"http://{request.host}/data?id={id}&ref={ref}&start={slice_start}&end={slice_end}"
-    arr.append({
-        'url': url, 
-        'ref': ref,
-        'start': slice_start,
-        'end': slice_end
-    })
+    arr.append({ 'url': url, })
+
+def create_slices(partition_amt, id, ref, start, end):
+    """
+    Returns array of slices of URLs
+    """
+    urls = []
+    partitions = int( (end - start) / partition_amt )
+    slice_start = start
+    slice_end = 0
+    if( partitions >= 1 and start != None and end != None ):
+        for i in range(partitions):
+            slice_end = slice_start + partition_amt
+            _create_slice(urls, id, ref, slice_start, slice_end)
+            slice_start = slice_end
+        _create_slice(urls, id, ref, slice_start, end)
+    else:
+        url = f"http://{request.host}/data?id={id}"
+        if( ref is not None ):
+            url += f"&ref={ref}"
+        urls.append(url)
+
+    return urls

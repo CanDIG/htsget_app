@@ -1,16 +1,16 @@
-# from pysam import VariantFile
-# from tempfile import NamedTemporaryFile
+from pysam import VariantFile
+from tempfile import NamedTemporaryFile
 
 # ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir='./write_files',
 #                                       mode='wb', delete=False)
 
 # print(ntf.name)
 
-# vcf_in = VariantFile('./files/HG02102.vcf.gz')
+vcf_in = VariantFile('./files/NA18537.vcf.gz')
 # vcf_out = VariantFile(ntf.name, 'w', header=vcf_in.header)
-# for rec in vcf_in.fetch(contig='21', start=27148269):
-#     print(rec.pos)
-#     vcf_out.write(rec)
+for rec in vcf_in.fetch(contig='21', start=27148269):
+    print(rec.pos)
+    # vcf_out.write(rec)
 
 # with open(ntf.name, 'rb') as f:
 #     data = f.read(1000000)
@@ -53,8 +53,3 @@ def create_slice(arr, id, slice_start, slice_end):
     slice_start = slice_end
 
 # get_variants('HG02102', 2, 13)
-
-num = 2
-num += 2
-num = None
-print( num is None)
