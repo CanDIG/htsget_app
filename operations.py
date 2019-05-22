@@ -3,6 +3,7 @@ from flask import request
 from pysam import VariantFile
 from tempfile import NamedTemporaryFile
 import os
+from flask import send_file
 
 
 def get_variants(id, ref = None, start = 17148269, end = 17157211):
@@ -17,9 +18,11 @@ def get_variants(id, ref = None, start = 17148269, end = 17157211):
         partition_amt = 10000000
         urls = create_slices(partition_amt, id, ref, start, end)
         response = {
+            'htsget': {
                 'format': 'VCF',
                 'urls': urls 
                 }
+            }
         return response, 200
     else:
         err = "No Variant found for id:" + id
@@ -38,16 +41,16 @@ def get_data(id, ref=None, format=None, start=None, end=None):
     vcf_in.close()
     vcf_out.close()
     
-    buf_size = 1000000
-    with open(ntf.name, 'rb') as f:
-        data = f.read(buf_size)
-        os.remove(ntf.name)
-        return data, 200
+    return send_file(ntf.name)
+    # buf_size = 1000000
+    # with open(ntf.name, 'rb') as f:
+    #     data = f.read(buf_size)
+    #     os.remove(ntf.name)
+    #     return data, 200
     
 
 
 # helpers
-
 def execute(query, param_obj):
     """
     Execute sql query
@@ -89,6 +92,6 @@ def create_slices(partition_amt, id, ref, start, end):
         url = f"http://{request.host}/data?id={id}"
         if( ref is not None ):
             url += f"&ref={ref}"
-        urls.append(url)
+        urls.append({ "url": url})
 
     return urls

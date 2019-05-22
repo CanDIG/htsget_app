@@ -6,10 +6,10 @@ from tempfile import NamedTemporaryFile
 
 # print(ntf.name)
 
-vcf_in = VariantFile('./files/NA18537.vcf.gz')
+# vcf_in = VariantFile('./files/NA18537.vcf.gz')
 # vcf_out = VariantFile(ntf.name, 'w', header=vcf_in.header)
-for rec in vcf_in.fetch(contig='21', start=27148269):
-    print(rec.pos)
+# for rec in vcf_in.fetch(contig='21', start=27148269):
+#     print(rec.pos)
     # vcf_out.write(rec)
 
 # with open(ntf.name, 'rb') as f:
@@ -53,3 +53,24 @@ def create_slice(arr, id, slice_start, slice_end):
     slice_start = slice_end
 
 # get_variants('HG02102', 2, 13)
+
+test = {
+  "htsget": {
+    "format": "VCF",
+    "urls": [
+      {
+        "url": "http://0.0.0.0:5000/data?id=HG02102&ref=21&start=17148269&end=27148269"
+      },
+      {
+        "url": "http://0.0.0.0:5000/data?id=HG02102&ref=21&start=27148269&end=37148269"
+      },
+      {
+        "url": "http://0.0.0.0:5000/data?id=HG02102&ref=21&start=37148269&end=42856478"
+      }
+    ]
+  }
+}
+
+test1 = {u'urls': [u'http://0.0.0.0:5000/data?id=HG02102'], u'format': u'VCF'}
+
+print(create_slice)
