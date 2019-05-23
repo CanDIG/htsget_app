@@ -15,9 +15,8 @@ def get_variants(id, reference_name = None, start = None, end = None):
     """ 
     Return URIs of variants
     """
-    query = """SELECT * FROM  files WHERE file_name = (:id) LIMIT 1"""
-    param_obj = {'id': id}
-    result = _execute(query, param_obj)
+
+    result = _get_file_by_id(id)
     file_name = result[0][0] + result[0][1]
 
     if( len(result) != 0 ):
@@ -81,6 +80,12 @@ def _execute(query, param_obj):
     conn.close()    
 
     return res
+
+def _get_file_by_id(id):
+    query = """SELECT * FROM  files WHERE file_name = (:id) LIMIT 1"""
+    param_obj = {'id': id}
+    return _execute(query, param_obj)
+
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end):
     """
