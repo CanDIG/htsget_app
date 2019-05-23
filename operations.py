@@ -5,6 +5,7 @@ from tempfile import NamedTemporaryFile
 import os
 from flask import send_file
 
+LOCAL_FILE_PATH = "./data/files"
 
 def get_variants(id, ref = None, start = None, end = None):
     """ 
@@ -17,10 +18,10 @@ def get_variants(id, ref = None, start = None, end = None):
 
     if( len(result) != 0 ):
         if start is None:
-            start = _get_start(file_name, "variant")
+            start = _get_index("start", file_name, "variant")
             print(start)
         if end is None:
-            end = _get_end(file_name, "variant")
+            end = _get_index("end", file_name, "variant")
             print(end)
 
         partition_amt = 10000000
@@ -105,51 +106,41 @@ def _create_slices(partition_amt, id, ref, start, end):
 
     return urls
 
-def _get_end(file_name, file_type):
+def _get_index(position, file_name, file_type):
     """
-    Get the last index of a reads or variant file
+    Get the first or last index of a reads or variant file
 
-    :param id: name of file
+    :param position: Get either first or last index. 
+        Options: first - "start"
+                 last - "end"
+    :param file_name: name of file
     :param file_type: Read or Variant
     """
+    position = position.lower()
+    if position not in ["start", "end"]:
+        return "That position is not available"
+
     file_type = file_type.lower()
     if file_type not in ["variant", "read"]:
         return "That format is not available"
     
     file_in = 0
     if (file_type == "variant"):
-        file_in = VariantFile(f"./data/files/{file_name}", "r")
+        file_path = LOCAL_FILE_PATH + f"/{file_name}"
+        file_in = VariantFile(file_path, "r")
     elif (file_type == "read"):
-        file_in = AlignmentFile(f"./data/files/{file_name}", "r")
+        file_path = LOCAL_FILE_PATH + f"/{file_name}"
+        file_in = AlignmentFile(file_path, "r")
     
-    # get the last index of file
-    end = 0
-    for rec in file_in.fetch():
-        end = rec.pos
-
-    return end
-
-def _get_start(file_name, file_type):
-    """
-    Get the first index of a reads or variant file
-
-    :param id: name of file
-    :param file_type: Read or Variant
-    """
-    file_type = file_type.lower()
-    if file_type not in ["variant", "read"]:
-        return "That format is not available"
-    
-    file_in = 0
-    if (file_type == "variant"):
-        file_in = VariantFile(f"./data/files/{file_name}", "r")
-    elif (file_type == "read"):
-        file_in = AlignmentFile(f"./data/files/{file_name}", "r")
-    
-    # get the last index of file
-    start = 0
-    for rec in file_in.fetch():
-        start = rec.pos
-        break
-
-    return start
+    # get the required index
+    if position == "start":
+        start = 0
+        for rec in file_in.fetch():
+            start = rec.pos
+            break
+        return start
+    elif position == "end":       
+        end = 0
+        for rec in file_in.fetch():
+            end = rec.pos
+        return end
