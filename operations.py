@@ -82,7 +82,7 @@ def _execute(query, param_obj):
     return res
 
 def _get_file_by_id(id):
-    query = """SELECT * FROM  files WHERE file_name = (:id) LIMIT 1"""
+    query = """SELECT * FROM  files WHERE id = (:id) LIMIT 1"""
     param_obj = {'id': id}
     return _execute(query, param_obj)
 
