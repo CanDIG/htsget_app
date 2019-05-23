@@ -16,10 +16,10 @@ def get_variants(id, reference_name = None, start = None, end = None):
     Return URIs of variants
     """
 
-    result = _get_file_by_id(id)
-    file_name = result[0][0] + result[0][1]
+    file = _get_file_by_id(id)
+    file_name = file[0][0] + file[0][1]
 
-    if( len(result) != 0 ):
+    if( len(file) != 0 ):
         if start is None:
             start = _get_index("start", file_name, "variant")
         if end is None:
@@ -44,16 +44,25 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
     <- Only works for variants for now ->
     """
+    file = _get_file_by_id(id)
+    file_type = file[0][1]
+    file_format = file[0][2]
 
     ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=WRITE_FILES_PATH, mode='wb', delete=False)
 
-    vcf_in_path = './data/files/' + id + '.vcf.gz'
-    vcf_in = VariantFile(vcf_in_path)
-    vcf_out = VariantFile(ntf.name, 'w', header=vcf_in.header)
-    for rec in vcf_in.fetch(reference_name, start, end):
-        vcf_out.write(rec)
-    vcf_in.close()
-    vcf_out.close()
+    file_in_path = f"{LOCAL_FILES_PATH}/{id}{file_type}"
+    file_in = None
+    file_out = None
+    if file_format == "VCF" or file_format == "BCF": # Variants
+        file_in = VariantFile(file_in_path)
+        file_out = VariantFile(ntf.name, 'w', header=file_in.header)
+    elif file_format == "BAM" or file_format == "CRAM": # Reads
+        file_in = AlignmentFile(file_in_path)
+        file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
+    for rec in file_in.fetch(reference_name, start, end):
+        file_out.write(rec)
+    file_in.close()
+    file_out.close()
     
     # return send_file(ntf.name)
     buf_size = 1000000

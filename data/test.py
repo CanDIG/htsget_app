@@ -18,3 +18,4 @@ print(c.fetchall())
 
 conn.commit()
 conn.close()
+
