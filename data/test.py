@@ -1,28 +1,20 @@
-# def get_variants(id, start, end):
-#     urls = []
-#     partition_amt = 2 # 10 million
-#     partitions = int( (end - start) / partition_amt )
-#     if( partitions >= 1 and start != None and end != None ):
-#         slice_start = start
-#         slice_end = 0
-#         for i in range(partitions):
-#             slice_end = slice_start + partition_amt
-#             create_slice(urls, id, slice_start, slice_end)
-#             slice_start = slice_end
-#         create_slice(urls, id, slice_start, end)
-#     print(urls)
+import sqlite3
 
-# def create_slice(arr, id, slice_start, slice_end):
-#     host = "0.0.0.0:8080"
-#     url = f"http://{host}/data?={id}&start={slice_start}&end={slice_end}"
-#     arr.append({
-#         'url': url, 
-#         'start': slice_start,
-#         'end': slice_end
-#     })
-#     slice_start = slice_end
+conn = sqlite3.connect('files.db')
+c = conn.cursor()
 
-# get_variants('HG02102', 2, 13)
-file_types = ["Variant", "Read"]
-file = "Variant"
-print(file in file_types)
+# c.execute("""CREATE TABLE files (
+#             id text,
+#             file_type text,
+#             format text
+#             )""")
+
+c.execute("INSERT INTO files VALUES ('HG02102', '.vcf.gz', 'VCF')")
+c.execute("INSERT INTO files VALUES ('NA18537', '.vcf.gz', 'VCF')")
+c.execute("INSERT INTO files VALUES ('NA20787', '.vcf.gz', 'VCF')")
+
+c.execute("SELECT * FROM files")
+print(c.fetchall())
+
+conn.commit()
+conn.close()
