@@ -38,22 +38,19 @@ paths:
           description: return list of URIs
           schema:
             type: object
-            properties:    
-              format:
-                type: string
-              urls:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    url:
-                      type: string
-                    ref:
-                      type: string
-                    start:
-                      type: string
-                    end:
-                      type: string
+            properties:
+              htsget:
+                type: object
+                properties:
+                  format:
+                    type: string
+                  urls:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        url:
+                          type: string
 
   /data:
     get:
