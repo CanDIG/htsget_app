@@ -4,8 +4,12 @@ from pysam import VariantFile, AlignmentFile
 from tempfile import NamedTemporaryFile
 import os
 from flask import send_file
+import config
 
-LOCAL_FILE_PATH = "./data/files"
+LOCAL_FILES_PATH = config.local_files_path
+LOCAL_DB_PATH = config.local_db_path
+WRITE_FILES_PATH = config.write_files_path
+CHUNK_SIZE =  config.chunk_size
 
 def get_variants(id, ref = None, start = None, end = None):
     """ 
@@ -24,8 +28,7 @@ def get_variants(id, ref = None, start = None, end = None):
             end = _get_index("end", file_name, "variant")
             print(end)
 
-        partition_amt = 10000000
-        urls = _create_slices(partition_amt, id, ref, start, end)
+        urls = _create_slices(CHUNK_SIZE, id, ref, start, end)
         response = {
             'htsget': {
                 'format': 'VCF',
@@ -39,8 +42,13 @@ def get_variants(id, ref = None, start = None, end = None):
 
 def get_data(id, ref=None, format=None, start=None, end=None):
     # start = 17148269, end = 17157211, ref = 21
+    """
+    Returns the specified variant or read file
 
-    ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir='./data/write_files', mode='wb', delete=False)
+    <- Only works for variants for now ->
+    """
+
+    ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=WRITE_FILES_PATH, mode='wb', delete=False)
 
     vcf_in_path = './data/files/' + id + '.vcf.gz'
     vcf_in = VariantFile(vcf_in_path)
@@ -65,8 +73,7 @@ def _execute(query, param_obj):
     """
     Execute sql query
     """
-    db_path = './data/files.db'
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(LOCAL_DB_PATH)
     c = conn.cursor()
     c.execute(query, param_obj)
 
@@ -84,17 +91,17 @@ def _create_slice(arr, id, ref, slice_start, slice_end):
     url = f"http://{request.host}/data?id={id}&ref={ref}&start={slice_start}&end={slice_end}"
     arr.append({ 'url': url, })
 
-def _create_slices(partition_amt, id, ref, start, end):
+def _create_slices(chunk_size, id, ref, start, end):
     """
     Returns array of slices of URLs
     """
     urls = []
-    partitions = int( (end - start) / partition_amt )
+    partitions = int( (end - start) / chunk_size )
     slice_start = start
     slice_end = 0
     if( partitions >= 1 and start != None and end != None ):
         for i in range(partitions):
-            slice_end = slice_start + partition_amt
+            slice_end = slice_start + chunk_size
             _create_slice(urls, id, ref, slice_start, slice_end)
             slice_start = slice_end
         _create_slice(urls, id, ref, slice_start, end)
@@ -126,10 +133,10 @@ def _get_index(position, file_name, file_type):
     
     file_in = 0
     if (file_type == "variant"):
-        file_path = LOCAL_FILE_PATH + f"/{file_name}"
+        file_path = LOCAL_FILES_PATH + f"/{file_name}"
         file_in = VariantFile(file_path, "r")
     elif (file_type == "read"):
-        file_path = LOCAL_FILE_PATH + f"/{file_name}"
+        file_path = LOCAL_FILES_PATH + f"/{file_name}"
         file_in = AlignmentFile(file_path, "r")
     
     # get the required index
