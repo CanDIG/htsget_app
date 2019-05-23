@@ -89,7 +89,3 @@ paths:
             items:
               type: string
               format: binary
-
-
-
-          
