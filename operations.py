@@ -11,7 +11,7 @@ LOCAL_DB_PATH = config.local_db_path
 WRITE_FILES_PATH = config.write_files_path
 CHUNK_SIZE =  config.chunk_size
 
-def get_variants(id, ref = None, start = None, end = None):
+def get_variants(id, reference_name = None, start = None, end = None):
     """ 
     Return URIs of variants
     """
@@ -23,12 +23,10 @@ def get_variants(id, ref = None, start = None, end = None):
     if( len(result) != 0 ):
         if start is None:
             start = _get_index("start", file_name, "variant")
-            print(start)
         if end is None:
             end = _get_index("end", file_name, "variant")
-            print(end)
 
-        urls = _create_slices(CHUNK_SIZE, id, ref, start, end)
+        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
         response = {
             'htsget': {
                 'format': 'VCF',
@@ -40,8 +38,8 @@ def get_variants(id, ref = None, start = None, end = None):
         err = "No Variant found for id:" + id
         return err, 404
 
-def get_data(id, ref=None, format=None, start=None, end=None):
-    # start = 17148269, end = 17157211, ref = 21
+def get_data(id, reference_name=None, format=None, start=None, end=None):
+    # start = 17148269, end = 17157211, reference_name = 21
     """
     Returns the specified variant or read file
 
@@ -53,7 +51,7 @@ def get_data(id, ref=None, format=None, start=None, end=None):
     vcf_in_path = './data/files/' + id + '.vcf.gz'
     vcf_in = VariantFile(vcf_in_path)
     vcf_out = VariantFile(ntf.name, 'w', header=vcf_in.header)
-    for rec in vcf_in.fetch(ref, start, end):
+    for rec in vcf_in.fetch(reference_name, start, end):
         vcf_out.write(rec)
     vcf_in.close()
     vcf_out.close()
@@ -84,32 +82,32 @@ def _execute(query, param_obj):
 
     return res
 
-def _create_slice(arr, id, ref, slice_start, slice_end):
+def _create_slice(arr, id, reference_name, slice_start, slice_end):
     """
     Creates slice and appends it to array of urls (mutated)
     """
-    url = f"http://{request.host}/data?id={id}&ref={ref}&start={slice_start}&end={slice_end}"
+    url = f"http://{request.host}/data?id={id}&reference_name={reference_name}&start={slice_start}&end={slice_end}"
     arr.append({ 'url': url, })
 
-def _create_slices(chunk_size, id, ref, start, end):
+def _create_slices(chunk_size, id, reference_name, start, end):
     """
     Returns array of slices of URLs
     """
     urls = []
-    partitions = int( (end - start) / chunk_size )
+    chunks = int( (end - start) / chunk_size )
     slice_start = start
     slice_end = 0
-    if( partitions >= 1 and start != None and end != None ):
-        for i in range(partitions):
+    if( chunks >= 1 and start != None and end != None ):
+        for i in range(chunks):
             slice_end = slice_start + chunk_size
-            _create_slice(urls, id, ref, slice_start, slice_end)
+            _create_slice(urls, id, reference_name, slice_start, slice_end)
             slice_start = slice_end
-        _create_slice(urls, id, ref, slice_start, end)
+        _create_slice(urls, id, reference_name, slice_start, end)
     else: # One slice
         url = f"http://{request.host}/data?id={id}"
-        if( ref is not None ):
-            url += f"&ref={ref}"
-        urls.append({ "url": url})
+        if( reference_name is not None ):
+            url += f"&reference_name={reference_name}"
+        urls.append({ "url": url })
 
     return urls
 

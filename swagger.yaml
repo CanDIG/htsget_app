@@ -18,7 +18,7 @@ paths:
           required: true
           type: string
           x-example: "HG02102"
-        - name: ref
+        - name: reference_name
           in: query
           type: integer
           required: false
