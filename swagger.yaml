@@ -8,6 +8,49 @@ consumes:
 produces:
   - application/json
 paths:
+  /reads:
+    get:
+      operationId: "operations.get_reads"
+      summary: "Retrieve desired URIs in a variant format given an ID"
+      parameters:
+        - name: id
+          in: query
+          required: true
+          type: string
+          x-example: "HG02102"
+        - name: reference_name
+          in: query
+          type: integer
+          required: false
+          x-example: 21
+        - name: start
+          in: query
+          type: integer
+          required: false
+          x-example: 0
+        - name: end
+          in: query
+          type: integer
+          required: false
+          x-example: 10,000,000
+      responses:
+        "200":
+          description: return list of URIs
+          schema:
+            type: object
+            properties:
+              htsget:
+                type: object
+                properties:
+                  format:
+                    type: string
+                  urls:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        url:
+                          type: string
   /variants:
     get:
       operationId: "operations.get_variants"

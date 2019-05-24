@@ -1,4 +1,4 @@
-from pysam import VariantFile
+from pysam import VariantFile, AlignmentFile
 from tempfile import NamedTemporaryFile
 
 ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir='./write_files',
@@ -9,17 +9,8 @@ print(ntf.name)
 vcf_in = VariantFile('./files/NA18537.vcf.gz')
 vcf_out = VariantFile(ntf.name, 'w', header=vcf_in.header)
 
-start = 0
-for rec in vcf_in.fetch(contig='21'):
-  start = rec.pos
-  break
-print(start)
+bam_in = AlignmentFile("./files/NA02102.bam", "rb")
+for x in bam_in.fetch("chr4", 10144, 10200):
+  print(x)
 
-end = 0
-for rec in vcf_in.fetch(contig='21', start=27148269):
-    end = rec.pos
-    # vcf_out.write(rec)
-
-print(end)
-
-
+# print(test)

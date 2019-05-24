@@ -11,6 +11,34 @@ LOCAL_DB_PATH = config.local_db_path
 WRITE_FILES_PATH = config.write_files_path
 CHUNK_SIZE =  config.chunk_size
 
+def get_reads(id, reference_name = None, start = None, end = None):
+    """
+    Return URIs of variants
+    """
+    file = _get_file_by_id(id)
+    file_name = file[0][0] + file[0][1]
+    file_format = file[0][2]
+
+    if( len(file) != 0 ):
+        if start is None:
+            start = _get_index("start", file_name, "read")
+            print("start: " + start)
+        if end is None:
+            end = _get_index("end", file_name, "read")
+            print("end: " + end)
+
+        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
+        response = {
+            'htsget': {
+                'format': file_format,
+                'urls': urls 
+                }
+            }
+        return response, 200
+    else:
+        err = "No Read found for id:" + id
+        return err, 404
+
 def get_variants(id, reference_name = None, start = None, end = None):
     """ 
     Return URIs of variants
@@ -18,6 +46,7 @@ def get_variants(id, reference_name = None, start = None, end = None):
 
     file = _get_file_by_id(id)
     file_name = file[0][0] + file[0][1]
+    file_format = file[0][2]
 
     if( len(file) != 0 ):
         if start is None:
@@ -28,7 +57,7 @@ def get_variants(id, reference_name = None, start = None, end = None):
         urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
         response = {
             'htsget': {
-                'format': 'VCF',
+                'format': file_format,
                 'urls': urls 
                 }
             }
@@ -41,8 +70,6 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
     # start = 17148269, end = 17157211, reference_name = 21
     """
     Returns the specified variant or read file
-
-    <- Only works for variants for now ->
     """
     file = _get_file_by_id(id)
     file_type = file[0][1]
@@ -57,6 +84,7 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         file_in = VariantFile(file_in_path)
         file_out = VariantFile(ntf.name, 'w', header=file_in.header)
     elif file_format == "BAM" or file_format == "CRAM": # Reads
+        reference_name = f"chr{reference_name}"
         file_in = AlignmentFile(file_in_path)
         file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
     for rec in file_in.fetch(reference_name, start, end):

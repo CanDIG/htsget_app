@@ -9,9 +9,7 @@ c = conn.cursor()
 #             format text
 #             )""")
 
-c.execute("INSERT INTO files VALUES ('HG02102', '.vcf.gz', 'VCF')")
-c.execute("INSERT INTO files VALUES ('NA18537', '.vcf.gz', 'VCF')")
-c.execute("INSERT INTO files VALUES ('NA20787', '.vcf.gz', 'VCF')")
+c.execute("INSERT INTO files VALUES ('NA02102', '.bam', 'BAM')")
 
 c.execute("SELECT * FROM files")
 print(c.fetchall())
