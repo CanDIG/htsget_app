@@ -13,8 +13,9 @@ CHUNK_SIZE =  config.chunk_size
 
 def get_reads(id, reference_name = None, start = None, end = None):
     """
-    Return URIs of variants
+    Return URIs of reads
     """
+
     file = _get_file_by_id(id)
     file_name = file[0][0] + file[0][1]
     file_format = file[0][2]
@@ -22,10 +23,8 @@ def get_reads(id, reference_name = None, start = None, end = None):
     if( len(file) != 0 ):
         if start is None:
             start = _get_index("start", file_name, "read")
-            print("start: " + start)
         if end is None:
             end = _get_index("end", file_name, "read")
-            print("end: " + end)
 
         urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
         response = {
@@ -70,6 +69,8 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
     # start = 17148269, end = 17157211, reference_name = 21
     """
     Returns the specified variant or read file
+
+    notes: perhaps file_type should be added into the URL to avoid querying the file twice
     """
     file = _get_file_by_id(id)
     file_type = file[0][1]
@@ -172,10 +173,10 @@ def _get_index(position, file_name, file_type):
         return "That format is not available"
     
     file_in = 0
-    if (file_type == "variant"):
+    if file_type == "variant":
         file_path = LOCAL_FILES_PATH + f"/{file_name}"
         file_in = VariantFile(file_path, "r")
-    elif (file_type == "read"):
+    elif file_type == "read":
         file_path = LOCAL_FILES_PATH + f"/{file_name}"
         file_in = AlignmentFile(file_path, "r")
     
