@@ -19,71 +19,29 @@ def get_reads(id, reference_name = None, start = None, end = None):
     """
     Return URIs of reads
     """
+    obj = {}
+    if FILE_RETRIEVAL == "db":
+        obj = _get_urls_db("read", id, reference_name, start, end)
+    elif FILE_RETRIEVAL == "drs":
+        obj = _get_urls_drs("read", id, reference_name, start, end)
 
-    file = _get_file_by_id(id)
-    file_name = file[0][0] + file[0][1]
-    file_format = file[0][2]
-
-    if( len(file) != 0 ):
-        if start is None:
-            start = _get_index("start", file_name, "read")
-        if end is None:
-            end = _get_index("end", file_name, "read")
-
-        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
-        response = {
-            'htsget': {
-                'format': file_format,
-                'urls': urls 
-                }
-            }
-        return response, 200
-    else:
-        err = "No Read found for id:" + id
-        return err, 404
+    response = obj["response"]
+    http_status_code = obj["http_status_code"]
+    return response, http_status_code
 
 def get_variants(id, reference_name = None, start = None, end = None):
     """ 
     Return URIs of variants
     """
-
-    file_exists = False
-    file_format = ""
-    if  FILE_RETRIEVAL == "sql":
-        print("sql")
-        file = _get_file_by_id(id) # returns an array of tuples
-        file_name = file[0][0] + file[0][1]
-        file_format = file[0][2]
-        file_exists = len(file) != 0 
+    obj = {}
+    if FILE_RETRIEVAL == "db":
+        obj = _get_urls_db("variant", id, reference_name, start, end)
     elif FILE_RETRIEVAL == "drs":
-        print("drs retrieval")
-        client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
-        c = client.client
-        try:
-            response = c.GetDataObject(data_object_id='na12878_2').result()
-            file_exists = True
-            file_format = "VCF" # hardcode for now
-        except:
-            file_exists = False
-            print("file not found")
+        obj = _get_urls_drs("variant", id, reference_name, start, end)
     
-    if file_exists:
-        if start is None:
-            start = _get_index("start", file_name, "variant")
-        if end is None:
-            end = _get_index("end", file_name, "variant")
-
-        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
-        response = {
-            'htsget': {
-                'format': file_format,
-                'urls': urls 
-                }
-            }
-        return response, 200
-    else:
-        err = "No Variant found for id:" + id
-        return err, 404
+    response = obj["response"]
+    http_status_code = obj["http_status_code"]
+    return response, http_status_code
 
 def get_data(id, reference_name=None, format=None, start=None, end=None):
     # start = 17148269, end = 17157211, reference_name = 21
@@ -99,7 +57,7 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         file_type = file[0][1]
         file_format = file[0][2]
     elif FILE_RETRIEVAL == "drs":
-        print(getting drs data)
+        print("getting DRS data")
 
     ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=WRITE_FILES_PATH, mode='wb', delete=False)
 
@@ -180,7 +138,7 @@ def _create_slices(chunk_size, id, reference_name, start, end):
 
     return urls
 
-def _get_urls(file_type):
+def _get_urls(file_type, id, reference_name = None, start = None, end = None):
     """
     Get urls for reads or variants
 
@@ -194,9 +152,10 @@ def _get_urls(file_type):
     if  FILE_RETRIEVAL == "sql":
         print("sql")
         file = _get_file_by_id(id) # returns an array of tuples
-        file_name = file[0][0] + file[0][1]
-        file_format = file[0][2]
         file_exists = len(file) != 0 
+        if file_exists:
+            file_name = file[0][0] + file[0][1]
+            file_format = file[0][2]
     elif FILE_RETRIEVAL == "drs":
         print("drs retrieval")
         client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
@@ -222,14 +181,72 @@ def _get_urls(file_type):
                 'urls': urls 
                 }
             }
-        return {"response": response, "status": 200}
+        return {"response": response, "http_status_code": 200}
     else:
-        err = "No {file_type} found for id:" + id
-        return {"response": err, "status": 404}
+        err = f"No {file_type} found for id: {id}" 
+        return {"response": err, "http_status_code": 404}
+
+def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None):
+    file_exists = False
+    client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
+    c = client.client
+    try:
+        response = c.GetDataObject(data_object_id='na12878_2').result() #hardcoded for testing
+        file_exists = True
+        file_format = "VCF" # hardcode for now
+    except:
+        file_exists = False
+        print("file not found") 
+
+    if file_exists:
+        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
+        response = {
+            'htsget': {
+                'format': file_format,
+                'urls': urls 
+                }
+            }
+        return {"response": response, "http_status_code": 200}
+    else:
+        err = f"No {file_type} found for id: {id}" 
+        return {"response": err, "http_status_code": 404}
+
+def _get_urls_db(file_type, id, reference_name = None, start = None, end = None):
+    """
+    Get urls for reads or variants
+
+    :param file_type: "read" or "variant"
+    """
+    if file_type not in ["variant", "read"]:
+        raise ValueError("File type must be 'variant' or 'read'")
+
+    file = _get_file_by_id(id) # returns an array of tuples
+    file_exists = len(file) != 0 
+    if file_exists:
+        file_name = file[0][0] + file[0][1]
+        file_format = file[0][2]
+
+        if start is None:
+            start = _get_index("start", file_name, file_type)
+        if end is None:
+            end = _get_index("end", file_name, file_type)
+
+        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
+        response = {
+            'htsget': {
+                'format': file_format,
+                'urls': urls 
+                }
+            }
+        return {"response": response, "http_status_code": 200}
+    else:
+        err = f"No {file_type} found for id: {id}" 
+        return {"response": err, "http_status_code": 404}
 
 def _get_index(position, file_name, file_type):
     """
-    Get the first or last index of a reads or variant file
+    Get the first or last index of a reads or variant file.
+    File must be stored locally
 
     :param position: Get either first or last index. 
         Options: first - "start"

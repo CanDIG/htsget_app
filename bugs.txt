@@ -1,0 +1,4 @@
+1. If using DRS and user does not specify a start/end, program will 
+crash since it has to parse the file using pysam to find the index
+    - Potential Fixes
+        - Create two separate functions _get_urls_db and _get_urls_drs
