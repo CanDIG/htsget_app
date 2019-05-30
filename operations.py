@@ -2,14 +2,18 @@ import sqlite3
 from flask import request
 from pysam import VariantFile, AlignmentFile
 from tempfile import NamedTemporaryFile
+from ga4gh.dos.client import Client
 import os
 from flask import send_file
+from minio import Minio
+from minio.error import (ResponseError, BucketAlreadyOwnedByYou,BucketAlreadyExists)
 import config
 
 LOCAL_FILES_PATH = config.local_files_path
 LOCAL_DB_PATH = config.local_db_path
 WRITE_FILES_PATH = config.write_files_path
 CHUNK_SIZE =  config.chunk_size
+FILE_RETRIEVAL = config.file_retrieval
 
 def get_reads(id, reference_name = None, start = None, end = None):
     """
@@ -43,11 +47,28 @@ def get_variants(id, reference_name = None, start = None, end = None):
     Return URIs of variants
     """
 
-    file = _get_file_by_id(id)
-    file_name = file[0][0] + file[0][1]
-    file_format = file[0][2]
+    file_exists = False
+    file_format = ""
+    if  FILE_RETRIEVAL == "sql":
+        print("sql")
+        file = _get_file_by_id(id) # returns an array of tuples
+        file_name = file[0][0] + file[0][1]
+        file_format = file[0][2]
+        file_exists = len(file) != 0 
+    elif FILE_RETRIEVAL == "drs":
+        print("drs retrieval")
+        client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
+        c = client.client
+        try:
+            response = c.GetDataObject(data_object_id='na12878_2').result()
+            file_exists = True
+            file_format = "VCF" # hardcode for now
+        except:
+            file_exists = False
+            print("file not found")
+    
 
-    if( len(file) != 0 ):
+    if file_exists:
         if start is None:
             start = _get_index("start", file_name, "variant")
         if end is None:

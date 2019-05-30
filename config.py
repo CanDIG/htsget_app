@@ -4,4 +4,4 @@ local_files_path = './data/files'
 write_files_path = './data/write_files'
 chunk_size = 10000000
 buf_size = 1000000
-file_setting = "drs" # pick from ["sqlite", "drs"]
+file_retrieval = "drs" # pick from ["sqlite", "drs"]
