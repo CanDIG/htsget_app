@@ -10,13 +10,13 @@ minioClient = Minio('play.min.io:9000',
 
 
 try:
-    minioClient.fput_object('test', 'NA18537', './files/NA18537.vcf.gz')
+    minioClient.fput_object('test', 'NA18537.vcf.gz', './files/NA18537.vcf.gz')
 except ResponseError as err:
     print(err)
 
 # try:
-#     data = minioClient.fget_object('test', 'HG02102', './files/test.vcf.gz')
-#     print(data)
+#     data = minioClient.fget_object('test', 'NA18537', './files/test.vcf.gz')
+#     print(data.object_name)
 # except ResponseError as err:
 #     print(err)
 

@@ -180,6 +180,53 @@ def _create_slices(chunk_size, id, reference_name, start, end):
 
     return urls
 
+def _get_urls(file_type):
+    """
+    Get urls for reads or variants
+
+    :param file_type: "read" or "variant"
+    """
+    if file_type not in ["variant", "read"]:
+        raise ValueError("File type must be 'variant' or 'read'")
+
+    file_exists = False
+    file_format = ""
+    if  FILE_RETRIEVAL == "sql":
+        print("sql")
+        file = _get_file_by_id(id) # returns an array of tuples
+        file_name = file[0][0] + file[0][1]
+        file_format = file[0][2]
+        file_exists = len(file) != 0 
+    elif FILE_RETRIEVAL == "drs":
+        print("drs retrieval")
+        client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
+        c = client.client
+        try:
+            response = c.GetDataObject(data_object_id='na12878_2').result()
+            file_exists = True
+            file_format = "VCF" # hardcode for now
+        except:
+            file_exists = False
+            print("file not found")
+    
+    if file_exists:
+        if start is None:
+            start = _get_index("start", file_name, file_type)
+        if end is None:
+            end = _get_index("end", file_name, file_type)
+
+        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
+        response = {
+            'htsget': {
+                'format': file_format,
+                'urls': urls 
+                }
+            }
+        return {"response": response, "status": 200}
+    else:
+        err = "No {file_type} found for id:" + id
+        return {"response": err, "status": 404}
+
 def _get_index(position, file_name, file_type):
     """
     Get the first or last index of a reads or variant file
@@ -219,9 +266,11 @@ def _get_index(position, file_name, file_type):
             end = rec.pos
         return end
 
-def _download_minio_file(id):
+def _download_minio_file(file_name):
     """
     Download required file from minio
+
+    - When do we delete the downloaded file?
     """
     minioClient = Minio('play.min.io:9000',
                     access_key='Q3AM3UQ867SPQQA43P2F',
@@ -240,6 +289,6 @@ def _download_minio_file(id):
 
     # download the required file into file_path
     try:
-        minioClient.fget_object(bucket, id, file_path)
+        minioClient.fget_object(bucket, file_name, file_path)
     except ResponseError as err:
         print(err)

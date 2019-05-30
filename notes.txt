@@ -1,0 +1,2 @@
+GETTING FILE INDEX: Algorithmn to find the last index of a file could be intensive for large files
+
