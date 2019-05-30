@@ -9,16 +9,16 @@ minioClient = Minio('play.min.io:9000',
                     secure=True)
 
 
-# try:
-#     minioClient.fput_object('test', 'HG02102', './files/HG02102.vcf.gz')
-# except ResponseError as err:
-#     print(err)
-
 try:
-    data = minioClient.fget_object('test', 'HG02102', './files/test.vcf.gz')
-    print(data)
+    minioClient.fput_object('test', 'NA18537', './files/NA18537.vcf.gz')
 except ResponseError as err:
     print(err)
+
+# try:
+#     data = minioClient.fget_object('test', 'HG02102', './files/test.vcf.gz')
+#     print(data)
+# except ResponseError as err:
+#     print(err)
 
 # Make a bucket with the make_bucket API call.
 # try:

@@ -67,7 +67,6 @@ def get_variants(id, reference_name = None, start = None, end = None):
             file_exists = False
             print("file not found")
     
-
     if file_exists:
         if start is None:
             start = _get_index("start", file_name, "variant")
@@ -93,9 +92,14 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
     notes: perhaps file_type should be added into the URL to avoid querying the file twice
     """
-    file = _get_file_by_id(id)
-    file_type = file[0][1]
-    file_format = file[0][2]
+    file_type = ""
+    file_format = ""
+    if FILE_RETRIEVAL == "sql":
+        file = _get_file_by_id(id)
+        file_type = file[0][1]
+        file_format = file[0][2]
+    elif FILE_RETRIEVAL == "drs":
+        print(getting drs data)
 
     ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=WRITE_FILES_PATH, mode='wb', delete=False)
 
@@ -118,6 +122,7 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
     buf_size = 1000000
     with open(ntf.name, 'rb') as f:
         data = f.read(buf_size)
+        print(ntf.name)
         os.remove(ntf.name)
         return data, 200
     
@@ -213,3 +218,28 @@ def _get_index(position, file_name, file_type):
         for rec in file_in.fetch():
             end = rec.pos
         return end
+
+def _download_minio_file(id):
+    """
+    Download required file from minio
+    """
+    minioClient = Minio('play.min.io:9000',
+                    access_key='Q3AM3UQ867SPQQA43P2F',
+                    secret_key='zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG',
+                    secure=True)
+
+    file_path = f"{LOCAL_FILES_PATH}/test.vcf.gz" # path to download the file
+    bucket = 'test'
+
+    # Create the file
+    try:
+        f = open(file_path, "x")
+        f.close()
+    except:
+        print("File already exists")
+
+    # download the required file into file_path
+    try:
+        minioClient.fget_object(bucket, id, file_path)
+    except ResponseError as err:
+        print(err)
