@@ -50,6 +50,9 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
     notes: perhaps file_type should be added into the URL to avoid querying the file twice
     """
+
+    # how to get file name? - make a query to drs based on ID
+
     file_type = ""
     file_format = ""
     if FILE_RETRIEVAL == "sql":
@@ -287,6 +290,17 @@ def _get_index(position, file_name, file_type):
         for rec in file_in.fetch():
             end = rec.pos
         return end
+
+def _get_file_name(id):
+    """
+    Make query to DRS to get all file names associated to ID
+    """
+    client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
+    c = client.client
+    models = client.models
+
+    response = c.GetDataObject(data_object_id='na12878_2').result()
+    
 
 def _download_minio_file(file_name):
     """
