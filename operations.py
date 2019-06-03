@@ -130,7 +130,7 @@ def _create_slices(chunk_size, id, reference_name, start, end):
             _create_slice(urls, id, reference_name, slice_start, slice_end)
             slice_start = slice_end
         _create_slice(urls, id, reference_name, slice_start, end)
-    else: # One slice
+    else: # One slice only
         url = f"http://{request.host}/data?id={id}"
         if( reference_name is not None ):
             url += f"&reference_name={reference_name}"
@@ -187,8 +187,13 @@ def _get_urls(file_type, id, reference_name = None, start = None, end = None):
         return {"response": err, "http_status_code": 404}
 
 def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None):
+    """
+    Return a list of URLS for Read or Variant from a given ID using DRS 
+    """
+
     file_exists = False
-    client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
+    url = "http://0.0.0.0:8080/ga4gh/dos/v1/"
+    client = Client(url)
     c = client.client
     try:
         response = c.GetDataObject(data_object_id='na12878_2').result() #hardcoded for testing
@@ -213,7 +218,7 @@ def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None
 
 def _get_urls_db(file_type, id, reference_name = None, start = None, end = None):
     """
-    Get urls for reads or variants
+    Return a list of URLS for Read or Variant from a given ID using sqlite database
 
     :param file_type: "read" or "variant"
     """
@@ -285,7 +290,7 @@ def _get_index(position, file_name, file_type):
 
 def _download_minio_file(file_name):
     """
-    Download required file from minio
+    Download file from minio
 
     - When do we delete the downloaded file?
     """
