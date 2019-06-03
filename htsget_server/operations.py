@@ -10,7 +10,7 @@ from minio.error import ResponseError
 import configparser
 
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read('./config.ini')
 
 LOCAL_FILES_PATH = config['paths']['LocalFilesPath']
 LOCAL_DB_PATH = config['paths']['LocalDBPath']
@@ -18,6 +18,9 @@ TEMPORARY_FILES_PATH = config['paths']['TemporaryFilesPath']
 CHUNK_SIZE =  int( config['DEFAULT']['ChunkSize'] )
 FILE_RETRIEVAL = config['DEFAULT']['FileRetrieval']
 DRS_URL = config['paths']['DRSPath']
+MINIO_END_POINT = config['minio']['EndPoint']
+MINIO_ACCESS_KEY = config['minio']['AccessKey']
+MINIO_SECRET_KEY = config['minio']['SecretKey']
 
 def get_reads(id, reference_name = None, start = None, end = None):
     """
@@ -26,7 +29,7 @@ def get_reads(id, reference_name = None, start = None, end = None):
     obj = {}
     if FILE_RETRIEVAL == "db":
         obj = _get_urls_db("read", id, reference_name, start, end)
-    elif FILE_RETRIEVAL == "drs":
+    elif FILE_RETRIEVAL == "minio":
         obj = _get_urls_drs("read", id, reference_name, start, end)
 
     response = obj["response"]
@@ -40,7 +43,7 @@ def get_variants(id, reference_name = None, start = None, end = None):
     obj = {}
     if FILE_RETRIEVAL == "db":
         obj = _get_urls_db("variant", id, reference_name, start, end)
-    elif FILE_RETRIEVAL == "drs":
+    elif FILE_RETRIEVAL == "minio":
         obj = _get_urls_drs("variant", id, reference_name, start, end)
     
     response = obj["response"]
@@ -59,15 +62,14 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
     file_name = ""
     file_format = ""
-    if FILE_RETRIEVAL == "sql":
+    if FILE_RETRIEVAL == "db":
         file = _get_file_by_id(id)
         file_extension = file[0][1]
         file_format = file[0][2]
         file_name = f"{id}{file_extension}"
-    elif FILE_RETRIEVAL == "drs":
-        print("getting DRS data")
+    elif FILE_RETRIEVAL == "minio":
         file_name = _get_file_name(id)
-        file_format = "VCF"
+        file_format = "VCF" #hardcoded for now
         _download_minio_file(file_name)
         
     ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
@@ -135,7 +137,7 @@ def _create_slices(chunk_size, id, reference_name, start, end):
     chunks = int( (end - start) / chunk_size )
     slice_start = start
     slice_end = 0
-    if( chunks >= 1 and start != None and end != None ):
+    if chunks >= 1 and start != None and end != None:
         for i in range(chunks):
             slice_end = slice_start + chunk_size
             _create_slice(urls, id, reference_name, slice_start, slice_end)
@@ -158,12 +160,11 @@ def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None
     client = Client(DRS_URL)
     c = client.client
     try:
-        response = c.GetDataObject(data_object_id=id).result() #hardcoded for testing
+        response = c.GetDataObject(data_object_id = id).result() 
         file_exists = True
         file_format = "VCF" # hardcode for now
     except:
         file_exists = False
-        print("file not found") 
 
     if file_exists:
         urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
@@ -268,13 +269,13 @@ def _download_minio_file(file_name):
     - When do we delete the downloaded file?
     - assume indexed file is stored in minio and DRS
     """
-    minioClient = Minio('play.min.io:9000',
-                    access_key='Q3AM3UQ867SPQQA43P2F',
-                    secret_key='zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG',
-                    secure=True)
+    minioClient = Minio(MINIO_END_POINT,
+                        access_key = MINIO_ACCESS_KEY,
+                        secret_key = MINIO_SECRET_KEY,
+                        secure = True)
 
     file_path = f"{LOCAL_FILES_PATH}/{file_name}" # path to download the file
-    file_name_indexed = file_name + ".tbi"
+    file_name_indexed = file_name + ".tbi" # hard coded
     file_path_indexed = f"{LOCAL_FILES_PATH}/{file_name_indexed}" # path to download indexed file
     bucket = 'test'
 

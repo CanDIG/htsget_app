@@ -3,7 +3,7 @@ import connexion
 import configparser
 
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read('./config.ini')
 
 # Create the application instance
 app = connexion.App(__name__, specification_dir='./')

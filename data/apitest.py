@@ -23,20 +23,20 @@ DataObject = models.get_model('DataObject')
 Checksum = models.get_model('Checksum')
 URL = models.get_model('URL')
 
-# NA18537_2 = DataObject()
-# NA18537_2.id = 'NA18537'
-# NA18537_2.name = 'NA18537.vcf.gz.tbi'
-# NA18537_2.checksums = [
-#     Checksum(checksum='eaf80af5e9e54db5936578bed06ffcdc', type='md5')]
-# NA18537_2.urls = [
-#     URL(
-#         url="http://minio:9000/candig/reads/BroadHiSeqX_b37/NA12878",
-#         system_metadata={'reference_name': 2, 'start': 1000, 'end': 20000})]
-# NA18537_2.aliases = ['NA12878 chr 2 subset']
-# NA18537_2.size = '555749'
-# NA18537_2.created = d_with_timezone
+NA18537 = DataObject()
+NA18537.id = 'NA18537'
+NA18537.name = 'NA18537.vcf.gz'
+NA18537.checksums = [
+    Checksum(checksum='eaf80af5e9e54db5936578bed06ffcdc', type='md5')]
+NA18537.urls = [
+    URL(
+        url="http://minio:9000/candig/reads/BroadHiSeqX_b37/NA12878",
+        system_metadata={'reference_name': 2, 'start': 1000, 'end': 20000})]
+NA18537.aliases = ['NA12878 chr 2 subset']
+NA18537.size = '555749'
+NA18537.created = d_with_timezone
 
-# c.CreateDataObject(body={'data_object': NA18537_2}).result()
+c.CreateDataObject(body={'data_object': NA18537}).result()
 
 response = c.GetDataObject(data_object_id='NA18537').result()
 
