@@ -24,7 +24,12 @@ MINIO_SECRET_KEY = config['minio']['SecretKey']
 
 def get_reads(id, reference_name = None, start = None, end = None):
     """
-    Return URIs of reads
+    Return URIs of reads:
+
+    :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
+    :param reference_name: Chromesome Number
+    :param start: Index of file to begin at
+    :param end: Index of file to end at
     """
     obj = {}
     if FILE_RETRIEVAL == "db":
@@ -38,7 +43,12 @@ def get_reads(id, reference_name = None, start = None, end = None):
 
 def get_variants(id, reference_name = None, start = None, end = None):
     """ 
-    Return URIs of variants
+    Return URIs of variants:
+
+    :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
+    :param reference_name: Chromesome Number
+    :param start: Index of file to begin at
+    :param end: Index of file to end at
     """
     obj = {}
     if FILE_RETRIEVAL == "db":
@@ -53,9 +63,12 @@ def get_variants(id, reference_name = None, start = None, end = None):
 def get_data(id, reference_name=None, format=None, start=None, end=None):
     # start = 17148269, end = 17157211, reference_name = 21
     """
-    Returns the specified variant or read file
+    Returns the specified variant or read file:
 
-    notes: perhaps file_type should be added into the URL to avoid querying the file twice
+    :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
+    :param reference_name: Chromesome Number
+    :param start: Index of file to begin at
+    :param end: Index of file to end at
     """
 
     # how to get file name? - make a query to drs based on ID
