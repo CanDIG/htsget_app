@@ -8,4 +8,4 @@ Options for dealing wiht indexed files
 -Always store indexed file in the same S3 bucket
 
 1) the format and file extension are stored in the data_object in DRS
-2) Query all data objects with the same "id"
+

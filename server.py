@@ -1,6 +1,9 @@
 from flask import Flask
 import connexion
-import config
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 # Create the application instance
 app = connexion.App(__name__, specification_dir='./')
@@ -12,4 +15,4 @@ def index():
     return 'INDEX'
 
 if __name__ == '__main__':
-    app.run(port = config.port, debug=True)
+    app.run(port = config['DEFAULT']['Port'], debug=True)

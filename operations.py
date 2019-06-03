@@ -6,14 +6,18 @@ from ga4gh.dos.client import Client
 import os
 from flask import send_file
 from minio import Minio
-from minio.error import (ResponseError, BucketAlreadyOwnedByYou,BucketAlreadyExists)
-import config
+from minio.error import ResponseError
+import configparser
 
-LOCAL_FILES_PATH = config.local_files_path
-LOCAL_DB_PATH = config.local_db_path
-WRITE_FILES_PATH = config.write_files_path
-CHUNK_SIZE =  config.chunk_size
-FILE_RETRIEVAL = config.file_retrieval
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+LOCAL_FILES_PATH = config['paths']['LocalFilesPath']
+LOCAL_DB_PATH = config['paths']['LocalDBPath']
+TEMPORARY_FILES_PATH = config['paths']['TemporaryFilesPath']
+CHUNK_SIZE =  int( config['DEFAULT']['ChunkSize'] )
+FILE_RETRIEVAL = config['DEFAULT']['FileRetrieval']
+DRS_URL = config['paths']['DRSPath']
 
 def get_reads(id, reference_name = None, start = None, end = None):
     """
@@ -66,7 +70,7 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         file_format = "VCF"
         _download_minio_file(file_name)
         
-    ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=WRITE_FILES_PATH, mode='wb', delete=False)
+    ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
 
     file_in_path = f"{LOCAL_FILES_PATH}/{file_name}"
     file_in = None
@@ -145,62 +149,13 @@ def _create_slices(chunk_size, id, reference_name, start, end):
 
     return urls
 
-def _get_urls(file_type, id, reference_name = None, start = None, end = None):
-    """
-    Get urls for reads or variants
-
-    :param file_type: "read" or "variant"
-    """
-    if file_type not in ["variant", "read"]:
-        raise ValueError("File type must be 'variant' or 'read'")
-
-    file_exists = False
-    file_format = ""
-    if  FILE_RETRIEVAL == "sql":
-        print("sql")
-        file = _get_file_by_id(id) # returns an array of tuples
-        file_exists = len(file) != 0 
-        if file_exists:
-            file_name = file[0][0] + file[0][1]
-            file_format = file[0][2]
-    elif FILE_RETRIEVAL == "drs":
-        print("drs retrieval")
-        client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
-        c = client.client
-        try:
-            response = c.GetDataObject(data_object_id='na12878_2').result()
-            file_exists = True
-            file_format = "VCF" # hardcode for now
-        except:
-            file_exists = False
-            print("file not found")
-    
-    if file_exists:
-        if start is None:
-            start = _get_index("start", file_name, file_type)
-        if end is None:
-            end = _get_index("end", file_name, file_type)
-
-        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
-        response = {
-            'htsget': {
-                'format': file_format,
-                'urls': urls 
-                }
-            }
-        return {"response": response, "http_status_code": 200}
-    else:
-        err = f"No {file_type} found for id: {id}" 
-        return {"response": err, "http_status_code": 404}
-
 def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None):
     """
-    Return a list of URLS for Read or Variant from a given ID using DRS 
+    Return a list of URLS for Read or Variant from a given ID 
     """
 
     file_exists = False
-    url = "http://0.0.0.0:8080/ga4gh/dos/v1/"
-    client = Client(url)
+    client = Client(DRS_URL)
     c = client.client
     try:
         response = c.GetDataObject(data_object_id=id).result() #hardcoded for testing
@@ -299,7 +254,7 @@ def _get_file_name(id):
     """
     Make query to DRS to get all file names associated to ID
     """
-    client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
+    client = Client(DRS_URL)
     c = client.client
 
     # assume id will be NA18537
@@ -331,7 +286,8 @@ def _download_minio_file(file_name):
         f = open(file_path_indexed, "x")
         f.close()
     except:
-        print("File already exists")
+        # File already exists, do nothing
+        pass
 
     # download the required file into file_path
     try:
