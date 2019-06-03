@@ -117,6 +117,9 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 def _execute(query, param_obj):
     """
     Execute sql query
+
+    :param query: The SQL query string
+    :param param_obj: The parameter object passed to the query ( e.g. {'id': id} )
     """
     conn = sqlite3.connect(LOCAL_DB_PATH)
     c = conn.cursor()
@@ -130,6 +133,11 @@ def _execute(query, param_obj):
     return res
 
 def _get_file_by_id(id):
+    """
+    Returns an array of tuples of a file based on ID
+
+    :param id: The id of the file
+    """
     query = """SELECT * FROM  files WHERE id = (:id) LIMIT 1"""
     param_obj = {'id': id}
     return _execute(query, param_obj)
@@ -137,7 +145,13 @@ def _get_file_by_id(id):
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end):
     """
-    Creates slice and appends it to array of urls (mutated)
+    Creates slice and appends it to array of urls
+
+    :param arr: The array to store urls
+    :param id: ID of the file
+    :param reference_name: The Chromosome number
+    :param slice_start: Starting index of a slice
+    :param slice_end: Ending index of a slice
     """
     url = f"http://{request.host}/data?id={id}&reference_name={reference_name}&start={slice_start}&end={slice_end}"
     arr.append({ 'url': url, })
@@ -145,6 +159,12 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end):
 def _create_slices(chunk_size, id, reference_name, start, end):
     """
     Returns array of slices of URLs
+
+    :param chunk_size: The size of the chunk or slice ( e.g. 10,000,000 pieces of data )
+    :param id: ID of the file
+    :param reference_name: Chromosome Number
+    :param start: Desired starting index of a file
+    :param end: Desired ending index of a file
     """
     urls = []
     chunks = int( (end - start) / chunk_size )
@@ -166,7 +186,13 @@ def _create_slices(chunk_size, id, reference_name, start, end):
 
 def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None):
     """
-    Return a list of URLS for Read or Variant from a given ID 
+    Searches for file using DRS from ID and Return a list of URLS for Read or Variant
+
+    :param file_type: "read" or "variant"
+    :param id: ID of a file
+    :param reference_name: Chromosome Number
+    :param start: Desired starting index of the file
+    :param end: Desired ending index of the file
     """
 
     file_exists = False
@@ -194,9 +220,13 @@ def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None
 
 def _get_urls_db(file_type, id, reference_name = None, start = None, end = None):
     """
-    Return a list of URLS for Read or Variant from a given ID using sqlite database
+    Searches for file using sqlite DB from ID and Return a list of URLS for Read or Variant
 
     :param file_type: "read" or "variant"
+    :param id: ID of a file
+    :param reference_name: Chromosome Number
+    :param start: Desired starting index of the file
+    :param end: Desired ending index of the file
     """
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
