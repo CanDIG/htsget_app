@@ -53,18 +53,22 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
     # how to get file name? - make a query to drs based on ID
 
-    file_type = ""
+    file_name = ""
     file_format = ""
     if FILE_RETRIEVAL == "sql":
         file = _get_file_by_id(id)
-        file_type = file[0][1]
+        file_extension = file[0][1]
         file_format = file[0][2]
+        file_name = f"{id}{file_extension}"
     elif FILE_RETRIEVAL == "drs":
         print("getting DRS data")
-
+        file_name = _get_file_name(id)
+        file_format = "VCF"
+        _download_minio_file(file_name)
+        
     ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=WRITE_FILES_PATH, mode='wb', delete=False)
 
-    file_in_path = f"{LOCAL_FILES_PATH}/{id}{file_type}"
+    file_in_path = f"{LOCAL_FILES_PATH}/{file_name}"
     file_in = None
     file_out = None
     if file_format == "VCF" or file_format == "BCF": # Variants
@@ -199,7 +203,7 @@ def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None
     client = Client(url)
     c = client.client
     try:
-        response = c.GetDataObject(data_object_id='na12878_2').result() #hardcoded for testing
+        response = c.GetDataObject(data_object_id=id).result() #hardcoded for testing
         file_exists = True
         file_format = "VCF" # hardcode for now
     except:
@@ -297,28 +301,34 @@ def _get_file_name(id):
     """
     client = Client("http://0.0.0.0:8080/ga4gh/dos/v1/")
     c = client.client
-    models = client.models
 
-    response = c.GetDataObject(data_object_id='na12878_2').result()
-    
+    # assume id will be NA18537
+    response = c.GetDataObject(data_object_id=id).result()
+    return response['data_object']["name"]
 
 def _download_minio_file(file_name):
     """
     Download file from minio
 
     - When do we delete the downloaded file?
+    - assume indexed file is stored in minio and DRS
     """
     minioClient = Minio('play.min.io:9000',
                     access_key='Q3AM3UQ867SPQQA43P2F',
                     secret_key='zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG',
                     secure=True)
 
-    file_path = f"{LOCAL_FILES_PATH}/test.vcf.gz" # path to download the file
+    file_path = f"{LOCAL_FILES_PATH}/{file_name}" # path to download the file
+    file_name_indexed = file_name + ".tbi"
+    file_path_indexed = f"{LOCAL_FILES_PATH}/{file_name_indexed}" # path to download indexed file
     bucket = 'test'
 
     # Create the file
     try:
         f = open(file_path, "x")
+        f.close()
+
+        f = open(file_path_indexed, "x")
         f.close()
     except:
         print("File already exists")
@@ -326,5 +336,6 @@ def _download_minio_file(file_name):
     # download the required file into file_path
     try:
         minioClient.fget_object(bucket, file_name, file_path)
+        minioClient.fget_object(bucket, file_name_indexed, file_path_indexed)
     except ResponseError as err:
         print(err)
