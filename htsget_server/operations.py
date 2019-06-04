@@ -113,21 +113,13 @@ def get_data(id, reference_name = None, format = None, start = None, end = None)
         file_out.write(rec)
     file_in.close()
     file_out.close()
-    
-    print(ntf.name)
+
     response = send_file(filename_or_fp=ntf.name, attachment_filename=file_name, as_attachment=True)
     response.headers["x-filename"] = file_name
     response.headers["Access-Control-Expose-Headers"] = 'x-filename'
     os.remove(ntf.name)
     return response, 200
-    # buf_size = 1000000
-    # with open(ntf.name, 'rb') as f:
-    #     data = f.read(buf_size)
-    #     print(ntf.name)
-    #     os.remove(ntf.name)
-    #     return data, 200
     
-
 
 """ Helper Functions"""
 

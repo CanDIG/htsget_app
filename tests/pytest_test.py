@@ -30,20 +30,28 @@ def test_existent_file(id, expected_status):
     assert res_v.status_code == expected_status
     assert res_r.status_code == expected_status
 
-def test_file_without_start_end(id, reference_name):
-    # url = f"http://0.0.0.0:5000/data?id={id}&reference_name={reference_name}"
+def test_file_without_start_end_data():
+    return [('NA18537')]
 
-    # res = requests.get(url)
-    # # print(res.content.decode()
-    # data = res.content.decode()
-    # f = open('./NA18537.vcf.gz.tbi', 'wb')
-    # f.write(data.encode('utf-8'))
-    file_one = VariantFile("./NA18537_2.vcf.gz")
+@pytest.mark.parametrize('id', test_file_without_start_end_data())
+def test_file_without_start_end(id):
+    url = f"http://0.0.0.0:5000/data?id={id}"
+
+    res = requests.get(url)
+    # print(res.content.decode()
+    data = res.content
+    f = open(f"./{id}.vcf.gz", 'wb')
+    f.write(data)
+    path = f"./{id}.vcf.gz"
+    file_one = VariantFile(path)
     file_two = VariantFile("../data/files/NA18537.vcf.gz")
+    
+    equal = True
     for x, y in zip(file_one.fetch(), file_two.fetch()):
-        print(f"X: {x.pos}            Y: {y.pos}")
-        break
+        if x != y:
+            equal = False
+            assert equal
+    os.remove(path)
+    assert equal
 
-
-test_file_without_start_end('NA18537', '21')
 

@@ -21,8 +21,8 @@ def compare_files():
     print(x == y)
 
 def test():
-  f = open('../../data/files/NA18537.vcf.gz', 'rb')
-  for line in f:
-    print(line.decode())
+  f = VariantFile('../../data/files/NA18537.vcf.gz')
+  for rec in f.fetch():
+    print(rec.chrom)
 
 test()
