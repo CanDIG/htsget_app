@@ -31,12 +31,18 @@ def test_existent_file(id, expected_status):
     assert res_r.status_code == expected_status
 
 def test_file_without_start_end(id, reference_name):
-    url = f"http://0.0.0.0:5000/data?id={id}&reference_name={reference_name}"
+    # url = f"http://0.0.0.0:5000/data?id={id}&reference_name={reference_name}"
 
-    res = requests.get(url)
-    # print(type(res.content))
-    # for row in file.fetch():
-    #     print(row)
+    # res = requests.get(url)
+    # # print(res.content.decode()
+    # data = res.content.decode()
+    # f = open('./NA18537.vcf.gz.tbi', 'wb')
+    # f.write(data.encode('utf-8'))
+    file_one = VariantFile("./NA18537_2.vcf.gz")
+    file_two = VariantFile("../data/files/NA18537.vcf.gz")
+    for x, y in zip(file_one.fetch(), file_two.fetch()):
+        print(f"X: {x.pos}            Y: {y.pos}")
+        break
 
 
 test_file_without_start_end('NA18537', '21')

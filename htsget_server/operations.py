@@ -31,7 +31,7 @@ def get_reads(id, reference_name = None, start = None, end = None):
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
-    if end < start:
+    if end is not None and end < start:
         return "end cannot be less than start", 500
 
     if reference_name == "None":
@@ -56,7 +56,7 @@ def get_variants(id, reference_name = None, start = None, end = None):
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
-    if end < start:
+    if end is not None and end < start:
         return "end cannot be less than start", 500
     
     if reference_name == "None":
@@ -84,9 +84,6 @@ def get_data(id, reference_name = None, format = None, start = None, end = None)
     """
     if reference_name == "None":
         reference_name = None
-
-    print("START")
-    print(start is None)
 
     file_name = ""
     file_format = ""
@@ -117,13 +114,18 @@ def get_data(id, reference_name = None, format = None, start = None, end = None)
     file_in.close()
     file_out.close()
     
-    # return send_file(ntf.name)
-    buf_size = 1000000
-    with open(ntf.name, 'rb') as f:
-        data = f.read(buf_size)
-        print(ntf.name)
-        os.remove(ntf.name)
-        return data, 200
+    print(ntf.name)
+    response = send_file(filename_or_fp=ntf.name, attachment_filename=file_name, as_attachment=True)
+    response.headers["x-filename"] = file_name
+    response.headers["Access-Control-Expose-Headers"] = 'x-filename'
+    os.remove(ntf.name)
+    return response, 200
+    # buf_size = 1000000
+    # with open(ntf.name, 'rb') as f:
+    #     data = f.read(buf_size)
+    #     print(ntf.name)
+    #     os.remove(ntf.name)
+    #     return data, 200
     
 
 
@@ -289,11 +291,10 @@ def _get_index(position, file_name, file_type):
         return "That format is not available"
     
     file_in = 0
+    file_path = f"{LOCAL_FILES_PATH}/{file_name}"
     if file_type == "variant":
-        file_path = LOCAL_FILES_PATH + f"/{file_name}"
         file_in = VariantFile(file_path, "r")
     elif file_type == "read":
-        file_path = LOCAL_FILES_PATH + f"/{file_name}"
         file_in = AlignmentFile(file_path, "r")
     
     # get the required index

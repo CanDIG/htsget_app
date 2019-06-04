@@ -20,4 +20,9 @@ def compare_files():
   for x, y in zip(file_one.fetch(), file_two.fetch()) :
     print(x == y)
 
-compare_files()
+def test():
+  f = open('../../data/files/NA18537.vcf.gz', 'rb')
+  for line in f:
+    print(line.decode())
+
+test()
