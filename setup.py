@@ -19,7 +19,7 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     description="CanDIG htsget API that follows the htsget standard",
-    install_requirements=requirements,
+    install_requires=requirements,
     include_package_data=True,
     keywords='htsget_app',
     name='htsget_app',
