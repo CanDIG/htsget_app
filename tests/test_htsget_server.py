@@ -31,21 +31,26 @@ def test_existent_file(id, expected_status):
     assert res_r.status_code == expected_status
 
 def test_file_without_start_end_data():
-    return [('NA18537')]
+    return [('NA18537', '.vcf.gz', 'variant'), ('NA20787', '.vcf.gz', 'variant') ]
 
-@pytest.mark.parametrize('id', test_file_without_start_end_data())
-def test_file_without_start_end(id):
+@pytest.mark.parametrize('id, file_extension, file_type', test_file_without_start_end_data())
+def test_file_without_start_end(id, file_extension, file_type):
     url = f"http://0.0.0.0:5000/data?id={id}"
-
     res = requests.get(url)
-    # print(res.content.decode()
-    data = res.content
-    f = open(f"./{id}.vcf.gz", 'wb')
-    f.write(data)
-    path = f"./{id}.vcf.gz"
-    file_one = VariantFile(path)
-    file_two = VariantFile("../data/files/NA18537.vcf.gz")
+
+    file_name = f"{id}{file_extension}"
+    path = f"./{file_name}"
+    f = open(path, 'wb')
+    f.write(res.content)
     
+    file_one = None
+    file_two = None
+    if file_type == "variant":
+        file_one = VariantFile(path)
+        file_two = VariantFile(f"../data/files/{file_name}")
+    elif file_type == "read":
+        file_one = AlignmentFile(path)
+        file_two = AlignmentFile(f"../data/files/{file_name}")    
     equal = True
     for x, y in zip(file_one.fetch(), file_two.fetch()):
         if x != y:
@@ -53,5 +58,6 @@ def test_file_without_start_end(id):
             assert equal
     os.remove(path)
     assert equal
+
 
 
