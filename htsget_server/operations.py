@@ -31,6 +31,12 @@ def get_reads(id, reference_name = None, start = None, end = None):
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
+    if end < start:
+        return "end cannot be less than start", 500
+
+    if reference_name == "None":
+        reference_name = None
+
     obj = {}
     if FILE_RETRIEVAL == "db":
         obj = _get_urls_db("read", id, reference_name, start, end)
@@ -50,6 +56,12 @@ def get_variants(id, reference_name = None, start = None, end = None):
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
+    if end < start:
+        return "end cannot be less than start", 500
+    
+    if reference_name == "None":
+        reference_name = None
+
     obj = {}
     if FILE_RETRIEVAL == "db":
         obj = _get_urls_db("variant", id, reference_name, start, end)
@@ -60,7 +72,7 @@ def get_variants(id, reference_name = None, start = None, end = None):
     http_status_code = obj["http_status_code"]
     return response, http_status_code
 
-def get_data(id, reference_name=None, format=None, start=None, end=None):
+def get_data(id, reference_name = None, format = None, start = None, end = None):
     # start = 17148269, end = 17157211, reference_name = 21
     """
     Returns the specified variant or read file:
@@ -70,8 +82,11 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
+    if reference_name == "None":
+        reference_name = None
 
-    # how to get file name? - make a query to drs based on ID
+    print("START")
+    print(start is None)
 
     file_name = ""
     file_format = ""
@@ -97,7 +112,7 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         reference_name = f"chr{reference_name}"
         file_in = AlignmentFile(file_in_path)
         file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
-    for rec in file_in.fetch(reference_name, start, end):
+    for rec in file_in.fetch(contig=reference_name, start=start, end=end):
         file_out.write(rec)
     file_in.close()
     file_out.close()
@@ -309,7 +324,6 @@ def _download_minio_file(file_name):
     """
     Download file from minio
 
-    - When do we delete the downloaded file?
     - assume indexed file is stored in minio and DRS
     """
     minioClient = Minio(MINIO_END_POINT,
