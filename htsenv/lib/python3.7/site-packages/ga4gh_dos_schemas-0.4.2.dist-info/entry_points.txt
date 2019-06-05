@@ -1,0 +1,4 @@
+[console_scripts]
+ga4gh_dos_client = ga4gh.dos.client:main
+ga4gh_dos_server = ga4gh.dos.server:main
+
