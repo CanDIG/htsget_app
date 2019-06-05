@@ -87,8 +87,15 @@ def test_pull_slices(params, file_extension, file_type):
         f_slice = open(f_slice_path, 'wb')
         f_slice.write(res.content)
 
-        f_slice = VariantFile(f_slice_path)
-        f = VariantFile(f"{LOCAL_FILES_PATH}/{f_name}")
+        f_slice = None
+        f = None
+        if file_type == "variant":
+            f_slice = VariantFile(f_slice_path)
+            f = VariantFile(f"{LOCAL_FILES_PATH}/{f_name}")
+        elif file_type == "read":
+            f_slice = AlignmentFile(f_slice_path)
+            f = AlignmentFile(f"{LOCAL_FILES_PATH}/{f_name}") 
+            
         # get start index for original file
         for rec in f_slice.fetch():
             f_index = rec.pos - 1
