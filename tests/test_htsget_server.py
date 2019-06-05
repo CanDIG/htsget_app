@@ -70,8 +70,8 @@ def test_pull_slices_data():
 
 @pytest.mark.parametrize('params, file_extension, file_type', test_pull_slices_data())
 def test_pull_slices(params, file_extension, file_type):
-    url_v = f"http://{HOST}/variants"
-    res = requests.get(url_v, params)
+    url = f"http://{HOST}/{file_type}s"
+    res = requests.get(url, params)
     res = res.json()
     urls = res['htsget']['urls']
 
@@ -95,7 +95,7 @@ def test_pull_slices(params, file_extension, file_type):
         elif file_type == "read":
             f_slice = AlignmentFile(f_slice_path)
             f = AlignmentFile(f"{LOCAL_FILES_PATH}/{f_name}") 
-            
+
         # get start index for original file
         for rec in f_slice.fetch():
             f_index = rec.pos - 1
