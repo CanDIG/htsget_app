@@ -1,4 +1,5 @@
 swagger: '2.0'
+basePath: /htsget/v1
 info:
   description: An API implementing the htsget standard
   title: htsget application
@@ -51,6 +52,14 @@ paths:
                       properties:
                         url:
                           type: string
+        "404":
+          description: no file was found for the given ID
+          schema:
+            type: string
+        "500":
+          description: End index cannot be smaller than start index
+          schema:
+            type: string
 
   /variants:
     get:
@@ -95,7 +104,14 @@ paths:
                       properties:
                         url:
                           type: string
-
+        "404":
+          description: no file was found for the given ID
+          schema:
+            type: string
+        "500":
+          description: End index cannot be smaller than start index
+          schema:
+            type: string
   /data:
     get:
       operationId: "operations.get_data"
@@ -126,7 +142,5 @@ paths:
         "200":
           description: return data
           schema:
-            type: array
-            items:
-              type: string
-              format: binary
+            type: string
+            format: binary

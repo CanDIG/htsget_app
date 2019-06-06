@@ -7,7 +7,7 @@ requirements = [
         'ga4gh-dos-schemas==0.4.2',
         'pysam==0.15.2'
 ]
-
+ 
 setup(
     author="Jackson Zheng",
     author_email="j75zheng@edu.uwaterloo.ca",

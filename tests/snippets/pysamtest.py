@@ -21,5 +21,3 @@ def test():
   f = VariantFile('../../data/files/NA18537.vcf.gz')
   for rec in f.fetch():
     print(rec.chrom)
-
-parse_variant()
