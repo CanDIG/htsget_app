@@ -2,10 +2,7 @@ from pysam import VariantFile, AlignmentFile
 from tempfile import NamedTemporaryFile
 
 def parse_variant():
-  ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir='./write_files',
-                                        mode='wb', delete=False)
-  vcf_in = VariantFile('./files/NA18537.vcf.gz')
-  vcf_out = VariantFile(ntf.name, 'w', header=vcf_in.header)
+  vcf_in = VariantFile('../../data/files/NA18537.vcf.gz')
   for rec in vcf_in.fetch("21", 10144, 42210200):
     print(rec.chrom)
   
@@ -25,4 +22,4 @@ def test():
   for rec in f.fetch():
     print(rec.chrom)
 
-test()
+parse_variant()

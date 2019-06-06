@@ -35,11 +35,11 @@ def test_existent_file(id, expected_status):
     assert res_r.status_code == expected_status
 
 def test_file_without_start_end_data():
-    return [('NA18537', '.vcf.gz', 'variant'), ('NA20787', '.vcf.gz', 'variant') ]
+    return [('NA18537', '21', '.vcf.gz', 'variant'), ('NA20787', '21', '.vcf.gz', 'variant') ]
 
-@pytest.mark.parametrize('id, file_extension, file_type', test_file_without_start_end_data())
-def test_file_without_start_end(id, file_extension, file_type):
-    url = f"http://{HOST}/data?id={id}"
+@pytest.mark.parametrize('id, reference_name, file_extension, file_type', test_file_without_start_end_data())
+def test_file_without_start_end(id, reference_name, file_extension, file_type):
+    url = f"http://{HOST}/data?id={id}&reference_name={reference_name}"
     res = requests.get(url)
 
     file_name = f"{id}{file_extension}"
@@ -56,9 +56,10 @@ def test_file_without_start_end(id, file_extension, file_type):
         file_one = AlignmentFile(path)
         file_two = AlignmentFile(f"{LOCAL_FILES_PATH}/{file_name}")    
     equal = True
-    for x, y in zip(file_one.fetch(), file_two.fetch()):
+    for x, y in zip(file_one.fetch(), file_two.fetch(contig=reference_name)):
         if x != y:
             equal = False
+            os.remove(path)
             assert equal
     os.remove(path)
     assert equal
