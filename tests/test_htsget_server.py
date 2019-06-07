@@ -4,8 +4,14 @@ import os
 from tempfile import NamedTemporaryFile
 from pysam import VariantFile, AlignmentFile, TabixFile
 from urllib import parse
+import configparser
 
-HOST = 'http://0.0.0.0:5000/htsget/v1'
+
+config = configparser.ConfigParser()
+config.read('../config.ini')
+
+BASE_PATH = config['DEFAULT']['BasePath']
+HOST = f"http://0.0.0.0:5000{BASE_PATH}"
 LOCAL_FILES_PATH = "../data/files"
 
 
@@ -15,7 +21,7 @@ def invalid_start_end_data():
 @pytest.mark.parametrize('start, end', invalid_start_end_data())
 def test_invalid_start_end(start, end):
     """
-    Should return a 500 error if end is smaller than start
+    Should return a 400 error if end is smaller than start
     """
     url_v = f"{HOST}/variants?id=NA18537&reference_name=21&start={start}&end={end}"
     url_r = f"{HOST}/reads?id=NA18537&reference_name=21&start={start}&end={end}"
@@ -25,8 +31,8 @@ def test_invalid_start_end(start, end):
     res_r = requests.get(url_r)
 
     if end < start:
-        assert res_v.status_code == 500
-        assert res_r.status_code == 500
+        assert res_v.status_code == 400
+        assert res_r.status_code == 400
     else:
         assert True
 

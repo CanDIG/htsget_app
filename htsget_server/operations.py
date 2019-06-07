@@ -36,7 +36,13 @@ def get_reads(id, reference_name = None, start = None, end = None):
     :param end: Index of file to end at
     """
     if end is not None and end < start:
-        return "end cannot be less than start", 500
+        response = {
+            "detail": "End index cannot be less than start index",
+            "status": 400,
+            "title": "Bad Request",
+            "type": "about:blank"
+        }
+        return "end cannot be less than start", 400
 
     if reference_name == "None":
         reference_name = None
@@ -61,7 +67,13 @@ def get_variants(id, reference_name = None, start = None, end = None):
     :param end: Index of file to end at
     """
     if end is not None and end < start:
-        return "end cannot be less than start", 500
+        response = {
+            "detail": "End index cannot be smaller than start index",
+            "status": 400,
+            "title": "Bad Request",
+            "type": "about:blank"
+        }
+        return "end cannot be less than start", 400
     
     if reference_name == "None":
         reference_name = None
@@ -86,6 +98,15 @@ def get_data(id, reference_name = None, format = None, start = None, end = None)
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
+    if end is not None and end < start:
+        response = {
+            "detail": "End index cannot be smaller than start index",
+            "status": 400,
+            "title": "Bad Request",
+            "type": "about:blank"
+        }
+        return "end cannot be less than start", 400
+
     if reference_name == "None":
         reference_name = None
 
@@ -101,8 +122,8 @@ def get_data(id, reference_name = None, format = None, start = None, end = None)
         file_format = "VCF" #hardcoded for now
         _download_minio_file(file_name)
         
+    # Write slice to temporary file    
     ntf = NamedTemporaryFile(prefix='htsget', suffix='', dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
-
     file_in_path = f"{LOCAL_FILES_PATH}/{file_name}"
     file_in = None
     file_out = None
@@ -118,6 +139,7 @@ def get_data(id, reference_name = None, format = None, start = None, end = None)
     file_in.close()
     file_out.close()
 
+    # Send the temporary file as the response
     response = send_file(filename_or_fp=ntf.name, attachment_filename=file_name, as_attachment=True)
     response.headers["x-filename"] = file_name
     response.headers["Access-Control-Expose-Headers"] = 'x-filename'
@@ -147,7 +169,7 @@ def _execute(query, param_obj):
 
 def _get_file_by_id(id):
     """
-    Returns an array of tuples of a file based on ID
+    Returns an array of tuples of a file based on ID from DBV
 
     :param id: The id of the file
     """
@@ -155,6 +177,18 @@ def _get_file_by_id(id):
     param_obj = {'id': id}
     return _execute(query, param_obj)
 
+def file_exists_db(id):
+    file = _get_file_by_id(id) # returns an array of tuples
+    return ( len(file) != 0 )
+
+def file_exists_drs(id):
+    client = Client(DRS_URL)
+    c = client.client
+    try:
+        response = c.GetDataObject(data_object_id = id).result() 
+        return True
+    except:
+        return False
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end):
     """
@@ -208,17 +242,9 @@ def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None
     :param end: Desired ending index of the file
     """
 
-    file_exists = False
-    client = Client(DRS_URL)
-    c = client.client
-    try:
-        response = c.GetDataObject(data_object_id = id).result() 
-        file_exists = True
-        file_format = "VCF" # hardcode for now
-    except:
-        file_exists = False
-
+    file_exists = file_exists_drs(id)
     if file_exists:
+        file_format = "VCF" 
         urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
         response = {
             'htsget': {

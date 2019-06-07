@@ -56,10 +56,19 @@ paths:
           description: no file was found for the given ID
           schema:
             type: string
-        "500":
+        "400":
           description: End index cannot be smaller than start index
           schema:
-            type: string
+            type: object
+            properties:
+              detail:
+                type: string
+              status:
+                type: string
+              title:
+                type: string
+              type:
+                type: string
 
   /variants:
     get:
@@ -108,10 +117,19 @@ paths:
           description: no file was found for the given ID
           schema:
             type: string
-        "500":
+        "400":
           description: End index cannot be smaller than start index
           schema:
-            type: string
+            type: object
+            properties:
+              detail:
+                type: string
+              status:
+                type: string
+              title:
+                type: string
+              type:
+                type: string
   /data:
     get:
       operationId: "operations.get_data"
