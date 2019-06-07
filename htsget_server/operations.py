@@ -8,10 +8,13 @@ from flask import send_file
 from minio import Minio
 from minio.error import ResponseError
 import configparser
+import os.path
+
 
 config = configparser.ConfigParser()
-config.read('./config.ini')
+config.read('../config.ini')
 
+BASE_PATH = config['DEFAULT']['BasePath']
 LOCAL_FILES_PATH = config['paths']['LocalFilesPath']
 LOCAL_DB_PATH = config['paths']['LocalDBPath']
 TEMPORARY_FILES_PATH = config['paths']['TemporaryFilesPath']
@@ -21,6 +24,7 @@ DRS_URL = config['paths']['DRSPath']
 MINIO_END_POINT = config['minio']['EndPoint']
 MINIO_ACCESS_KEY = config['minio']['AccessKey']
 MINIO_SECRET_KEY = config['minio']['SecretKey']
+
 
 def get_reads(id, reference_name = None, start = None, end = None):
     """
@@ -162,7 +166,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end):
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
     """
-    url = f"http://{request.host}/data?id={id}&reference_name={reference_name}&start={slice_start}&end={slice_end}"
+    url = f"http://{request.host}{BASE_PATH}/data?id={id}&reference_name={reference_name}&start={slice_start}&end={slice_end}"
     arr.append({ 'url': url, })
 
 def _create_slices(chunk_size, id, reference_name, start, end):
