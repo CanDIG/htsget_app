@@ -5,10 +5,11 @@ from tempfile import NamedTemporaryFile
 from pysam import VariantFile, AlignmentFile, TabixFile
 from urllib import parse
 import configparser
+from pathlib import Path
 
 
 config = configparser.ConfigParser()
-config.read('./config.ini') 
+config.read( Path('./config.ini') ) 
 
 BASE_PATH = config['DEFAULT']['BasePath']
 PORT = config['DEFAULT']['Port']
