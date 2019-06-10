@@ -5,14 +5,16 @@ from tempfile import NamedTemporaryFile
 from pysam import VariantFile, AlignmentFile, TabixFile
 from urllib import parse
 import configparser
+from pathlib import Path
 
 
 config = configparser.ConfigParser()
-config.read('../config.ini')
+config.read( Path('./config.ini') ) 
 
 BASE_PATH = config['DEFAULT']['BasePath']
-HOST = f"http://0.0.0.0:5000{BASE_PATH}"
-LOCAL_FILES_PATH = "../data/files"
+PORT = config['DEFAULT']['Port']
+HOST = f"http://localhost:{PORT}{BASE_PATH}"
+LOCAL_FILES_PATH = "./data/files"
 
 
 def invalid_start_end_data():

@@ -8,11 +8,11 @@ from flask import send_file
 from minio import Minio
 from minio.error import ResponseError
 import configparser
-import os.path
+from pathlib import Path
 
 
 config = configparser.ConfigParser()
-config.read('../config.ini')
+config.read( Path('./config.ini') )
 
 BASE_PATH = config['DEFAULT']['BasePath']
 LOCAL_FILES_PATH = config['paths']['LocalFilesPath']
