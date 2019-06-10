@@ -8,10 +8,10 @@ import configparser
 
 
 config = configparser.ConfigParser()
-config.read('../config.ini')
+config.read('./config.ini')
 
 BASE_PATH = config['DEFAULT']['BasePath']
-HOST = f"http://0.0.0.0:5000/htsget/v1"
+HOST = f"http://0.0.0.0:5000{BASE_PATH}"
 LOCAL_FILES_PATH = "../data/files"
 
 
