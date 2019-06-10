@@ -11,7 +11,7 @@ config = configparser.ConfigParser()
 config.read('../config.ini')
 
 BASE_PATH = config['DEFAULT']['BasePath']
-HOST = f"http://0.0.0.0:5000{BASE_PATH}"
+HOST = f"http://0.0.0.0:5000/htsget/v1"
 LOCAL_FILES_PATH = "../data/files"
 
 
