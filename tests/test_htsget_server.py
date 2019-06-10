@@ -11,8 +11,8 @@ config = configparser.ConfigParser()
 config.read('./config.ini')
 
 BASE_PATH = config['DEFAULT']['BasePath']
-HOST = f"http://0.0.0.0:5000{BASE_PATH}"
-LOCAL_FILES_PATH = "../data/files"
+HOST = f"http://localhost:5000{BASE_PATH}"
+LOCAL_FILES_PATH = "./data/files"
 
 
 def invalid_start_end_data():
