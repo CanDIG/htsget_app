@@ -12,7 +12,7 @@ import os.path
 
 
 config = configparser.ConfigParser()
-config.read('../config.ini')
+config.read('./config.ini')
 
 BASE_PATH = config['DEFAULT']['BasePath']
 LOCAL_FILES_PATH = config['paths']['LocalFilesPath']

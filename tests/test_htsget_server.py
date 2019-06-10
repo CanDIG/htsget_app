@@ -8,10 +8,11 @@ import configparser
 
 
 config = configparser.ConfigParser()
-config.read('./config.ini')
+config.read('./config.ini') 
 
 BASE_PATH = config['DEFAULT']['BasePath']
-HOST = f"http://localhost:5000{BASE_PATH}"
+PORT = config['DEFAULT']['Port']
+HOST = f"http://localhost:{PORT}{BASE_PATH}"
 LOCAL_FILES_PATH = "./data/files"
 
 

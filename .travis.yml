@@ -7,4 +7,7 @@ install:
   - pip install -r requirements.txt
   - pip install -r requirements_dev.txt
 
-script: pytest tests/test_htsget_server.py
+script:
+  - python htsget_server/server.py &
+  - sleep 5
+  - pytest tests/test_htsget_server.py
