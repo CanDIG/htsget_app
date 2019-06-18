@@ -1,6 +1,8 @@
 # Htsget Application
 
-Htsget API implementation that is based on the [Htsget retrieval API specifications](http://samtools.github.io/hts-specs/htsget.html). Endpoints include /reads, /variants, and /data, where reads and variants are to request slices of URIs of a variant or read file, and /data is to return the file slices themselves. File storage and retrieval are implemented with two configurable options: SQLite, and DRS + MINIO. 
+Htsget API implementation that is based on the [Htsget retrieval API specifications](http://samtools.github.io/hts-specs/htsget.html). Endpoints include /reads, /variants, and /data. Reads and variants are to request slices of URIs of a variant or read file, and /data is to return the file slices themselves. File storage and retrieval are implemented with two configurable options: SQLite, and DRS + MINIO. 
+
+Thank you to [gel-htsget](https://github.com/genomicsengland/gel-htsget) for being a starting point to this application
 
 ## Stack
 - [Connexion](https://github.com/zalando/connexion) for implementing the API

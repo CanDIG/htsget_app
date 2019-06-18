@@ -2,6 +2,8 @@ from minio import Minio
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,BucketAlreadyExists)
 from pysam import VariantFile
 import json
+import sys
+import io
 
 # Initialize minioClient with an endpoint and access/secret keys.
 minioClient = Minio('play.min.io:9000',
@@ -47,21 +49,23 @@ def download_file():
 def download_file_2():
     try:
         data = minioClient.get_object('test', 'NA18537.vcf.gz.tbi')
-        # raw_data = data.read()
-        # encoding = data.info().get_content_charset('utf8')
-        # data = json.loads(raw_data.decode(encoding))
-        vcf_in = VariantFile("-", "wb")
-        for s in data.stream():
-            vcf_in.write(s)
+        raw_data = data.read()
+        sys.stdin = io.StringIO(f"{raw_data}")
         # for rec in vcf.fetch():
         #     print(rec.pos)
-        # for d in data.stream():
-        #     print(d)
+        infile = VariantFile("-", "r")
+        for s in infile:
+            print(s)
     except ResponseError as err:
         print(err)
 
 
 # download_file()
 # upload_file()
-download_file_2()
+# download_file_2()
+def test():
+    sys.stdin = io.StringIO('asdlkj')
+    sys.stdin = io.StringIO('sasdasd')
+    print(input(''))
 
+download_file_2()
