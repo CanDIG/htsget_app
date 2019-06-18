@@ -25,5 +25,5 @@ setup(
     name='htsget_app',
     packages=find_packages(include=['htsget_server']),
     url="https://github.com/CanDIG/htsget_app",
-    version='0.1.0'
+    version='1.0.0'
 )
