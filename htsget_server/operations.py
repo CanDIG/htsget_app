@@ -178,7 +178,7 @@ def _get_file_by_id(id):
     return _execute(query, param_obj)
 
 def file_exists_db(id):
-    file = _get_file_by_id(id) # returns an array of tuples
+    file = _get_file_by_id(id) # returns an array of tuples0
     return ( len(file) != 0 )
 
 def file_exists_drs(id):

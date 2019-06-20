@@ -4,6 +4,8 @@ from pysam import VariantFile
 import json
 import sys
 import io
+import zlib
+import subprocess
 
 # Initialize minioClient with an endpoint and access/secret keys.
 minioClient = Minio('play.min.io:9000',
@@ -34,7 +36,7 @@ def create_bucket():
 
 def upload_file():
     try:
-        minioClient.fput_object('test', 'NA18537.vcf.gz.tbi', '../../data/files/NA18537.vcf.gz.tbi')
+        minioClient.fput_object('test', 'NA18537.vcf.gz', '../../data/files/NA18537.vcf.gz')
     except ResponseError as err:
         print(err)
 
@@ -45,27 +47,74 @@ def download_file():
     except ResponseError as err:
         print(err)
 
+def stream_gzip_decompress(stream):
+    dec = zlib.decompressobj(32 + zlib.MAX_WBITS)  # offset 32 to skip the header
+    for chunk in stream:
+        rv = dec.decompress(chunk)
+        if rv:
+            yield rv
 
 def download_file_2():
     try:
-        data = minioClient.get_object('test', 'NA18537.vcf.gz.tbi')
-        raw_data = data.read()
-        sys.stdin = io.StringIO(f"{raw_data}")
+        data = minioClient.get_object('test', 'NA18537.vcf.gz')
+        # vcf_buffer = VariantFile('-', 'w')
+        f = open("../../data/files/NA18537.vcf.gz", "rb")
+        # print(f.fileno())
+        # content = f.read()
+        # vcf = vcf_buffer.write(content)
+        raw = io.BufferedReader(io.BytesIO(data.read()))
+
+        args =["samtools", "view", "-u", "-F", "0x200", data.read(), "Chr.5"]
+
+        with subprocess.Popen([], stdout=subprocess.PIPE) as proc:
+            fd_child = proc.stdout.fileno()
+            print(fd_child)
+
+            # with VariantFile(fd_child, "rb") as sam:
+            #     for rec in sam:
+            #         print(rec)
+        # raw.raw.name = "-"
+        # raw = io.FileIO(bytes.hex(data.read()), 'r')
+        # mc_stream = data.stream()
+        # mc_obj = data.read()
+
+        # print(type(mc_stream))
+        # print(type(mc_obj))
+        # print(type(f))
+        # print(type(raw))
+        # print(f)
+        # print(raw)
+        # print(raw.readline())
+
+        # raw.name = "name"
+        # print(raw)
+        # raw = data.read()
+        # print(raw)
+    
+        # vcf = VariantFile(raw.fileno(), 'rb')
+
+
+        # contents = f.read()
+        # print()
+        # f = io.BytesIO(data.read())
+        # print(f)
+        # vcf = VariantFile(raw)
+        # print(vcf.header)
         # for rec in vcf.fetch():
         #     print(rec.pos)
-        infile = VariantFile("-", "r")
-        for s in infile:
-            print(s)
+        # infile = VariantFile("-", "r")
+        # for s in infile:
+        #     print(s)
     except ResponseError as err:
         print(err)
 
 
 # download_file()
-# upload_file()
+upload_file()
 # download_file_2()
 def test():
-    sys.stdin = io.StringIO('asdlkj')
-    sys.stdin = io.StringIO('sasdasd')
-    print(input(''))
+    test = "play.min.io:9000://Q3AM3UQ867SPQQA43P2F:zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG@test/NA18537.vcf.gz"
+    vcf = VariantFile(test, "r")
 
-download_file_2()
+# download_file_2()
+test()
