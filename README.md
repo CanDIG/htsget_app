@@ -26,7 +26,7 @@ The server software can be installed in a virtual environment:
 python setup.py install
 ```
 
-# Running
+## Running
 The server can be run with 
 ```
 python htsget_server/server.py
