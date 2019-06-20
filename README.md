@@ -7,7 +7,7 @@ Thank you to [gel-htsget](https://github.com/genomicsengland/gel-htsget) for bei
 [![Build Status](https://travis-ci.org/CanDIG/htsget_app.svg?branch=master)](https://travis-ci.org/CanDIG/htsget_app)
 [![CodeFactor](https://www.codefactor.io/repository/github/CanDIG/htsget_app/badge)](https://www.codefactor.io/repository/github/CanDIG/htsget_app)
 [![PyUp](https://pyup.io/repos/github/CanDIG/htsget_app/shield.svg)](https://pyup.io/repos/github/CanDIG/htsget_app/)
-[![Quay.io](https://quay.io/repository/candig/htsget_app/status)](https://quay.io/repository/candig/htsget_app)
+[![Quay.io](https://quay.io/repository/canDIG/htsget_app/status)](https://quay.io/repository/canDIG/htsget_app)
 
 ## Stack
 - [Connexion](https://github.com/zalando/connexion) for implementing the API
