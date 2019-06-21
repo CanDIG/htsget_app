@@ -6,7 +6,5 @@ WORKDIR /app
 
 RUN python setup.py install
 
-EXPOSE 3000
-
 # Run the model service server
-ENTRYPOINT [ "htsget_app", "--port", "3000"]
+CMD ["python", "./htsget_server.server,py"]
