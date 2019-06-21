@@ -62,11 +62,9 @@ def download_file_2():
         # print(f.fileno())
         # content = f.read()
         # vcf = vcf_buffer.write(content)
-        raw = io.BufferedReader(io.BytesIO(data.read()))
+        args =["echo", data.read()]
 
-        args =["samtools", "view", "-u", "-F", "0x200", data.read(), "Chr.5"]
-
-        with subprocess.Popen([], stdout=subprocess.PIPE) as proc:
+        with subprocess.Popen(args, stdout=subprocess.PIPE) as proc:
             fd_child = proc.stdout.fileno()
             print(fd_child)
 
@@ -110,11 +108,12 @@ def download_file_2():
 
 
 # download_file()
-upload_file()
-# download_file_2()
+# upload_file()
+download_file_2()
 def test():
-    test = "play.min.io:9000://Q3AM3UQ867SPQQA43P2F:zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG@test/NA18537.vcf.gz"
-    vcf = VariantFile(test, "r")
+    test = "s3://Q3AM3UQ867SPQQA43P2F:zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG@play.min.io:9000/test/NA18537.vcf.gz"
+    test2 = "s3://play.min.io:9000/test/NA20787.vcf.gz"
+    vcf = VariantFile(test) 
 
-# download_file_2()
-test()
+# download_file_2() 
+# test()
