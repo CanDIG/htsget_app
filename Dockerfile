@@ -7,4 +7,4 @@ WORKDIR /app
 RUN python setup.py install
 
 # Run the model service server
-CMD ["python", "./htsget_server/server,py"]
+CMD ["python3", "./htsget_server/server.py"]
