@@ -270,7 +270,8 @@ def _get_urls_db(file_type, id, reference_name = None, start = None, end = None)
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
-    not_found_error = {"response": f"No {file_type} found for id: {id}", "http_status_code": 404}
+    err_msg = f"No {file_type} found for id: {id}, you could be using the wrong endpoint"
+    not_found_error = {"response": err_msg, "http_status_code": 404}
 
     file = _get_file_by_id(id) # returns an array of tuples
     file_exists = len(file) != 0 
