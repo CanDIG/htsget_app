@@ -225,7 +225,7 @@ def _create_slices(chunk_size, id, reference_name, start, end):
         _create_slice(urls, id, reference_name, slice_start, end)
     else: # One slice only
         url = f"http://{request.host}/data?id={id}"
-        if( reference_name is not None ):
+        if reference_name is not None:
             url += f"&reference_name={reference_name}"
         urls.append({ "url": url })
 
@@ -339,14 +339,21 @@ def _get_file_name(id):
     client = Client(DRS_URL)
     c = client.client
 
-    # assume id will be NA18537
+    # assume id will be NA18537 for now
     response = c.GetDataObject(data_object_id=id).result()
     return response['data_object']["name"]
+
+def _get_file_format(id):
+    client = Client(DRS_URL)
+    c = client.client
+
+    # assume id will be NA18537 for now
+    response = c.GetDataObject(data_object_id=id).result()
+    return response['data_object']['mime_type'][len('application/'):]
 
 def _download_minio_file(file_name):
     """
     Download file from minio
-
     - assume indexed file is stored in minio and DRS
     """
     minioClient = Minio(MINIO_END_POINT,
