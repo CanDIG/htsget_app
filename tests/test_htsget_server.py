@@ -51,9 +51,8 @@ def test_existent_file(id, expected_status):
 
     res_v = requests.get(url_v)
     res_r = requests.get(url_r)
-    assert res_v.status_code == expected_status
-    assert res_r.status_code == expected_status
-
+    assert res_v.status_code == expected_status or res_r.status_code == expected_status
+    
 def test_file_without_start_end_data():
     return [('NA18537', '21', '.vcf.gz', 'variant'), ('NA20787', '21', '.vcf.gz', 'variant') ]
 
@@ -128,6 +127,3 @@ def test_pull_slices(params, file_extension, file_type):
                 assert equal
         os.remove(f_slice_path)
     assert equal
-
-
-test_invalid_start_end(23125, 12456678)
