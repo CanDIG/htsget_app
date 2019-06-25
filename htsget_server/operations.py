@@ -270,11 +270,20 @@ def _get_urls_db(file_type, id, reference_name = None, start = None, end = None)
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
+    not_found_error = {"response": f"No {file_type} found for id: {id}", "http_status_code": 404}
+
     file = _get_file_by_id(id) # returns an array of tuples
     file_exists = len(file) != 0 
     if file_exists:
         file_name = file[0][0] + file[0][1]
         file_format = file[0][2]
+
+        if file_format == "VCF" or file_format == "BCF":
+            if file_type != "variant":
+                return not_found_error
+        elif file_format == "BAM" or file_format == "CRAM":
+            if file_type != "read":
+                return not_found_error
 
         if start is None:
             start = _get_index("start", file_name, file_type)
@@ -290,8 +299,7 @@ def _get_urls_db(file_type, id, reference_name = None, start = None, end = None)
             }
         return {"response": response, "http_status_code": 200}
     else:
-        err = f"No {file_type} found for id: {id}" 
-        return {"response": err, "http_status_code": 404}
+        return not_found_error
 
 def _get_index(position, file_name, file_type):
     """
