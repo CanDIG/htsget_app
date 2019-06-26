@@ -118,8 +118,8 @@ def get_data(id, reference_name = None, format = None, start = None, end = None)
         file_format = file[0][2]
         file_name = f"{id}{file_extension}"
     elif FILE_RETRIEVAL == "minio":
-        file_name = _get_file_name(id)
-        file_format = "VCF" #hardcoded for now
+        file_name = _get_file_name_drs(id)
+        file_format = _get_file_format_drs(id)
         _download_minio_file(file_name)
         
     # Write slice to temporary file    
@@ -185,7 +185,7 @@ def file_exists_drs(id):
     client = Client(DRS_URL)
     c = client.client
     try:
-        response = c.GetDataObject(data_object_id = id).result() 
+        c.GetDataObject(data_object_id = id).result() 
         return True
     except:
         return False
@@ -224,7 +224,7 @@ def _create_slices(chunk_size, id, reference_name, start, end):
             slice_start = slice_end
         _create_slice(urls, id, reference_name, slice_start, end)
     else: # One slice only
-        url = f"http://{request.host}/data?id={id}"
+        url = f"http://{request.host}{BASE_PATH}/data?id={id}"
         if reference_name is not None:
             url += f"&reference_name={reference_name}"
         urls.append({ "url": url })
@@ -244,7 +244,7 @@ def _get_urls_drs(file_type, id, reference_name = None, start = None, end = None
 
     file_exists = file_exists_drs(id)
     if file_exists:
-        file_format = "VCF" 
+        file_format = _get_file_format_drs(id) 
         urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
         response = {
             'htsget': {
@@ -341,7 +341,7 @@ def _get_index(position, file_name, file_type):
             end = rec.pos
         return end
 
-def _get_file_name(id):
+def _get_file_name_drs(id):
     """
     Make query to DRS to get all file names associated to ID
     """
@@ -352,7 +352,7 @@ def _get_file_name(id):
     response = c.GetDataObject(data_object_id=id).result()
     return response['data_object']["name"]
 
-def _get_file_format(id):
+def _get_file_format_drs(id):
     client = Client(DRS_URL)
     c = client.client
 
