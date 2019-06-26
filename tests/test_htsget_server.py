@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 config = configparser.ConfigParser()
-config.read( Path('./config.ini') ) 
+config.read(Path('./config.ini'))
 
 BASE_PATH = config['DEFAULT']['BasePath']
 PORT = config['DEFAULT']['Port']
@@ -19,6 +19,7 @@ LOCAL_FILES_PATH = "./data/files"
 
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]
+
 
 @pytest.mark.parametrize('start, end', invalid_start_end_data())
 def test_invalid_start_end(start, end):
@@ -38,8 +39,10 @@ def test_invalid_start_end(start, end):
     else:
         assert True
 
+
 def existent_file_test_data():
     return [('NA18537', 200), ('NA20787', 200), ('HG203245', 404), ('NA185372', 404)]
+
 
 @pytest.mark.parametrize('id, expected_status', existent_file_test_data())
 def test_existent_file(id, expected_status):
@@ -52,9 +55,11 @@ def test_existent_file(id, expected_status):
     res_v = requests.get(url_v)
     res_r = requests.get(url_r)
     assert res_v.status_code == expected_status or res_r.status_code == expected_status
-    
+
+
 def test_file_without_start_end_data():
-    return [('NA18537', '21', '.vcf.gz', 'variant'), ('NA20787', '21', '.vcf.gz', 'variant') ]
+    return [('NA18537', '21', '.vcf.gz', 'variant'), ('NA20787', '21', '.vcf.gz', 'variant')]
+
 
 @pytest.mark.parametrize('id, reference_name, file_extension, file_type', test_file_without_start_end_data())
 def test_file_without_start_end(id, reference_name, file_extension, file_type):
@@ -65,7 +70,7 @@ def test_file_without_start_end(id, reference_name, file_extension, file_type):
     path = f"./{file_name}"
     f = open(path, 'wb')
     f.write(res.content)
-    
+
     file_one = None
     file_two = None
     if file_type == "variant":
@@ -73,7 +78,7 @@ def test_file_without_start_end(id, reference_name, file_extension, file_type):
         file_two = VariantFile(f"{LOCAL_FILES_PATH}/{file_name}")
     elif file_type == "read":
         file_one = AlignmentFile(path)
-        file_two = AlignmentFile(f"{LOCAL_FILES_PATH}/{file_name}")    
+        file_two = AlignmentFile(f"{LOCAL_FILES_PATH}/{file_name}")
     equal = True
     for x, y in zip(file_one.fetch(), file_two.fetch(contig=reference_name)):
         if x != y:
@@ -83,10 +88,13 @@ def test_file_without_start_end(id, reference_name, file_extension, file_type):
     os.remove(path)
     assert equal
 
+
 def test_pull_slices_data():
     return [
-        ({"id": 'NA18537', "reference_name": "21", "start": 92033, "end": 32345678}, ".vcf.gz", "variant")
+        ({"id": 'NA18537', "reference_name": "21",
+          "start": 92033, "end": 32345678}, ".vcf.gz", "variant")
     ]
+
 
 @pytest.mark.parametrize('params, file_extension, file_type', test_pull_slices_data())
 def test_pull_slices(params, file_extension, file_type):
@@ -98,7 +106,7 @@ def test_pull_slices(params, file_extension, file_type):
     f_index = 0
     f_name = f"{params['id']}{file_extension}"
     equal = True
-    for i in range( len(urls) ):
+    for i in range(len(urls)):
         url = urls[i]['url']
         res = requests.get(url)
 
@@ -114,14 +122,14 @@ def test_pull_slices(params, file_extension, file_type):
             f = VariantFile(f"{LOCAL_FILES_PATH}/{f_name}")
         elif file_type == "read":
             f_slice = AlignmentFile(f_slice_path)
-            f = AlignmentFile(f"{LOCAL_FILES_PATH}/{f_name}") 
+            f = AlignmentFile(f"{LOCAL_FILES_PATH}/{f_name}")
 
         # get start index for original file
         for rec in f_slice.fetch():
             f_index = rec.pos - 1
             break
         # compare slice and file line by line
-        for x, y in zip( f_slice.fetch(), f.fetch(contig=params['reference_name'], start=f_index) ):
+        for x, y in zip(f_slice.fetch(), f.fetch(contig=params['reference_name'], start=f_index)):
             if x != y:
                 equal = False
                 assert equal
