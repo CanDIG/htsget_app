@@ -36,3 +36,8 @@ For testing, a small test suite under tests/test_htsget_server.py can be run by 
 pytest tests/test_htsget_server.py
 ```
 For automated testing, activate the repo with [Travis-CI](https://travis-ci.com/getting_started)
+
+A docker can be pulled with
+```
+docker pull quay.io/candig/htsget_app
+```
