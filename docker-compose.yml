@@ -2,14 +2,14 @@
 version: '3.7'
 
 services:
- ga4gh-dos:
+ htsget-app:
     build:
       context: .
       #args:
         #htsget_app_version: ${HTSGET_APP_VERSION:-latest}
     image: candig/htsget-app:${HTSGET_APP_VERSION:-latest}
-    networks:
-      - ${DOCKER_NET:-bridge}
+    #networks:
+      #- ${DOCKER_NET:-bridge}
     ports:
       - "${HTSGET_APP_PORT:-3333}:3333"
     deploy:
