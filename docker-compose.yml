@@ -4,7 +4,7 @@ version: '3.7'
 services:
  ga4gh-dos:
     build:
-      context: $PWD/lib/htsget-app
+      context: .
       #args:
         #htsget_app_version: ${HTSGET_APP_VERSION:-latest}
     image: candig/htsget-app:${HTSGET_APP_VERSION:-latest}
