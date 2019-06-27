@@ -210,9 +210,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end):
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
     """
-    url = f"http://{request.host}{BASE_PATH}/data?id={id}"
-    + f"&reference_name={reference_name}"
-    + f"&start={slice_start}&end={slice_end}"
+    url = f"http://{request.host}{BASE_PATH}/data?id={id}&reference_name={reference_name}&start={slice_start}&end={slice_end}"
     arr.append({'url': url, })
 
 
@@ -248,7 +246,7 @@ def _create_slices(chunk_size, id, reference_name, start, end):
 
 def _get_urls_drs(file_type, id, reference_name=None, start=None, end=None):
     """
-    Searches for file using DRS from ID and Return a list of URLS for Read or Variant
+    Searches for file using DRS from ID and Return URLS for Read or Variant
 
     :param file_type: "read" or "variant"
     :param id: ID of a file
@@ -275,7 +273,7 @@ def _get_urls_drs(file_type, id, reference_name=None, start=None, end=None):
 
 def _get_urls_db(file_type, id, reference_name=None, start=None, end=None):
     """
-    Searches for file using sqlite DB from ID and Return a list of URLS for Read or Variant
+    Searches for file using sqlite DB from ID and Return URLS for Read/Variant
 
     :param file_type: "read" or "variant"
     :param id: ID of a file
@@ -286,7 +284,7 @@ def _get_urls_db(file_type, id, reference_name=None, start=None, end=None):
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
-    err_msg = f"No {file_type} found for id: {id}, you could be using the wrong endpoint"
+    err_msg = f"No {file_type} found for id: {id}, try using the other endpoint"
     not_found_error = {"response": err_msg, "http_status_code": 404}
 
     file = _get_file_by_id(id)  # returns an array of tuples
