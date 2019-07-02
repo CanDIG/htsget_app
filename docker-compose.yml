@@ -1,0 +1,28 @@
+# tested on docker-engine 18.06.0
+version: '3.7'
+
+services:
+ htsget-app:
+    build:
+      context: .
+      #args:
+        #htsget_app_version: ${HTSGET_APP_VERSION:-latest}
+    image: candig/htsget-app:${HTSGET_APP_VERSION:-latest}
+    #networks:
+      #- ${DOCKER_NET:-bridge}
+    ports:
+      - "${HTSGET_APP_PORT:-3000}:3000"
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - traefik.enable=true
+        - traefik.port=${HTSGET_APP_PORT:-3000}
+        - traefik.docker.network=${DOCKER_NET:-bridge-net}
+        - traefik.frontend.rule=Host:htsgetdrs.${MINIO_DOMAIN:-localhost}
