@@ -17,8 +17,8 @@ USER root
 COPY . /app
 WORKDIR /app
 
-RUN conda update -n base -c defaults conda
-RUN conda env update -n base --prune
+#RUN conda update -n base -c defaults conda
+RUN conda env update -n base
 
 RUN python setup.py install
 
