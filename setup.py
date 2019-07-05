@@ -6,7 +6,7 @@ requirements = [
         'minio==4.0.17',
         'ga4gh-dos-schemas==0.4.2',
 ]
- 
+
 setup(
     author="Jackson Zheng",
     author_email="j75zheng@edu.uwaterloo.ca",
