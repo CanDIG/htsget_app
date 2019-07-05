@@ -5,7 +5,6 @@ requirements = [
         'Flask==1.0.3',
         'minio==4.0.17',
         'ga4gh-dos-schemas==0.4.2',
-        'pysam==0.15.2'
 ]
  
 setup(
@@ -25,5 +24,5 @@ setup(
     name='htsget_app',
     packages=find_packages(include=['htsget_server']),
     url="https://github.com/CanDIG/htsget_app",
-    version='1.0.0'
+    version='0.1.0'
 )
