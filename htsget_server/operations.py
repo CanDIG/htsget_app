@@ -256,10 +256,28 @@ def _get_urls_drs(file_type, id, reference_name=None, start=None, end=None):
     :param start: Desired starting index of the file
     :param end: Desired ending index of the file
     """
+    if file_type not in ["variant", "read"]:
+        raise ValueError("File type must be 'variant' or 'read'")
+
+    err_msg = f"No {file_type} found for id: {id}, try using the other endpoint"
+    not_found_error = {"response": err_msg, "http_status_code": 404}
 
     file_exists = file_exists_drs(id)
     if file_exists:
         file_format = _get_file_format_drs(id)
+        if file_format == "VCF" or file_format == "BCF":
+            if file_type != "variant":
+                return not_found_error
+        elif file_format == "BAM" or file_format == "CRAM":
+            if file_type != "read":
+                return not_found_error
+
+        file_path = _get_file_path_drs(id)
+        if start is None:
+            start = _get_index("start", file_path, file_type)
+        if end is None:
+            end = _get_index("end", file_path, file_type)
+
         urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
         response = {
             'htsget': {
@@ -269,8 +287,7 @@ def _get_urls_drs(file_type, id, reference_name=None, start=None, end=None):
         }
         return {"response": response, "http_status_code": 200}
     else:
-        err = f"No {file_type} found for id: {id}"
-        return {"response": err, "http_status_code": 404}
+        return not_found_error
 
 
 def _get_urls_db(file_type, id, reference_name=None, start=None, end=None):
@@ -294,6 +311,7 @@ def _get_urls_db(file_type, id, reference_name=None, start=None, end=None):
     if file_exists:
         file_name = file[0][0] + file[0][1]
         file_format = file[0][2]
+        file_path = f"{LOCAL_FILES_PATH}/{file_name}"
 
         if file_format == "VCF" or file_format == "BCF":
             if file_type != "variant":
@@ -303,9 +321,9 @@ def _get_urls_db(file_type, id, reference_name=None, start=None, end=None):
                 return not_found_error
 
         if start is None:
-            start = _get_index("start", file_name, file_type)
+            start = _get_index("start", file_path, file_type)
         if end is None:
-            end = _get_index("end", file_name, file_type)
+            end = _get_index("end", file_path, file_type)
 
         urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
         response = {
@@ -319,7 +337,7 @@ def _get_urls_db(file_type, id, reference_name=None, start=None, end=None):
         return not_found_error
 
 
-def _get_index(position, file_name, file_type):
+def _get_index(position, file_path, file_type):
     """
     Get the first or last index of a reads or variant file.
     File must be stored locally
@@ -339,7 +357,6 @@ def _get_index(position, file_name, file_type):
         return "That format is not available"
 
     file_in = 0
-    file_path = f"{LOCAL_FILES_PATH}/{file_name}"
     if file_type == "variant":
         file_in = VariantFile(file_path, "r")
     elif file_type == "read":
