@@ -114,20 +114,22 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
     file_name = ""
     file_format = ""
+    file_in_path = ""
     if FILE_RETRIEVAL == "db":
         file = _get_file_by_id(id)
         file_extension = file[0][1]
         file_format = file[0][2]
         file_name = f"{id}{file_extension}"
+        file_in_path = f"{LOCAL_FILES_PATH}/{file_name}"
     elif FILE_RETRIEVAL == "minio":
         file_name = _get_file_name_drs(id)
         file_format = _get_file_format_drs(id)
-        _download_minio_file(file_name)
+        file_in_path = _get_file_path_drs(id)
+        # _download_minio_file(file_name)
 
     # Write slice to temporary file
     ntf = NamedTemporaryFile(prefix='htsget', suffix='',
                              dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
-    file_in_path = f"{LOCAL_FILES_PATH}/{file_name}"
     file_in = None
     file_out = None
     if file_format == "VCF" or file_format == "BCF":  # Variants
@@ -376,6 +378,15 @@ def _get_file_format_drs(id):
     # assume id will be NA18537 for now
     response = c.GetDataObject(data_object_id=id).result()
     return response['data_object']['mime_type'][len('application/'):]
+
+
+def _get_file_path_drs(id):
+    client = Client(DRS_URL)
+    c = client.client
+
+    # assume id will be NA18537 for now
+    response = c.GetDataObject(data_object_id=id).result()
+    return response['data_object']["urls"][0]['url']
 
 
 def _download_minio_file(file_name):

@@ -109,11 +109,13 @@ def download_file_2():
 
 # download_file()P
 # upload_file()
-download_file_2()
+# download_file_2()
 def test():
     test = "s3://Q3AM3UQ867SPQQA43P2F:zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG@play.min.io:9000/test/NA18537.vcf.gz"
-    test2 = "s3://play.min.io:9000/test/NA20787.vcf.gz"
-    vcf = VariantFile(test) 
+    test2 = "s3://default@play/testfiles/NA18537.vcf.gz"
+    vcf = VariantFile(test2)
+    for rec in vcf.fetch():
+        print(rec.pos)
 
 # download_file_2() 
-# test()
+test()
