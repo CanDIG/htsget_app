@@ -49,9 +49,9 @@ def get_reads(id, reference_name=None, start=None, end=None):
 
     obj = {}
     if FILE_RETRIEVAL == "db":
-        obj = _get_urls_db("read", id, reference_name, start, end)
+        obj = _get_urls("db", "read", id, reference_name, start, end)
     elif FILE_RETRIEVAL == "minio":
-        obj = _get_urls_drs("read", id, reference_name, start, end)
+        obj = _get_urls("minio", "read", id, reference_name, start, end)
 
     response = obj["response"]
     http_status_code = obj["http_status_code"]
