@@ -81,9 +81,9 @@ def get_variants(id, reference_name=None, start=None, end=None):
 
     obj = {}
     if FILE_RETRIEVAL == "db":
-        obj = _get_urls_db("variant", id, reference_name, start, end)
+        obj = _get_urls("db", "variant", id, reference_name, start, end)
     elif FILE_RETRIEVAL == "minio":
-        obj = _get_urls_drs("variant", id, reference_name, start, end)
+        obj = _get_urls("minio", "variant", id, reference_name, start, end)
 
     response = obj["response"]
     http_status_code = obj["http_status_code"]
@@ -195,8 +195,9 @@ def file_exists_db(id):
 def file_exists_drs(id):
     client = Client(DRS_URL)
     c = client.client
+    print(DRS_URL)
     try:
-        c.GetDataObject(data_object_id=id).result()
+        print(c.GetDataObject(data_object_id=id).result())
         return True
     except:
         return False
@@ -246,51 +247,7 @@ def _create_slices(chunk_size, id, reference_name, start, end):
     return urls
 
 
-def _get_urls_drs(file_type, id, reference_name=None, start=None, end=None):
-    """
-    Searches for file using DRS from ID and Return URLS for Read or Variant
-
-    :param file_type: "read" or "variant"
-    :param id: ID of a file
-    :param reference_name: Chromosome Number
-    :param start: Desired starting index of the file
-    :param end: Desired ending index of the file
-    """
-    if file_type not in ["variant", "read"]:
-        raise ValueError("File type must be 'variant' or 'read'")
-
-    err_msg = f"No {file_type} found for id: {id}, try using the other endpoint"
-    not_found_error = {"response": err_msg, "http_status_code": 404}
-
-    file_exists = file_exists_drs(id)
-    if file_exists:
-        file_format = _get_file_format_drs(id)
-        if file_format == "VCF" or file_format == "BCF":
-            if file_type != "variant":
-                return not_found_error
-        elif file_format == "BAM" or file_format == "CRAM":
-            if file_type != "read":
-                return not_found_error
-
-        file_path = _get_file_path_drs(id)
-        if start is None:
-            start = _get_index("start", file_path, file_type)
-        if end is None:
-            end = _get_index("end", file_path, file_type)
-
-        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
-        response = {
-            'htsget': {
-                'format': file_format,
-                'urls': urls
-            }
-        }
-        return {"response": response, "http_status_code": 200}
-    else:
-        return not_found_error
-
-
-def _get_urls_db(file_type, id, reference_name=None, start=None, end=None):
+def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, end=None):
     """
     Searches for file using sqlite DB from ID and Return URLS for Read/Variant
 
@@ -306,12 +263,27 @@ def _get_urls_db(file_type, id, reference_name=None, start=None, end=None):
     err_msg = f"No {file_type} found for id: {id}, try using the other endpoint"
     not_found_error = {"response": err_msg, "http_status_code": 404}
 
-    file = _get_file_by_id(id)  # returns an array of tuples
-    file_exists = len(file) != 0
+    file = ""
+    file_exists = False
+    if file_retrieval == "db":
+        file = _get_file_by_id(id)  # returns an array of tuples
+        file_exists = len(file) != 0
+    elif file_retrieval == "minio":
+        file_exists = file_exists_drs(id)
+    else:
+        raise ValueError("file retrieval must be 'db' or 'minio'")
+
+    print(file_exists)
     if file_exists:
-        file_name = file[0][0] + file[0][1]
-        file_format = file[0][2]
-        file_path = f"{LOCAL_FILES_PATH}/{file_name}"
+        file_format = ""
+        file_path = ""
+        if file_retrieval == "db":
+            file_name = file[0][0] + file[0][1]
+            file_format = file[0][2]
+            file_path = f"{LOCAL_FILES_PATH}/{file_name}"
+        elif file_retrieval == "minio":
+            file_format = _get_file_format_drs(id)
+            file_path = _get_file_path_drs(id)
 
         if file_format == "VCF" or file_format == "BCF":
             if file_type != "variant":
