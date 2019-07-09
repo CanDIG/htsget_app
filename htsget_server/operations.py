@@ -195,9 +195,8 @@ def file_exists_db(id):
 def file_exists_drs(id):
     client = Client(DRS_URL)
     c = client.client
-    print(DRS_URL)
     try:
-        print(c.GetDataObject(data_object_id=id).result())
+        c.GetDataObject(data_object_id=id).result()
         return True
     except:
         return False
@@ -273,7 +272,6 @@ def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, en
     else:
         raise ValueError("file retrieval must be 'db' or 'minio'")
 
-    print(file_exists)
     if file_exists:
         file_format = ""
         file_path = ""
