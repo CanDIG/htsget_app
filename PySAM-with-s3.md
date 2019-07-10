@@ -1,10 +1,17 @@
 # Using PySAM to Access Signed S3 Bucket
 
-PySAM is a python library which provides an interface for reading and writing read and variant files.The most common way of accessing a file is with a local file path. However, with S3 buckets emerging as a popular file storage system, it is natural that PySAM should be able to interact with a file referenced by a S3 path. PySAM is a wrapper of the htslib C-API which does support S3 paths, but many issues arose when my team and I tried to pass a s3 supported file in Minio to PySAM. The steps taken to successfully pass a s3 supported file in Minio to PySAM are addressed below.
+I was working on a project for CanDIG which was an Htsget API implementation with two different file storage configurations. One was a local sqllite database and the other was using DRS and Minio. Minio is an object storage system and it is a great choice for security and scability of our htsget application. A main component of our application was the PySAM library which provides an interface for reading and writing read and variant files. The most common way of accessing a file is with a local file path. However, with S3 buckets emerging as a popular file storage system, it is natural that PySAM should be able to interact with a file referenced by a S3 path. PySAM is a wrapper of the htslib C-API which does support S3 paths, but many issues arose when my team and I tried to pass a s3 supported file in Minio to PySAM. After many google searches, there seems to be many people having issues accessing a s3 file path such as:
+1) https://www.biostars.org/p/213305/
+2) https://github.com/pysam-developers/pysam/issues/557
+3) https://www.biostars.org/p/213305/ 
+
+Although several sources claim that accessing a s3 file should just work, I have not been able to find a single worked example. After many days of digging on the web and coming across several problems, my team and I figured out how to successfully use PySAM and htslib to access a Signed S3 Bucket.
+
+The steps taken to successfully pass a s3 supported file in Minio to PySAM are addressed below.
 
 ## 1) Download and install htslib version from developer branch
    
-We discovered that the latest release of htslib(1.9) does not support signed s3 buckets, but their developer branch does. The installation instructions can be found here: https://github.com/samtools/htslib 
+We discovered that the latest release of htslib(1.9) does not support signed s3 buckets, but their developer branch does. The installation instructions can be found here: https://github.com/samtools/htslib . Make sure to add the --enable-s3 option during installation
 
 ## 2) Successfully open file from S3 path using htslib directly
 
@@ -34,5 +41,63 @@ If it was successful, the output would look something like this:
 ```
 s3://default@play/testfiles/NA18537.vcf.gz:     VCF version 4.1 BGZF-compressed variant calling data
 ```
+
+If you got an error, you may want to run the command with -vvvvv to see a detailed log. Using the command from the example earlier: 
+```
+htsfile -vvvvv s3://default@play/testfiles/NA18537.vcf.gz
+```
+The output should be:
+```
+[D::init_add_plugin] Loaded "knetfile"[D::init_add_plugin] Loaded "mem"
+[D::init_add_plugin] Loaded "/usr/local/libexec/htslib/hfile_s3_write.so"
+[D::init_add_plugin] Loaded "/usr/local/libexec/htslib/hfile_s3.so"
+[D::init_add_plugin] Loaded "/usr/local/libexec/htslib/hfile_libcurl.so"
+[D::init_add_plugin] Loaded "/usr/local/libexec/htslib/hfile_gcs.so"
+*   Trying 147.75.201.93...
+* TCP_NODELAY set
+* Connected to play.min.io (147.75.201.93) port 9000 (#0)
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*   CAfile: /etc/ssl/certs/ca-certificates.crt
+  CApath: /etc/ssl/certs
+* SSL connection using unknown / TLS_AES_128_GCM_SHA256
+* ALPN, server accepted to use http/1.1
+* Server certificate:
+*  subject: CN=play.minio.io
+*  start date: Jul  2 08:22:01 2019 GMT
+*  expire date: Sep 30 08:22:01 2019 GMT
+*  subjectAltName: host "play.min.io" matched cert's "play.min.io"
+*  issuer: C=US; O=Let's Encrypt; CN=Let's Encrypt Authority X3
+*  SSL certificate verify ok.
+> GET /testfiles/NA18537.vcf.gz HTTP/1.1
+Host: play.min.io:9000
+User-Agent: htslib/1.9-258-ga428aa2 libcurl/7.58.0
+Accept: */*
+Authorization: AWS4-HMAC-SHA256 Credential=Q3AM3UQ867SPQQA43P2F/20190710/us-east-1/s3/aws4_request,SignedHeaders=host;x-amz-content-sha256;x-amz-date,Signature=c4dcdc1b3d49a33b231151f760fb54f07606f0c0016c002847cd646d94d0c34b
+x-amz-date: 20190710T204159Z
+x-amz-content-sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+< HTTP/1.1 200 OK
+< Accept-Ranges: bytes
+< Content-Length: 3185107
+< Content-Security-Policy: block-all-mixed-content
+< Content-Type: application/octet-stream
+< ETag: "c876ca31f911ade7751eb23b4827253c"
+< Last-Modified: Thu, 04 Jul 2019 17:02:02 GMT
+< Server: MinIO/DEVELOPMENT.2019-07-06T17-09-12Z
+< Vary: Origin
+< X-Amz-Bucket-Region: us-east-1
+< X-Amz-Request-Id: 15B0266CE660B4AD
+< X-Amz-Server-Side-Encryption: AES256
+< X-Xss-Protection: 1; mode=block
+< Date: Wed, 10 Jul 2019 20:41:59 GMT
+< 
+s3://default@play/testfiles/NA18537.vcf.gz:     VCF version 4.1 BGZF-compressed variant calling data
+* stopped the pause stream!
+* Closing connection 0
+```
+
+Pay close attention to the "Host:". If your host is not being read correctly, play around with the host_base in ./s3cfg file and the file path you pass in with the htsfile command
+
 ## 3) Rebuild PySAM from source
    
