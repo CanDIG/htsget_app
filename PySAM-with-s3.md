@@ -42,6 +42,7 @@ If it was successful, the output would look something like this:
 s3://default@play/testfiles/NA18537.vcf.gz:     VCF version 4.1 BGZF-compressed variant calling data
 ```
 
+### If you got an error
 If you got an error, you may want to run the command with -vvvvv to see a detailed log. Using the command from the example earlier: 
 ```
 htsfile -vvvvv s3://default@play/testfiles/NA18537.vcf.gz
