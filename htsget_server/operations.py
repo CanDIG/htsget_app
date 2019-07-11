@@ -248,8 +248,9 @@ def _create_slices(chunk_size, id, reference_name, start, end):
 
 def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, end=None):
     """
-    Searches for file using sqlite DB from ID and Return URLS for Read/Variant
+    Searches for file from local sqlite db or minio from ID and Return URLS for Read/Variant
 
+    :param file_retrieval: "minio" or "db"
     :param file_type: "read" or "variant"
     :param id: ID of a file
     :param reference_name: Chromosome Number
