@@ -1,21 +1,30 @@
 # Using PySAM to Access Signed S3 Bucket
 
-I was working on a project for CanDIG which was an Htsget API implementation with two different file storage configurations. One was a local sqllite database and the other was using DRS and Minio. Minio is an object storage system and it is a great choice for security and scability of our htsget application. A main component of our application was the PySAM library which provides an interface for reading and writing read and variant files. The most common way of accessing a file is with a local file path. However, with S3 buckets emerging as a popular file storage system, it is natural that PySAM should be able to interact with a file referenced by a S3 path. PySAM is a wrapper of the htslib C-API which does support S3 paths, but many issues arose when my team and I tried to pass a s3 supported file in Minio to PySAM. After many google searches, there seems to be many people having issues accessing a s3 file path such as:
+I was working on a project for [CanDIG](https://www.distributedgenomics.ca/) which was an [Htsget API](https://github.com/CanDIG/htsget_app) implementation with two different file storage configurations. One was a local sqllite database and the other was using DRS and Minio. Minio is an object storage system and it is a great choice for security and scability of our htsget application. A main component of our application was the PySAM library which provides an interface for reading and writing read and variant files. The most common way of accessing a file is with a local file path. However, with S3 buckets emerging as a popular file storage system, it is natural that PySAM should be able to interact with a file referenced by a S3 path. PySAM is a wrapper of the htslib C-API which does support S3 paths, but many issues arose when my team and I tried to pass a s3 supported file in Minio to PySAM. After many google searches, there seems to be many people having issues accessing a s3 file path such as:
 1) https://www.biostars.org/p/213305/
 2) https://github.com/pysam-developers/pysam/issues/557
 3) https://www.biostars.org/p/213305/ 
 
 Although several sources claim that accessing a s3 file should just work, I have not been able to find a single worked example. After many days of digging on the web and coming across several problems, my team and I figured out how to successfully use PySAM and htslib to access a Signed S3 Bucket.
 
-The steps taken to successfully pass a s3 supported file in Minio to PySAM are addressed below.
+The steps taken to successfully pass a s3 supported file in Minio to PySAM are discussed below.
 
 ## 1) Download and install htslib version from developer branch
    
-We discovered that the latest release of htslib(1.9) does not support signed s3 buckets, but their developer branch does. The installation instructions can be found here: https://github.com/samtools/htslib . Make sure to add the --enable-s3 option during installation
+We discovered that the latest release of htslib(1.9) does not support signed s3 buckets,but their developer branch does. The installation instructions can be found here: https://github.com/samtools/htslib . Make sure to add the --enable-s3 option during installation. 
+
+To check whether htslib installed correctly, use the command:
+```
+which htsfile
+```
+The output should be:
+```
+/usr/local/bin/htsfile
+```
 
 ## 2) Successfully open file from S3 path using htslib directly
 
-After installing htslib from developer branch, we tested to see if htslib can call a s3 bucket, and if it works, then pointing PySAM to use this htslib should work as well. We used the testing server play.min.io and created our own test bucket called testfiles with the file NA18537.vcf.gz. 
+After installing htslib from developer branch, we tested to see if htslib can call a s3 bucket, and if it works, then directing PySAM to use this htslib should work as well. We used the testing server play.min.io:9000 and created our own test bucket called testfiles with the file NA18537.vcf.gz. 
 
 To call a signed s3 bucket, we have to create a ./s3cfg file in the root directory of your computer. The file should look like this:
 ```
@@ -25,10 +34,10 @@ secret_key = zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG
 host_base = min.io:9000
 ```
 
-If you're wondering why the host_base is min.io:9000 and not play.min.io:9000, it is because htslib accepts the host_base in a specific format, and we had to play around with it for awhile to get it to read the host name in the way we wanted. In general, when calling the s3 path with htslib, the path is in the following format:
+If you're wondering why the host_base is min.io:9000 and not play.min.io:9000, it is because htslib reads the host_base, and the file path in a specific format, and we had to play around with it for awhile to get it to read the host name in the way we wanted. In general, when calling the s3 path with htslib, the path is in the following format:
 
 ```
-s3://<host_base>/<bucket-of-file>/<file-name>
+s3://<host_base>@<bucket>/<another-bucket>/<file-name>
 ``` 
 
 After the ./s3cfg file is created, we used this command to open the file
@@ -37,7 +46,7 @@ After the ./s3cfg file is created, we used this command to open the file
 htsfile s3://default@play/testfiles/NA18537.vcf.gz
 ```
 
-If it was successful, the output would look something like this:
+If the request was successful, the output would look something like this:
 ```
 s3://default@play/testfiles/NA18537.vcf.gz:     VCF version 4.1 BGZF-compressed variant calling data
 ```
@@ -47,7 +56,7 @@ If you got an error, you may want to run the command with -vvvvv to see a detail
 ```
 htsfile -vvvvv s3://default@play/testfiles/NA18537.vcf.gz
 ```
-The output should be:
+If successful, the output should look something like this:
 ```
 [D::init_add_plugin] Loaded "knetfile"[D::init_add_plugin] Loaded "mem"
 [D::init_add_plugin] Loaded "/usr/local/libexec/htslib/hfile_s3_write.so"
@@ -101,4 +110,55 @@ s3://default@play/testfiles/NA18537.vcf.gz:     VCF version 4.1 BGZF-compressed 
 Pay close attention to the "Host:". If your host is not being read correctly, play around with the host_base in ./s3cfg file and the file path you pass in with the htsfile command
 
 ## 3) Rebuild PySAM from source
-   
+If you already have PySAM installed, you need to uninstall it. We want to rebuild PySAM from source to make it use our custom htslib instead of the release version.
+
+To install PySAM from source, refer to this link: https://github.com/pysam-developers/pysam 
+
+### Clone the repository:
+```
+git clone https://github.com/pysam-developers/pysam.git
+```
+
+Change your directory into root of PySAM. 
+
+### Install cython
+Since pysam depends on cython, it has to be installed beforehand:
+```
+pip install cython
+```
+
+### Export environment variables
+```
+export HTSLIB_LIBRARY_DIR=/usr/local/lib
+export HTSLIB_INCLUDE_DIR=/usr/local/include
+```
+
+### Install PySAM
+```
+python3 setup.py install
+```
+
+## 4) Run PySAM
+
+### Create ./s3cfg file in root directory addressed in step 2)
+
+### create a s3test.py file
+```
+from pysam import VariantFile
+
+s3_path = "s3://default@play/testfiles/NA18537.vcf.gz"
+vcf_in = VariantFile(s3_path)
+for rec in vcf_in.fetch():
+    print(rec.pos)
+```
+
+In the terminal run:
+```
+python3 s3test.py
+```
+
+If it was successful, it should print out each position in the vcf file
+
+## 5) Done!
+
+# Conclusion
