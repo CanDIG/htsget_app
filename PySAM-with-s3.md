@@ -159,6 +159,7 @@ python3 s3test.py
 
 If it was successful, it should print out each position in the vcf file
 
-## 5) Done!
+## 5) Use PySAM in your project !
 
 # Conclusion
+The official release of PySAM does not support signed s3 file paths. To make PySAM work with signed s3 buckets, we must rebuild PySAM from source and point it to the developer version of htslib. I hope these steps have helped you out. 
