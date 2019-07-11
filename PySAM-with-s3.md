@@ -1,6 +1,6 @@
 # Using PySAM to Access Signed S3 Bucket
 
-I was working on a project for [CanDIG](https://www.distributedgenomics.ca/) which was an [Htsget API](https://github.com/CanDIG/htsget_app) implementation with two different file storage configurations. One was a local sqllite database and the other was using DRS and Minio. Minio is an object storage system and it is a great choice for security and scability of our htsget application. A main component of our application was the PySAM library which provides an interface for reading and writing read and variant files. The most common way of accessing a file is with a local file path. However, with S3 buckets emerging as a popular file storage system, it is natural that PySAM should be able to interact with a file referenced by a S3 path. PySAM is a wrapper of the htslib C-API which does support S3 paths, but many issues arose when my team and I tried to pass a s3 supported file in Minio to PySAM. After many google searches, there seems to be many people having issues accessing a s3 file path such as:
+I was working on a project for [CanDIG](https://www.distributedgenomics.ca/) which was an [Htsget API](https://github.com/CanDIG/htsget_app) implementation with two different file storage configurations. One was a local sqllite database and the other was using DRS and Minio. Minio is an object storage system and it is a great choice for security and scability of our htsget application. A main component of our application was the PySAM library which provides an interface for reading and writing read and variant files. The most common way of accessing a file is with a local file path. However, with S3 buckets emerging as a popular file storage system, it is natural that PySAM should be able to interact with a file referenced by a S3 path. PySAM is a wrapper of the htslib C-API which should support S3 paths, but many issues arose when my team and I tried to pass a s3 supported file in Minio to PySAM. After many google searches, there seems to be many people having issues accessing a s3 file path such as:
 1) https://www.biostars.org/p/213305/
 2) https://github.com/pysam-developers/pysam/issues/557
 3) https://www.biostars.org/p/213305/ 
@@ -11,7 +11,7 @@ The steps taken to successfully pass a s3 supported file in Minio to PySAM are d
 
 ## 1) Download and install htslib version from developer branch
    
-We discovered that the latest release of htslib(1.9) does not support signed s3 buckets,but their developer branch does. The installation instructions can be found here: https://github.com/samtools/htslib . Make sure to add the --enable-s3 option during installation. 
+Although the current release of htslib should support s3 buckets, they do not support signed s3 buckets. We discovered that the latest release of htslib(1.9) does not support signed s3 buckets, but their developer branch does. The installation instructions can be found here: https://github.com/samtools/htslib . Make sure to add the --enable-s3 option during installation. 
 
 To check whether htslib installed correctly, use the command:
 ```
