@@ -9,7 +9,7 @@ from minio import Minio
 from minio.error import ResponseError
 import configparser
 from pathlib import Path
-
+ 
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
@@ -310,12 +310,12 @@ def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, en
 def _get_index(position, file_path, file_type):
     """
     Get the first or last index of a reads or variant file.
-    File must be stored locally
+    File must be stored locally or on minio s3 bucket
 
     :param position: Get either first or last index.
         Options: first - "start"
                  last - "end"
-    :param file_name: name of file
+    :param file_path: path of file
     :param file_type: Read or Variant
     """
     position = position.lower()
