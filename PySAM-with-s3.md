@@ -37,7 +37,7 @@ host_base = min.io:9000
 If you're wondering why the host_base is min.io:9000 and not play.min.io:9000, it is because htslib reads the host_base, and the file path in a specific format, and we had to play around with it for awhile to get it to read the host name in the way we wanted. In general, when calling the s3 path with htslib, the path is in the following format:
 
 ```
-s3://<host_base>@<bucket>/<another-bucket>/<file-name>
+s3://default@<bucket>/<another-bucket>/<file-name>
 ``` 
 
 After the ./s3cfg file is created, we used this command to open the file
