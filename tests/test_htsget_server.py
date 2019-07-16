@@ -7,14 +7,22 @@ from urllib import parse
 import configparser
 from pathlib import Path
 
-
+ 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
 
 BASE_PATH = config['DEFAULT']['BasePath']
 PORT = config['DEFAULT']['Port']
 HOST = f"http://localhost:{PORT}{BASE_PATH}"
-LOCAL_FILES_PATH = "./data/files"
+FILE_RETRIEVAL = config['DEFAULT']['FileRetrieval']
+LOCAL_FILE_PATH = config['paths']['LocalFilePath']
+MINIO_FILE_PATH = config['paths']['MinioFilePath']
+
+FILE_PATH = "./data/files"
+if FILE_RETRIEVAL == "db":
+    FILE_PATH = LOCAL_FILE_PATH
+else:
+    FILE_PATH = MINIO_FILE_PATH
 
 
 def invalid_start_end_data():
@@ -75,10 +83,10 @@ def test_file_without_start_end(id, reference_name, file_extension, file_type):
     file_two = None
     if file_type == "variant":
         file_one = VariantFile(path)
-        file_two = VariantFile(f"{LOCAL_FILES_PATH}/{file_name}")
+        file_two = VariantFile(f"{FILE_PATH}/{file_name}")
     elif file_type == "read":
         file_one = AlignmentFile(path)
-        file_two = AlignmentFile(f"{LOCAL_FILES_PATH}/{file_name}")
+        file_two = AlignmentFile(f"{FILE_PATH}/{file_name}")
     equal = True
     for x, y in zip(file_one.fetch(), file_two.fetch(contig=reference_name)):
         if x != y:
@@ -119,10 +127,10 @@ def test_pull_slices(params, file_extension, file_type):
         f = None
         if file_type == "variant":
             f_slice = VariantFile(f_slice_path)
-            f = VariantFile(f"{LOCAL_FILES_PATH}/{f_name}")
+            f = VariantFile(f"{FILE_PATH}/{f_name}")
         elif file_type == "read":
             f_slice = AlignmentFile(f_slice_path)
-            f = AlignmentFile(f"{LOCAL_FILES_PATH}/{f_name}")
+            f = AlignmentFile(f"{FILE_PATH}/{f_name}")
 
         # get start index for original file
         for rec in f_slice.fetch():
