@@ -15,13 +15,13 @@ BASE_PATH = config['DEFAULT']['BasePath']
 PORT = config['DEFAULT']['Port']
 HOST = f"http://localhost:{PORT}{BASE_PATH}"
 FILE_RETRIEVAL = config['DEFAULT']['FileRetrieval']
-LOCAL_FILE_PATH = config['paths']['LocalFilePath']
+LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
 MINIO_FILE_PATH = config['paths']['MinioFilePath']
 
 FILE_PATH = "./data/files"
 if FILE_RETRIEVAL == "db":
     FILE_PATH = LOCAL_FILE_PATH
-else:
+elif FILE_RETRIEVAL == "minio":
     FILE_PATH = MINIO_FILE_PATH
 
 
