@@ -1,5 +1,5 @@
 Connexion==1.4.2
-Flask==1.0.3
+Flask==1.1.1
 minio==4.0.17
 ga4gh-dos-schemas==0.4.2
 pysam==0.15.2
