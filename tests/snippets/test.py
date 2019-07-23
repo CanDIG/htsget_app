@@ -1,7 +1,7 @@
 from dbtest import MyDatabase
 
 DATABASE = 'sqlite'
-sqlite = MyDatabase(, dbname='test.db')
+sqlite = MyDatabase(DATABASE, dbname='test.db')
 
 sqlite.create_db_table()
 insert_query = "INSERT INTO files VALUES ( (:id), (:file_type), (:format) )"
