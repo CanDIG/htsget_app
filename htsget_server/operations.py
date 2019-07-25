@@ -9,6 +9,7 @@ from minio import Minio
 from minio.error import ResponseError
 import configparser
 from pathlib import Path
+from database import MyDatabase
  
 
 config = configparser.ConfigParser()
@@ -24,6 +25,7 @@ DRS_URL = config['paths']['DRSPath']
 MINIO_END_POINT = config['minio']['EndPoint']
 MINIO_ACCESS_KEY = config['minio']['AccessKey']
 MINIO_SECRET_KEY = config['minio']['SecretKey']
+DATABASE = config['DEFAULT']['DataBase']
 
 
 def get_reads(id, reference_name=None, start=None, end=None):
@@ -155,27 +157,6 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
 """ Helper Functions"""
 
-
-def _execute(query, param_obj):
-    """
-    Execute sql query
-
-    :param query: The SQL query string
-    :param param_obj: The parameter object passed to the query
-                       ( e.g. {'id': id} )
-    """
-    conn = sqlite3.connect(LOCAL_DB_PATH)
-    c = conn.cursor()
-    c.execute(query, param_obj)
-
-    res = c.fetchall()
-
-    conn.commit()
-    conn.close()
-
-    return res
-
-
 def _get_file_by_id(id):
     """
     Returns an array of tuples of a file based on ID from DBV
@@ -184,7 +165,8 @@ def _get_file_by_id(id):
     """
     query = """SELECT * FROM  files WHERE id = (:id) LIMIT 1"""
     param_obj = {'id': id}
-    return _execute(query, param_obj)
+    db = MyDatabase(DATABASE, dbname=LOCAL_DB_PATH)
+    return db.get_data(query, param_obj)
 
 
 def file_exists_db(id):

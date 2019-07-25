@@ -1,3 +1,2 @@
-1. If using DRS and user does not specify a start/end, program will 
-crash since it has to parse the file using pysam to find the index
+
 

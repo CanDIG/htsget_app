@@ -1,29 +1,7 @@
-# import sqlite3
-
-# conn = sqlite3.connect('../data/files.db')
-# c = conn.cursor()
-
-# # c.execute("""CREATE TABLE files (
-# #             id text,
-# #             file_type text,
-# #             format text
-# #             )""")
-
-# c.execute("INSERT INTO files VALUES ('NA02102', '.bam', 'BAM')")
-
-# c.execute("SELECT * FROM files")
-# print(c.fetchall())
-
-# conn.commit()
-# conn.close()
-
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
-# Global Variables
-SQLITE = 'sqlite'
 
-# Table Names
-FILES = 'files'
+SQLITE = 'sqlite'
 
 class MyDatabase:
     # http://docs.sqlalchemy.org/en/latest/core/engines.html
@@ -37,9 +15,7 @@ class MyDatabase:
         dbtype = dbtype.lower()
         if dbtype in self.DB_ENGINE.keys():
             engine_url = self.DB_ENGINE[dbtype].format(DB=dbname)
-            print(engine_url)
             self.db_engine = create_engine(engine_url)
-            print(self.db_engine)
         else:
             print("DBType is not found in DB_ENGINE")
             print("DBType is not found in DB_ENGINE")
@@ -99,13 +75,3 @@ class MyDatabase:
                     print(row) # print(row[0], row[1], row[2])
                 result.close()
         print("\n")
-
-# sqlite = MyDatabase(SQLITE, dbname='test.db')
-# sqlite.create_db_tables()
-# insert_query = "INSERT INTO files VALUES ( (:id), (:file_type), (:format) )"
-# insert_param = {'id': 'NA02102', 'file_type': '.bam', 'format': 'BAM'}
-# sqlite.insert_data(insert_query, insert_param)
-# sqlite.print_all_data()
-# query = """SELECT * FROM  files WHERE id = (:id) LIMIT 1"""
-# param_obj = {'id': 'NA02102'}
-# print(sqlite.get_data(query, param_obj))
