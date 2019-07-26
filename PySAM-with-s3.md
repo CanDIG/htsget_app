@@ -1,6 +1,6 @@
 # Using PySAM and HTSLIB to Access Private S3 Bucket
 
-I was working on a project for [CanDIG](https://www.distributedgenomics.ca/) which was an [Htsget API](https://github.com/CanDIG/htsget_app) implementation with two different file storage configurations. Htsget is a simple data-access API for read and variant files. A main component of our application was the PySAM library which provides an interface for reading and writing read and variant files. The most common way of accessing a file is with a local file path. However, with S3 buckets emerging as a popular file storage system, it is natural that PySAM should be able to interact with a file referenced by a S3 path. PySAM is a wrapper of the htslib C-API which should support S3 paths, but many issues arose when my team and I tried to pass a s3 supported file in Minio to PySAM. After many google searches, there seems to be many people having issues accessing a s3 file path such as:
+I was working on a project for [CanDIG](https://www.distributedgenomics.ca/) which was an [Htsget API](http://samtools.github.io/hts-specs/htsget.html) implementation with two different file storage configurations. Htsget is a simple data-access API for read and variant files. A main component of our application was the PySAM library which provides an interface for reading and writing read and variant files. Its main use in the API was to parse a desired file and return only a chunk of that file with various filters. The most common way of accessing a file is with a local file path. However, with S3 buckets emerging as a popular file storage system, it is natural that PySAM should be able to interact with a file referenced by a S3 path. PySAM is a wrapper of the htslib C-API which should support S3 paths, but many issues arose when my team and I tried to pass a s3 supported file in Minio to PySAM. After many google searches, there seems to be many people having issues accessing a s3 file path such as:
 1) https://www.biostars.org/p/213305/
 2) https://github.com/pysam-developers/pysam/issues/557
 3) https://www.biostars.org/p/213305/ 
@@ -11,7 +11,7 @@ The steps taken to successfully pass a s3 supported file in Minio to PySAM are d
 
 ## 1) Download and install htslib version from developer branch
    
-Although the current release of htslib should support s3 buckets, they do not support signed s3 buckets. We discovered that the latest release of htslib(1.9) does not support signed s3 buckets, but their developer branch does. The installation instructions can be found here: https://github.com/samtools/htslib . Make sure to add the --enable-s3 option during installation. 
+We believe the problem is that Amazon AWS may have changed the way they sign their s3 buckets, hence the current release of htslib no longer supports private s3 buckets. We discovered that the latest release of htslib(1.9) does not support signed s3 buckets, but their developer branch does. The installation instructions can be found here: https://github.com/samtools/htslib . Make sure to add the --enable-s3 option during installation. 
 
 To check whether htslib installed correctly, use the command:
 ```
@@ -22,11 +22,36 @@ The output should be:
 /usr/local/bin/htsfile
 ```
 
-## 2) Successfully open file from S3 path using htslib directly
+## 2) Try to Run PySAM
 
-After installing htslib from developer branch, we tested to see if htslib can call a s3 bucket, and if it works, then directing PySAM to use this htslib should work as well. We used the testing server play.min.io:9000 and created our own test bucket called testfiles with the file NA18537.vcf.gz. 
+We tried to call a s3 bucket using the testing server play.min.io:3000, and uploaded a vcf file inside a test bucket
 
-To call a signed s3 bucket, we have to create a ./s3cfg file in the root directory of your computer. The file should look like this:
+### Set environment variables
+```
+AWS_SECRET_ACCESS_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG
+AWS_ACCESS_KEY_ID=Q3AM3UQ867SPQQA43P2F
+```
+### create test.py file
+```
+from pysam import VariantFile
+
+path = "s3://play.min.io:9000/test/NA18537.vcf.gz"
+vcf = VariantFile(test2)
+for rec in vcf.fetch():
+    print(rec.pos)
+```
+
+### And we get the error:
+```
+PermissionError: [Errno 13] could not open variant file `b's3://default@play/test/NA18537.vcf.gz'`: Permission denied
+```
+
+## 3) Successfully open file from S3 path using htslib directly
+
+The error within pysam above motivated us to test whether we can use htslib directly to call a s3 bucket. We used the testing server play.min.io:9000 and created our own test bucket called testfiles with the file NA18537.vcf.gz. 
+
+### Create ./s3cfg file instead of using environment variables
+Since using environment variables gave us the same error, we decided to use a different method. We created ./s3cfg file in the root directory of your computer. The file should look like this:
 ```
 [default]
 access_key = Q3AM3UQ867SPQQA43P2F  
@@ -109,7 +134,7 @@ s3://default@play/testfiles/NA18537.vcf.gz:     VCF version 4.1 BGZF-compressed 
 
 Pay close attention to the "Host:". If your host is not being read correctly, play around with the host_base in ./s3cfg file and the file path you pass in with the htsfile command
 
-## 3) Rebuild PySAM from source
+## 4) Rebuild PySAM from source
 If you already have PySAM installed, you need to uninstall it. We want to rebuild PySAM from source to make it use our custom htslib instead of the release version.
 
 To install PySAM from source, refer to this link: https://github.com/pysam-developers/pysam 
@@ -138,7 +163,7 @@ export HTSLIB_INCLUDE_DIR=/usr/local/include
 python3 setup.py install
 ```
 
-## 4) Run PySAM
+## 5) Run PySAM
 
 ### Create ./s3cfg file in root directory addressed in step 2)
 
@@ -159,7 +184,8 @@ python3 s3test.py
 
 If it was successful, it should print out each position in the vcf file
 
-## 5) Use PySAM in your project
+## 6) Use PySAM in your project
+An example of using PySAM to access a private s3 bucket can be found [here](https://github.com/CanDIG/htsget_app/blob/master/htsget_server/operations.py)
 
 # Conclusion
 The official release of PySAM does not support signed s3 file paths. To make PySAM work with signed s3 buckets, we must rebuild PySAM from source and point it to the developer version of htslib. I hope these steps have helped you get PySAM and s3 buckets working with your project. 
