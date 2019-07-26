@@ -5,7 +5,7 @@ requirements = [
         'Flask==1.0.3',
         'minio==4.0.17',
         'ga4gh-dos-schemas==0.4.2',
-        'jsonschema==2.6.0'
+        'jsonschema==2.6.0',
         'sqlalchemy==1.3.6'
 ]
 
