@@ -4,21 +4,18 @@ from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
 SQLITE = 'sqlite'
 
 class MyDatabase:
+    """
+    Class that uses sqlalchemy and implements DB functionality
+    """
     # http://docs.sqlalchemy.org/en/latest/core/engines.html
-    DB_ENGINE = {
-        SQLITE: 'sqlite:///{DB}'
-    }
-
     # Main DB Connection Ref Obj
     db_engine = None
-    def __init__(self, dbtype, username='', password='', dbname=''):
-        dbtype = dbtype.lower()
-        if dbtype in self.DB_ENGINE.keys():
-            engine_url = self.DB_ENGINE[dbtype].format(DB=dbname)
-            self.db_engine = create_engine(engine_url)
-        else:
-            print("DBType is not found in DB_ENGINE")
-            print("DBType is not found in DB_ENGINE")
+    def __init__(self, dbpath, username='', password=''):
+        try:
+            self.db_engine = create_engine(dbpath)
+        except Exception as e:
+            print("error occured while creating db engine")
+            print(e)
 
 
     def create_db_table(self):
@@ -39,6 +36,9 @@ class MyDatabase:
     def execute(self, query, param):
         """
         Execute query to insert, update, or delete from DB
+
+        :param query: desired query to be executed
+        :param param: the param object to be passed in ( e.g. {'id': 'NA2102'})
         """
         if query == '' : return
         with self.db_engine.connect() as connection:
@@ -49,6 +49,16 @@ class MyDatabase:
     
 
     def get_data(self, query, param):
+        """
+        Generic function that executes a db query that expects data to return
+        e.g. select * from files
+
+        :param query: db query
+        :param param: param object that is passed in ( e.g. {'id': 'NA2102'})
+
+        returns an array of tuples
+        """
+
         if query == '' : return
         with self.db_engine.connect() as connection:
             try:

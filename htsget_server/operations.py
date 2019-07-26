@@ -26,6 +26,7 @@ MINIO_END_POINT = config['minio']['EndPoint']
 MINIO_ACCESS_KEY = config['minio']['AccessKey']
 MINIO_SECRET_KEY = config['minio']['SecretKey']
 DATABASE = config['DEFAULT']['DataBase']
+DB_PATH = config['paths']['DBPath']
 
 
 def get_reads(id, reference_name=None, start=None, end=None):
@@ -165,7 +166,7 @@ def _get_file_by_id(id):
     """
     query = """SELECT * FROM  files WHERE id = (:id) LIMIT 1"""
     param_obj = {'id': id}
-    db = MyDatabase(DATABASE, dbname=LOCAL_DB_PATH)
+    db = MyDatabase(DB_PATH)
     return db.get_data(query, param_obj)
 
 
