@@ -1,6 +1,6 @@
 #FROM continuumio/miniconda3:latest
 #FROM continuumio/miniconda3:4.6.14-alpine
-FROM python:alpine
+FROM python:3.6-alpine
 
 LABEL Maintainer="CanDIG Project"
 
