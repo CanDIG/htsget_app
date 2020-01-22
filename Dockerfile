@@ -24,7 +24,8 @@ RUN apk add \
 	curl \
 	curl-dev \
 	yaml-dev \
-	libressl-dev
+	libressl-dev \
+	git
 
 #USER anaconda
 
@@ -48,10 +49,6 @@ RUN apk add \
 COPY . /app
 #WORKDIR /app
 
-#RUN conda update -n base -c defaults conda
-#RUN conda env update -n base -f /app/environment.yml
-RUN python3 /app/setup.py install
-
 WORKDIR /app/lib/htslib
 RUN autoheader && autoconf && ./configure && make && make install
 
@@ -60,6 +57,10 @@ RUN pip install cython
 RUN export HTSLIB_LIBRARY_DIR=/usr/local/lib && \
 	export HTSLIB_INCLUDE_DIR=/usr/local/include && \
 	python3 setup.py install
+
+#RUN conda update -n base -c defaults conda
+#RUN conda env update -n base -f /app/environment.yml
+RUN python3 /app/setup.py install
 
 # Run the model service server
 WORKDIR /app

@@ -2,10 +2,12 @@
 version: '3.7'
 
 services:
- htsget-app:
+  htsget-app:
     build:
       context: .
     image: candig/htsget-app:${HTSGET_APP_VERSION:-latest}
+    volumes:
+      - $PWD:/app
     ports:
       - "${HTSGET_APP_PORT:-3000}:3000"
     deploy:
