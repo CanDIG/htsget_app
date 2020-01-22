@@ -22,7 +22,7 @@ def create_bucket():
         print("bucket owned")
         pass
     except BucketAlreadyExists as err:
-        print("Bucket already exists") 
+        print("Bucket already exists")
         pass
     except ResponseError as err:
         raise
@@ -88,7 +88,7 @@ def download_file_2():
         # print(raw)
         # raw = data.read()
         # print(raw)
-    
+
         # vcf = VariantFile(raw.fileno(), 'rb')
 
 
@@ -117,5 +117,5 @@ def test():
     for rec in vcf.fetch():
         print(rec.pos)
 
-# download_file_2() 
+# download_file_2()
 test()

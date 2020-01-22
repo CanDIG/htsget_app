@@ -1,13 +1,13 @@
+import configparser
+import os
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from urllib import parse
+
 import pytest
 import requests
-import os
-from tempfile import NamedTemporaryFile
-from pysam import VariantFile, AlignmentFile, TabixFile
-from urllib import parse
-import configparser
-from pathlib import Path
+from pysam import AlignmentFile, TabixFile, VariantFile
 
- 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
 

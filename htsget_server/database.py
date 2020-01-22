@@ -31,7 +31,7 @@ class MyDatabase:
         except Exception as e:
             print("Error occurred during Table creation!")
             print(e)
-    
+
 
     def execute(self, query, param):
         """
@@ -46,7 +46,7 @@ class MyDatabase:
                 result = connection.execute(query, param)
             except Exception as e:
                 print(e)
-    
+
 
     def get_data(self, query, param):
         """
@@ -70,7 +70,7 @@ class MyDatabase:
                 for row in result:
                     res.append(row)
                 return res
-    
+
 
     def print_all_data(self, table='', query=''):
         query = query if query != '' else "SELECT * FROM '{}';".format('files')

@@ -10,7 +10,7 @@ from minio.error import ResponseError
 import configparser
 from pathlib import Path
 from database import MyDatabase
- 
+
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
