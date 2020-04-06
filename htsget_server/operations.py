@@ -50,7 +50,7 @@ def file_exists_db(id):
 
 def search_drs(id):
     drs_objects = {}
-    url = f"{DRS_URL}/search?name={id}"
+    url = f"{DRS_URL}/search?fuzzy_name={id}"
 
     res = requests.get(url)
     res.raise_for_status()
@@ -70,12 +70,6 @@ def search_drs(id):
 
 
 def _get_file_format_drs(drs_objects):
-    #client = Client(DRS_URL)
-    #c = client.client
-
-    ## assume id will be NA18537 for now
-    #response = c.GetDataObject(data_object_id=id).result()
-    #return response['data_object']['mime_type'][len('application/'):]
     # TODO: should we provide custom mime_type in DRS?
     if 'vcf' in drs_objects['file']['name']:
         return 'VCF'
@@ -98,28 +92,44 @@ def _get_file_path_drs(id):
     return response['data_object']["urls"][0]['url']
 
 
-def _download_minio_file(file_name):
+def _download_minio_file(drs_objects):
     """
     Download file from minio
     - assume indexed file is stored in minio and DRS
     """
-    minioClient = Minio(MINIO_END_POINT,
-                        access_key=MINIO_ACCESS_KEY,
-                        secret_key=MINIO_SECRET_KEY,
-                        secure=True)
+    client = Minio(
+        MINIO_END_POINT,
+        access_key=MINIO_ACCESS_KEY,
+        secret_key=MINIO_SECRET_KEY,
+        secure=False
+    )
+    file_url = ""
+    index_file_url = ""
 
-    file_path = f"{LOCAL_FILES_PATH}/{file_name}"  # path to download the file
-    file_name_indexed = file_name + ".tbi"  # hard coded
-    # path to download indexed file
-    file_path_indexed = f"{LOCAL_FILES_PATH}/{file_name_indexed}"
-    bucket = 'test'
+    for method in drs_objects['file']['access_methods']:
+        if method['type'] == 's3':
+            file_url = method['access_url']['url']
+
+    for method in drs_objects['index_file']['access_methods']:
+        if method['type'] == 's3':
+            index_file_url = method['access_url']['url']
+
+    if not file_url or not index_file_url:
+        raise Exception('Cannot find proper minio (s3) access method in the DRS objects queried')
+
+    bucket = file_url.split('/')[-2]
+    file_name = file_url.split('/')[-1]
+    index_file_name = index_file_url.split('/')[-1]
+
+    file_path = os.path.join(LOCAL_FILES_PATH, file_name)
+    index_file_path = os.path.join(LOCAL_FILES_PATH, index_file_name)
 
     # Create the file
     try:
         f = open(file_path, "x")
         f.close()
 
-        f = open(file_path_indexed, "x")
+        f = open(index_file_path, "x")
         f.close()
     except:
         # File already exists, do nothing
@@ -127,10 +137,12 @@ def _download_minio_file(file_name):
 
     # download the required file into file_path
     try:
-        minioClient.fget_object(bucket, file_name, file_path)
-        minioClient.fget_object(bucket, file_name_indexed, file_path_indexed)
+        client.fget_object(bucket, file_name, file_path)
+        client.fget_object(bucket, index_file_name, index_file_path)
     except ResponseError as err:
         print(err)
+
+    return file_path, index_file_path
 
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end):
@@ -277,7 +289,7 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
     elif FILE_RETRIEVAL == "minio":
         drs_objects = search_drs(id)
         file_format = _get_file_format_drs(drs_objects)
-        # _download_minio_file(file_name)
+        main_file, index_file = _download_minio_file(drs_objects)
 
     # Write slice to temporary file
     ntf = NamedTemporaryFile(prefix='htsget', suffix='',
@@ -291,9 +303,14 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
             file_in = VariantFile(file_in_path)
         elif FILE_RETRIEVAL == "minio":
             file_in = VariantFile(
-                drs_objects['file']['access_methods'][0]['access_url']['url'],
-                index_filename=drs_objects['index_file']['access_methods'][0]['access_url']['url']
+                main_file,
+                index_filename=index_file
             )
+            # TODO: leaving this here, works but may not be efficient to read from DRS directly
+            #file_in = VariantFile(
+            #    drs_objects['file']['access_methods'][0]['access_url']['url'],
+            #    index_filename=drs_objects['index_file']['access_methods'][0]['access_url']['url']
+            #)
 
         file_out = VariantFile(ntf.name, 'w', header=file_in.header)
     elif file_format == "BAM" or file_format == "CRAM":  # Reads
@@ -303,8 +320,8 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
             file_in = AlignmentFile(file_in_path)
         elif FILE_RETRIEVAL == "minio":
             file_in = AlignmentFile(
-                drs_objects['file']['access_methods'][0]['access_url']['url'],
-                index_filename=drs_objects['index_file']['access_methods'][0]['access_url']['url']
+                file_path,
+                index_filename=index_file
             )
 
         file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
