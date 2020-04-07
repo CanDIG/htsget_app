@@ -62,7 +62,7 @@ def search_drs(id):
         elif 'vcf' in obj['name']:
             drs_objects['file'] = obj
 
-    if 'file' in drs_objects and 'index_file' in drs_objects:
+    if 'file' in drs_objects:
         return drs_objects
     else:
         return None
@@ -105,19 +105,19 @@ def _download_minio_file(drs_objects):
         if method['type'] == 's3':
             file_url = method['access_url']['url']
 
-    for method in drs_objects['index_file']['access_methods']:
-        if method['type'] == 's3':
-            index_file_url = method['access_url']['url']
-
-    if not file_url or not index_file_url:
+    if not file_url:
         raise Exception('Cannot find proper minio (s3) access method in the DRS objects queried')
+
+    if 'index_file' in drs_objects:
+        for method in drs_objects['index_file']['access_methods']:
+            if method['type'] == 's3':
+                index_file_url = method['access_url']['url']
+    else:
+        index_file_url = None
 
     bucket = file_url.split('/')[-2]
     file_name = file_url.split('/')[-1]
-    index_file_name = index_file_url.split('/')[-1]
-
     file_path = os.path.join(LOCAL_FILES_PATH, file_name)
-    index_file_path = os.path.join(LOCAL_FILES_PATH, index_file_name)
 
     if os.path.exists(file_path):
         file_size = os.path.getsize(file_path)
@@ -131,16 +131,22 @@ def _download_minio_file(drs_objects):
         except ResponseError as err:
             raise Exception(err)
 
-    if os.path.exists(index_file_path):
-        index_file_size = os.path.getsize(index_file_path)
-    else:
-        index_file_size = None
+    if index_file_url:
+        index_file_name = index_file_url.split('/')[-1]
+        index_file_path = os.path.join(LOCAL_FILES_PATH, index_file_name)
 
-    if not index_file_size or index_file_size != drs_objects['index_file']['size']:
-        try:
-            client.fget_object(bucket, index_file_name, index_file_path)
-        except ResponseError as err:
-            raise Exception(err)
+        if os.path.exists(index_file_path):
+            index_file_size = os.path.getsize(index_file_path)
+        else:
+            index_file_size = None
+
+        if not index_file_size or index_file_size != drs_objects['index_file']['size']:
+            try:
+                client.fget_object(bucket, index_file_name, index_file_path)
+            except ResponseError as err:
+                raise Exception(err)
+    else:
+        index_file_path = None
 
     return file_path, index_file_path
 
@@ -302,10 +308,14 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         if FILE_RETRIEVAL == "db":
             file_in = VariantFile(file_in_path)
         elif FILE_RETRIEVAL == "minio":
-            file_in = VariantFile(
-                main_file,
-                index_filename=index_file
-            )
+            if index_file:
+                file_in = VariantFile(
+                    main_file,
+                    index_filename=index_file
+                )
+            else:
+                file_in = VariantFile(main_file)
+
             # TODO: leaving this here, works but may not be efficient to read from DRS directly
             #file_in = VariantFile(
             #    drs_objects['file']['access_methods'][0]['access_url']['url'],
@@ -319,10 +329,13 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         if FILE_RETRIEVAL == "db":
             file_in = AlignmentFile(file_in_path)
         elif FILE_RETRIEVAL == "minio":
-            file_in = AlignmentFile(
-                file_path,
-                index_filename=index_file
-            )
+            if index_file:
+                file_in = AlignmentFile(
+                    file_path,
+                    index_filename=index_file
+                )
+            else:
+                file_in = AlignmentFile(file_path)
 
         file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
 
