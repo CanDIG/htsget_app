@@ -7,7 +7,6 @@ import requests
 from flask import request, send_file
 from flask import send_file
 from pysam import VariantFile, AlignmentFile
-# from ga4gh.dos.client import Client
 from minio import Minio
 from minio.error import ResponseError
 from database import MyDatabase
@@ -83,25 +82,21 @@ def _get_file_format_drs(drs_objects):
         return None
 
 
-def _get_file_path_drs(id):
-    client = Client(DRS_URL)
-    c = client.client
-
-    # assume id will be NA18537 for now
-    response = c.GetDataObject(data_object_id=id).result()
-    return response['data_object']["urls"][0]['url']
-
-
 def _download_minio_file(drs_objects):
     """
     Download file from minio
     - assume indexed file is stored in minio and DRS
     """
+    if '127.0.0.1' in MINIO_END_POINT or 'localhost' in MINIO_END_POINT:
+        secure = False
+    else:
+        secure = True
+
     client = Minio(
         MINIO_END_POINT,
         access_key=MINIO_ACCESS_KEY,
         secret_key=MINIO_SECRET_KEY,
-        secure=False
+        secure=secure
     )
     file_url = ""
     index_file_url = ""
@@ -124,23 +119,28 @@ def _download_minio_file(drs_objects):
     file_path = os.path.join(LOCAL_FILES_PATH, file_name)
     index_file_path = os.path.join(LOCAL_FILES_PATH, index_file_name)
 
-    # Create the file
-    try:
-        f = open(file_path, "x")
-        f.close()
+    if os.path.exists(file_path):
+        file_size = os.path.getsize(file_path)
+    else:
+        file_size = None
 
-        f = open(index_file_path, "x")
-        f.close()
-    except:
-        # File already exists, do nothing
-        pass
+    # Only download the file if the local size and DRS size differ
+    if not file_size or file_size != drs_objects['file']['size']:
+        try:
+            client.fget_object(bucket, file_name, file_path)
+        except ResponseError as err:
+            raise Exception(err)
 
-    # download the required file into file_path
-    try:
-        client.fget_object(bucket, file_name, file_path)
-        client.fget_object(bucket, index_file_name, index_file_path)
-    except ResponseError as err:
-        print(err)
+    if os.path.exists(index_file_path):
+        index_file_size = os.path.getsize(index_file_path)
+    else:
+        index_file_size = None
+
+    if not index_file_size or index_file_size != drs_objects['index_file']['size']:
+        try:
+            client.fget_object(bucket, index_file_name, index_file_path)
+        except ResponseError as err:
+            raise Exception(err)
 
     return file_path, index_file_path
 
@@ -433,15 +433,17 @@ def _get_index(file_retrieval, position, file_path, file_type):
         elif file_type == "read":
             file_in = AlignmentFile(file_path, "r")
     elif file_retrieval == "minio":
+        main_file, index_file = _download_minio_file(file_path)
+
         if file_type == "variant":
             file_in = VariantFile(
-                file_path['file']['access_methods'][0]['access_url']['url'],
-                index_filename=file_path['index_file']['access_methods'][0]['access_url']['url']
+                main_file,
+                index_filename=index_file
             )
         elif file_type == "read":
             file_in = AlignmentFile(
-                file_path['file']['access_methods'][0]['access_url']['url'],
-                index_filename=file_path['index_file']['access_methods'][0]['access_url']['url']
+                main_file,
+                index_filename=index_file
             )
 
     # get the required index
