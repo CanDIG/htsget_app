@@ -55,12 +55,19 @@ def search_drs(id):
     res.raise_for_status()
     data = res.json()
 
-    # TODO: so hopefully we'll get both the variant / read file and its corresponding index
+    # TODO: what happens when for a single name, we have both a vcf & bcf?
+    # TODO: also do we cover every possible extension?
     for obj in data:
-        if 'tbi' in obj['name']:
-            drs_objects['index_file'] = obj
-        elif 'vcf' in obj['name']:
-            drs_objects['file'] = obj
+        if any(ext in obj['name'].lower() for ext in ['tbi', 'bai']):
+            if 'index_file' in drs_objects:
+                print('We have found multiple index files for this DRS query')
+            else:
+                drs_objects['index_file'] = obj
+        elif any(ext in obj['name'].lower() for ext in ['vcf', 'bcf', 'bam', 'cram']):
+            if 'file' in drs_objects:
+                print('We have found multiple files for this DRS query')
+            else:
+                drs_objects['file'] = obj
 
     if 'file' in drs_objects:
         return drs_objects
@@ -70,13 +77,13 @@ def search_drs(id):
 
 def _get_file_format_drs(drs_objects):
     # TODO: should we provide custom mime_type in DRS?
-    if 'vcf' in drs_objects['file']['name']:
+    if 'vcf' in drs_objects['file']['name'].lower():
         return 'VCF'
-    elif 'bcf' in drs_objects['file']['name']:
+    elif 'bcf' in drs_objects['file']['name'].lower():
         return 'BCF'
-    elif 'bam' in drs_objects['file']['name']:
+    elif 'bam' in drs_objects['file']['name'].lower():
         return 'BAM'
-    elif 'cram' in drs_objects['file']['name']:
+    elif 'cram' in drs_objects['file']['name'].lower():
         return 'CRAM'
     else:
         return None
