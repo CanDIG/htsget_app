@@ -338,11 +338,11 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         elif FILE_RETRIEVAL == "minio":
             if index_file:
                 file_in = AlignmentFile(
-                    file_path,
+                    main_file,
                     index_filename=index_file
                 )
             else:
-                file_in = AlignmentFile(file_path)
+                file_in = AlignmentFile(main_file)
 
         file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
 

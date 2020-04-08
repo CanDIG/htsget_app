@@ -18,11 +18,7 @@ FILE_RETRIEVAL = config['DEFAULT']['FileRetrieval']
 LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
 MINIO_FILE_PATH = config['paths']['MinioFilePath']
 
-FILE_PATH = "./data/files"
-if FILE_RETRIEVAL == "db":
-    FILE_PATH = LOCAL_FILE_PATH
-elif FILE_RETRIEVAL == "minio":
-    FILE_PATH = MINIO_FILE_PATH
+FILE_PATH = LOCAL_FILE_PATH
 
 
 def invalid_start_end_data():
@@ -122,7 +118,6 @@ def test_pull_slices(params, file_extension, file_type):
         f_slice_path = f"./{f_slice_name}"
         f_slice = open(f_slice_path, 'wb')
         f_slice.write(res.content)
-
         f_slice = None
         f = None
         if file_type == "variant":
