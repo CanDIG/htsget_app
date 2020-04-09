@@ -315,13 +315,10 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         if FILE_RETRIEVAL == "db":
             file_in = VariantFile(file_in_path)
         elif FILE_RETRIEVAL == "minio":
-            if index_file:
-                file_in = VariantFile(
-                    main_file,
-                    index_filename=index_file
-                )
-            else:
-                file_in = VariantFile(main_file)
+            file_in = VariantFile(
+                main_file,
+                index_filename=index_file
+            )
 
             # TODO: leaving this here, works but may not be efficient to read from DRS directly
             #file_in = VariantFile(
@@ -336,13 +333,10 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         if FILE_RETRIEVAL == "db":
             file_in = AlignmentFile(file_in_path)
         elif FILE_RETRIEVAL == "minio":
-            if index_file:
-                file_in = AlignmentFile(
-                    main_file,
-                    index_filename=index_file
-                )
-            else:
-                file_in = AlignmentFile(main_file)
+            file_in = AlignmentFile(
+                main_file,
+                index_filename=index_file
+            )
 
         file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
 
@@ -446,7 +440,6 @@ def _get_index(file_retrieval, position, file_path, file_type):
         return "That format is not available"
 
     file_in = 0
-
     if file_retrieval == "db":
         if file_type == "variant":
             file_in = VariantFile(file_path, "r")
