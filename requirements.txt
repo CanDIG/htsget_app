@@ -1,4 +1,4 @@
-Connexion==2.5.1
+Connexion==2.6.0
 Flask==1.1.1
 minio==5.0.6
 ga4gh-dos-schemas==0.4.2
