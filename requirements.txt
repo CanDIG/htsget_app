@@ -1,5 +1,5 @@
-Connexion==2.5.1
 Flask==1.1.2
+Connexion==2.6.0
 minio==5.0.6
 ga4gh-dos-schemas==0.4.2
 pysam==0.15.4
