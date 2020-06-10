@@ -1,6 +1,7 @@
 from flask import Flask
 import connexion
 import configparser
+from prometheus_flask_exporter import PrometheusMetrics
 
 config = configparser.ConfigParser()
 config.read('./config.ini')
@@ -9,6 +10,7 @@ config.read('./config.ini')
 app = connexion.App(__name__, specification_dir='./')
 
 app.add_api('swagger.yaml')
+metrics = PrometheusMetrics(app)
 
 @app.route('/')
 def index():
