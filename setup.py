@@ -6,7 +6,9 @@ requirements = [
         'minio==4.0.17',
         'ga4gh-dos-schemas==0.4.2',
         'jsonschema==2.6.0',
-        'sqlalchemy==1.3.6'
+        'sqlalchemy==1.3.6',
+        'prometheus_flask_exporter==0.13.0',
+        'tornado==6.0.4'
 ]
 
 setup(
