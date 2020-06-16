@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 
 requirements = [
+        'werkzeug==0.16.1',
         'Connexion==1.4.2',
         'Flask==1.0.3',
         'minio==4.0.17',
@@ -8,7 +9,8 @@ requirements = [
         'jsonschema==2.6.0',
         'sqlalchemy==1.3.6',
         'prometheus_flask_exporter==0.13.0',
-        'tornado==6.0.4'
+        'tornado==6.0.4',
+        'pysam==0.15.2',
 ]
 
 setup(
