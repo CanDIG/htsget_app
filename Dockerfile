@@ -1,6 +1,6 @@
-#FROM continuumio/miniconda3:latest
-#FROM continuumio/miniconda3:4.6.14-alpine
-FROM python:3.6-alpine
+ARG venv_python
+
+FROM python:${venv_python}-alpine
 
 LABEL Maintainer="CanDIG Project"
 
@@ -27,41 +27,10 @@ RUN apk add \
 	libressl-dev \
 	git
 
-#USER anaconda
+COPY . /app/htsget_server
 
-#RUN source /home/anaconda/.profile && \
-	#conda update conda -y && \
-	#conda env update -n base
+WORKDIR /app/htsget_server
 
-#RUN apt-get update && apt-get install -y \
-	#autoconf \
-	#automake \
-	#make \
-	#gcc \
-	#perl \
-	#build-essential \
-	#zlib1g-dev \
-	#libbz2-dev \
-	#liblzma-dev \
-	#libcurl4-gnutls-dev \
-	#libssl-dev
+RUN python setup.py install && pip install -U connexion
 
-COPY . /app
-#WORKDIR /app
-
-WORKDIR /app/lib/htslib
-RUN autoheader && autoconf && ./configure && make && make install
-
-WORKDIR /app/lib/pysam
-RUN pip install cython
-RUN export HTSLIB_LIBRARY_DIR=/usr/local/lib && \
-	export HTSLIB_INCLUDE_DIR=/usr/local/include && \
-	python3 setup.py install
-
-#RUN conda update -n base -c defaults conda
-#RUN conda env update -n base -f /app/environment.yml
-RUN python3 /app/setup.py install
-
-# Run the model service server
-WORKDIR /app
-ENTRYPOINT ["python3", "/app/htsget_server/server.py"]
+ENTRYPOINT ["python3", "htsget_server/server.py"]
