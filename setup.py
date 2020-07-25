@@ -2,11 +2,12 @@ from setuptools import setup, find_packages
 
 requirements = [
         'Connexion==1.4.2',
-        'Flask==1.0.3',
-        'minio==4.0.17',
+        'Flask==1.1.2',
+        'minio==5.0.10',
         'ga4gh-dos-schemas==0.4.2',
-        'jsonschema==2.6.0',
-        'sqlalchemy==1.3.6'
+        'jsonschema==3.2.0',
+        'pysam==0.16.0.1',
+        'sqlalchemy==1.3.18'
 ]
 
 setup(
@@ -26,5 +27,5 @@ setup(
     name='htsget_app',
     packages=find_packages(include=['htsget_server']),
     url="https://github.com/CanDIG/htsget_app",
-    version='0.1.0'
+    version='0.1.2'
 )
