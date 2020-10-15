@@ -203,12 +203,12 @@ def _create_slices(chunk_size, id, reference_name, start, end):
 
 
 # Endpoints
-def get_reads(id, reference_name=None, start=None, end=None):
+def get_reads(id, referenceName=None, start=None, end=None):
     """
     Return URIs of reads:
 
     :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
-    :param reference_name: Chromesome Number
+    :param referenceName: Chromesome Number
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
@@ -221,26 +221,26 @@ def get_reads(id, reference_name=None, start=None, end=None):
         }
         return "end cannot be less than start", 400
 
-    if reference_name == "None":
-        reference_name = None
+    if referenceName == "None":
+        referenceName = None
 
     obj = {}
     if FILE_RETRIEVAL == "db":
-        obj = _get_urls("db", "read", id, reference_name, start, end)
+        obj = _get_urls("db", "read", id, referenceName, start, end)
     elif FILE_RETRIEVAL == "minio":
-        obj = _get_urls("minio", "read", id, reference_name, start, end)
+        obj = _get_urls("minio", "read", id, referenceName, start, end)
 
     response = obj["response"]
     http_status_code = obj["http_status_code"]
     return response, http_status_code
 
 
-def get_variants(id, reference_name=None, start=None, end=None):
+def get_variants(id, referenceName=None, start=None, end=None):
     """
     Return URIs of variants:
 
     :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
-    :param reference_name: Chromesome Number
+    :param referenceName: Chromesome Number
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
@@ -253,14 +253,14 @@ def get_variants(id, reference_name=None, start=None, end=None):
         }
         return "end cannot be less than start", 400
 
-    if reference_name == "None":
-        reference_name = None
+    if referenceName == "None":
+        referenceName = None
 
     obj = {}
     if FILE_RETRIEVAL == "db":
-        obj = _get_urls("db", "variant", id, reference_name, start, end)
+        obj = _get_urls("db", "variant", id, referenceName, start, end)
     elif FILE_RETRIEVAL == "minio":
-        obj = _get_urls("minio", "variant", id, reference_name, start, end)
+        obj = _get_urls("minio", "variant", id, referenceName, start, end)
 
     response = obj["response"]
     http_status_code = obj["http_status_code"]
@@ -328,7 +328,8 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
         file_out = VariantFile(ntf.name, 'w', header=file_in.header)
     elif file_format == "BAM" or file_format == "CRAM":  # Reads
-        reference_name = f"chr{reference_name}"
+        if not "chr" in reference_name:
+            reference_name = f"chr{reference_name}"
 
         if FILE_RETRIEVAL == "db":
             file_in = AlignmentFile(file_in_path)
