@@ -1,4 +1,5 @@
 import os
+import re
 import configparser
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -328,8 +329,17 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
         file_out = VariantFile(ntf.name, 'w', header=file_in.header)
     elif file_format == "BAM" or file_format == "CRAM":  # Reads
-        if not "chr" in reference_name:
-            reference_name = f"chr{reference_name}"
+        if "chr" in reference_name:
+            if any(x in reference_name.lower() for x in ['x', 'y']):
+                r1 = re.compile(r'\w+(?P<chr>(Y|X|x|y))')
+                result = r1.match(reference_name)
+                if result:
+                    reference_name = result.groupdict()["chr"].upper()
+            else:
+                r2 = re.compile(r'\w+(?P<chr_number>\d+)')
+                result = r2.match(reference_name)
+                if result:
+                    reference_name = result.groupdict()["chr_number"]
 
         if FILE_RETRIEVAL == "db":
             file_in = AlignmentFile(file_in_path)
