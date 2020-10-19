@@ -95,16 +95,16 @@ def test_file_without_start_end(id, referenceName, file_extension, file_type):
 
 def test_pull_slices_data():
     return [
-        ({"id": 'NA18537', "referenceName": "21",
-          "start": 92033, "end": 32345678}, ".vcf.gz", "variant")
+        ({"referenceName": "21",
+          "start": 92033, "end": 32345678}, 'NA18537', ".vcf.gz", "variant")
     ]
 
 
-@pytest.mark.parametrize('params, file_extension, file_type', test_pull_slices_data())
-def test_pull_slices(params, file_extension, file_type):
-    url = f"{HOST}/{file_type}s"
+@pytest.mark.parametrize('params, id_, file_extension, file_type', test_pull_slices_data())
+def test_pull_slices(params, id_, file_extension, file_type):
+    url = f"{HOST}/{file_type}s/{id_}"    
     res = requests.get(url, params)
-    res = res.json()
+    res = res.json()    
     urls = res['htsget']['urls']
 
     f_index = 0
