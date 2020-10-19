@@ -69,7 +69,6 @@ def test_file_without_start_end_data():
 def test_file_without_start_end(id, referenceName, file_extension, file_type):
     url = f"{HOST}/data/{id}?referenceName={referenceName}"
     res = requests.get(url)
-    import pdb; pdb.set_trace()
 
     file_name = f"{id}{file_extension}"
     path = f"./{file_name}"
