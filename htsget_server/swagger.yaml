@@ -9,19 +9,19 @@ consumes:
 produces:
   - application/json
 paths:
-  /reads:
+  /reads/{id}:
     get:
       operationId: "operations.get_reads"
       summary: "Retrieve desired URIs in a variant format given an ID"
       parameters:
         - name: id
-          in: query
+          in: path
           required: true
           type: string
           x-example: "HG02102"
-        - name: reference_name
+        - name: referenceName
           in: query
-          type: integer
+          type: string
           required: false
           x-example: 21
         - name: start
@@ -70,19 +70,19 @@ paths:
               type:
                 type: string
 
-  /variants:
+  /variants/{id}:
     get:
       operationId: "operations.get_variants"
       summary: "Retrieve desired URIs in a variant format given an ID"
       parameters:
         - name: id
-          in: query
+          in: path
           required: true
           type: string
           x-example: "HG02102"
-        - name: reference_name
+        - name: referenceName
           in: query
-          type: integer
+          type: string
           required: false
           x-example: 21
         - name: start
@@ -130,13 +130,13 @@ paths:
                 type: string
               type:
                 type: string
-  /data:
+  /data/{id}:
     get:
       operationId: "operations.get_data"
       summary: "Retrieve data from urls"
       parameters:
         - name: id
-          in: query
+          in: path
           required: true
           type: string
           x-example: "HG02102"
@@ -144,7 +144,7 @@ paths:
           in: query
           type: string
           x-example: "VCF"
-        - name: reference_name
+        - name: referenceName
           in: query
           type: string
           x-example: 21

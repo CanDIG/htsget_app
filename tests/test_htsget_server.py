@@ -30,8 +30,8 @@ def test_invalid_start_end(start, end):
     """
     Should return a 400 error if end is smaller than start
     """
-    url_v = f"{HOST}/variants?id=NA18537&reference_name=21&start={start}&end={end}"
-    url_r = f"{HOST}/reads?id=NA18537&reference_name=21&start={start}&end={end}"
+    url_v = f"{HOST}/variants/NA18537?referenceName=21&start={start}&end={end}"
+    url_r = f"{HOST}/reads/NA18537?referenceName=21&start={start}&end={end}"
 
     res_v = requests.get(url_v)
     print(res_v)
@@ -53,8 +53,8 @@ def test_existent_file(id, expected_status):
     """
     Should fail with expected error if a file does not exist for given ID
     """
-    url_v = f"{HOST}/variants?id={id}&reference_name=21&start=10235878&end=45412368"
-    url_r = f"{HOST}/reads?id={id}&reference_name=21&start=10235878&end=45412368"
+    url_v = f"{HOST}/variants/{id}?referenceName=21&start=10235878&end=45412368"
+    url_r = f"{HOST}/reads/{id}?referenceName=21&start=10235878&end=45412368"
 
     res_v = requests.get(url_v)
     res_r = requests.get(url_r)
@@ -65,9 +65,9 @@ def test_file_without_start_end_data():
     return [('NA18537', '21', '.vcf.gz', 'variant'), ('NA20787', '21', '.vcf.gz', 'variant')]
 
 
-@pytest.mark.parametrize('id, reference_name, file_extension, file_type', test_file_without_start_end_data())
-def test_file_without_start_end(id, reference_name, file_extension, file_type):
-    url = f"{HOST}/data?id={id}&reference_name={reference_name}"
+@pytest.mark.parametrize('id, referenceName, file_extension, file_type', test_file_without_start_end_data())
+def test_file_without_start_end(id, referenceName, file_extension, file_type):
+    url = f"{HOST}/data/{id}?referenceName={referenceName}"
     res = requests.get(url)
 
     file_name = f"{id}{file_extension}"
@@ -84,7 +84,7 @@ def test_file_without_start_end(id, reference_name, file_extension, file_type):
         file_one = AlignmentFile(path)
         file_two = AlignmentFile(f"{FILE_PATH}/{file_name}")
     equal = True
-    for x, y in zip(file_one.fetch(), file_two.fetch(contig=reference_name)):
+    for x, y in zip(file_one.fetch(), file_two.fetch(contig=referenceName)):
         if x != y:
             equal = False
             os.remove(path)
@@ -95,26 +95,26 @@ def test_file_without_start_end(id, reference_name, file_extension, file_type):
 
 def test_pull_slices_data():
     return [
-        ({"id": 'NA18537', "reference_name": "21",
-          "start": 92033, "end": 32345678}, ".vcf.gz", "variant")
+        ({"referenceName": "21",
+          "start": 92033, "end": 32345678}, 'NA18537', ".vcf.gz", "variant")
     ]
 
 
-@pytest.mark.parametrize('params, file_extension, file_type', test_pull_slices_data())
-def test_pull_slices(params, file_extension, file_type):
-    url = f"{HOST}/{file_type}s"
+@pytest.mark.parametrize('params, id_, file_extension, file_type', test_pull_slices_data())
+def test_pull_slices(params, id_, file_extension, file_type):
+    url = f"{HOST}/{file_type}s/{id_}"    
     res = requests.get(url, params)
-    res = res.json()
+    res = res.json()    
     urls = res['htsget']['urls']
 
     f_index = 0
-    f_name = f"{params['id']}{file_extension}"
+    f_name = f"{id_}{file_extension}"
     equal = True
     for i in range(len(urls)):
         url = urls[i]['url']
         res = requests.get(url)
 
-        f_slice_name = f"{params['id']}_{i}{file_extension}"
+        f_slice_name = f"{id_}_{i}{file_extension}"
         f_slice_path = f"./{f_slice_name}"
         f_slice = open(f_slice_path, 'wb')
         f_slice.write(res.content)
@@ -132,7 +132,7 @@ def test_pull_slices(params, file_extension, file_type):
             f_index = rec.pos - 1
             break
         # compare slice and file line by line
-        for x, y in zip(f_slice.fetch(), f.fetch(contig=params['reference_name'], start=f_index)):
+        for x, y in zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index)):
             if x != y:
                 equal = False
                 assert equal
