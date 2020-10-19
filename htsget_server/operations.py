@@ -1,5 +1,4 @@
 import os
-import re
 import configparser
 from pathlib import Path
 from tempfile import NamedTemporaryFile
