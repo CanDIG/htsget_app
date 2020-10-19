@@ -329,17 +329,9 @@ def get_data(id, referenceName=None, format=None, start=None, end=None):
 
         file_out = VariantFile(ntf.name, 'w', header=file_in.header)
     elif file_format == "BAM" or file_format == "CRAM":  # Reads
-        if "chr" in referenceName:
-            if any(x in referenceName.lower() for x in ['x', 'y']):
-                r1 = re.compile(r'\w+(?P<chr>(Y|X|x|y))')
-                result = r1.match(referenceName)
-                if result:
-                    referenceName = result.groupdict()["chr"].upper()
-            else:
-                r2 = re.compile(r'\w+(?P<chr_number>\d+)')
-                result = r2.match(referenceName)
-                if result:
-                    referenceName = result.groupdict()["chr_number"]
+        referenceName = referenceName.lower().replace("chr", "").upper()
+        if not referenceName.isnumeric() and referenceName not in ["X", "Y"]:
+            return "Invalid Reference Name", 400
 
         if FILE_RETRIEVAL == "db":
             file_in = AlignmentFile(file_in_path)
