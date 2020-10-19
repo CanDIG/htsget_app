@@ -69,6 +69,7 @@ def test_file_without_start_end_data():
 def test_file_without_start_end(id, referenceName, file_extension, file_type):
     url = f"{HOST}/data/{id}?referenceName={referenceName}"
     res = requests.get(url)
+    import pdb; pdb.set_trace()
 
     file_name = f"{id}{file_extension}"
     path = f"./{file_name}"
@@ -108,13 +109,13 @@ def test_pull_slices(params, id_, file_extension, file_type):
     urls = res['htsget']['urls']
 
     f_index = 0
-    f_name = f"{params['id']}{file_extension}"
+    f_name = f"{id_}{file_extension}"
     equal = True
     for i in range(len(urls)):
         url = urls[i]['url']
         res = requests.get(url)
 
-        f_slice_name = f"{params['id']}_{i}{file_extension}"
+        f_slice_name = f"{id_}_{i}{file_extension}"
         f_slice_path = f"./{f_slice_name}"
         f_slice = open(f_slice_path, 'wb')
         f_slice.write(res.content)
