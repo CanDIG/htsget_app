@@ -159,28 +159,28 @@ def _download_minio_file(drs_objects):
     return file_path, index_file_path
 
 
-def _create_slice(arr, id, reference_name, slice_start, slice_end):
+def _create_slice(arr, id, referenceName, slice_start, slice_end):
     """
     Creates slice and appends it to array of urls
 
     :param arr: The array to store urls
     :param id: ID of the file
-    :param reference_name: The Chromosome number
+    :param referenceName: The Chromosome number
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
     """
-    url = f"http://{request.host}{BASE_PATH}/data?id={id}&reference_name={reference_name}&start={slice_start}&end={slice_end}"
+    url = f"http://{request.host}{BASE_PATH}/data/{id}?referenceName={referenceName}&start={slice_start}&end={slice_end}"
     arr.append({'url': url, })
 
 
-def _create_slices(chunk_size, id, reference_name, start, end):
+def _create_slices(chunk_size, id, referenceName, start, end):
     """
     Returns array of slices of URLs
 
     :param chunk_size: The size of the chunk or slice
                       ( e.g. 10,000,000 pieces of data )
     :param id: ID of the file
-    :param reference_name: Chromosome Number
+    :param referenceName: Chromosome Number
     :param start: Desired starting index of a file
     :param end: Desired ending index of a file
     """
@@ -191,13 +191,13 @@ def _create_slices(chunk_size, id, reference_name, start, end):
     if chunks >= 1 and start is not None and end is not None:
         for i in range(chunks):
             slice_end = slice_start + chunk_size
-            _create_slice(urls, id, reference_name, slice_start, slice_end)
+            _create_slice(urls, id, referenceName, slice_start, slice_end)
             slice_start = slice_end
-        _create_slice(urls, id, reference_name, slice_start, end)
+        _create_slice(urls, id, referenceName, slice_start, end)
     else:  # One slice only
-        url = f"http://{request.host}{BASE_PATH}/data?id={id}"
-        if reference_name is not None:
-            url += f"&reference_name={reference_name}"
+        url = f"http://{request.host}{BASE_PATH}/data/{id}"
+        if referenceName is not None:
+            url += f"?referenceName={referenceName}"
         urls.append({"url": url})
 
     return urls
@@ -268,13 +268,13 @@ def get_variants(id, referenceName=None, start=None, end=None):
     return response, http_status_code
 
 
-def get_data(id, reference_name=None, format=None, start=None, end=None):
-    # start = 17148269, end = 17157211, reference_name = 21
+def get_data(id, referenceName=None, format=None, start=None, end=None):
+    # start = 17148269, end = 17157211, referenceName = 21
     """
     Returns the specified variant or read file:
 
     :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
-    :param reference_name: Chromesome Number
+    :param referenceName: Chromesome Number
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
@@ -287,8 +287,8 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
         }
         return "end cannot be less than start", 400
 
-    if reference_name == "None":
-        reference_name = None
+    if referenceName == "None":
+        referenceName = None
 
     file_name = ""
     file_format = ""
@@ -329,17 +329,17 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
         file_out = VariantFile(ntf.name, 'w', header=file_in.header)
     elif file_format == "BAM" or file_format == "CRAM":  # Reads
-        if "chr" in reference_name:
-            if any(x in reference_name.lower() for x in ['x', 'y']):
+        if "chr" in referenceName:
+            if any(x in referenceName.lower() for x in ['x', 'y']):
                 r1 = re.compile(r'\w+(?P<chr>(Y|X|x|y))')
-                result = r1.match(reference_name)
+                result = r1.match(referenceName)
                 if result:
-                    reference_name = result.groupdict()["chr"].upper()
+                    referenceName = result.groupdict()["chr"].upper()
             else:
                 r2 = re.compile(r'\w+(?P<chr_number>\d+)')
-                result = r2.match(reference_name)
+                result = r2.match(referenceName)
                 if result:
-                    reference_name = result.groupdict()["chr_number"]
+                    referenceName = result.groupdict()["chr_number"]
 
         if FILE_RETRIEVAL == "db":
             file_in = AlignmentFile(file_in_path)
@@ -351,7 +351,7 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
 
         file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
 
-    for rec in file_in.fetch(contig=reference_name, start=start, end=end):
+    for rec in file_in.fetch(contig=referenceName, start=start, end=end):
         file_out.write(rec)
 
     file_in.close()
@@ -366,14 +366,14 @@ def get_data(id, reference_name=None, format=None, start=None, end=None):
     return response, 200
 
 
-def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, end=None):
+def _get_urls(file_retrieval, file_type, id, referenceName=None, start=None, end=None):
     """
     Searches for file from local sqlite db or minio from ID and Return URLS for Read/Variant
 
     :param file_retrieval: "minio" or "db"
     :param file_type: "read" or "variant"
     :param id: ID of a file
-    :param reference_name: Chromosome Number
+    :param referenceName: Chromosome Number
     :param start: Desired starting index of the file
     :param end: Desired ending index of the file
     """
@@ -419,7 +419,7 @@ def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, en
         if end is None:
             end = _get_index(file_retrieval, "end", file_path, file_type)
 
-        urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end)
+        urls = _create_slices(CHUNK_SIZE, id, referenceName, start, end)
         response = {
             'htsget': {
                 'format': file_format,

@@ -144,7 +144,7 @@ paths:
           in: query
           type: string
           x-example: "VCF"
-        - name: reference_name
+        - name: referenceName
           in: query
           type: string
           x-example: 21

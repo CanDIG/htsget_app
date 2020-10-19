@@ -26,7 +26,7 @@ na12878_2.checksums = [
 na12878_2.urls = [
    URL(
        url="http://htsnexus.rnd.dnanex.us/v1/reads/BroadHiSeqX_b37/NA12878",
-       system_metadata={'reference_name': 2, 'start': 1000, 'end': 20000})]
+       system_metadata={'referenceName': 2, 'start': 1000, 'end': 20000})]
 na12878_2.aliases = ['NA12878 chr 2 subset']
 na12878_2.size = '555749'
 na12878_2.created = local_time
