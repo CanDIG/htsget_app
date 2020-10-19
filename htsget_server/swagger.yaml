@@ -130,13 +130,13 @@ paths:
                 type: string
               type:
                 type: string
-  /data:
+  /data/{id}:
     get:
       operationId: "operations.get_data"
       summary: "Retrieve data from urls"
       parameters:
         - name: id
-          in: query
+          in: path
           required: true
           type: string
           x-example: "HG02102"

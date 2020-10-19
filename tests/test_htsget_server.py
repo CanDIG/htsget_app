@@ -78,6 +78,7 @@ def test_file_without_start_end(id, referenceName, file_extension, file_type):
     file_one = None
     file_two = None
     if file_type == "variant":
+        import pdb; pdb.set_trace()
         file_one = VariantFile(path)
         file_two = VariantFile(f"{FILE_PATH}/{file_name}")
     elif file_type == "read":
