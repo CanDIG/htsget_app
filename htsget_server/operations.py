@@ -195,8 +195,8 @@ def _create_slices(chunk_size, id, referenceName, start, end):
         _create_slice(urls, id, referenceName, slice_start, end)
     else:  # One slice only
         url = f"http://{request.host}{BASE_PATH}/data/{id}"
-        if referenceName is not None:
-            url += f"?referenceName={referenceName}"
+        if referenceName and start and end:
+            url += f"?referenceName={referenceName}&start={start}&end={end}"
         urls.append({"url": url})
 
     return urls
@@ -340,7 +340,7 @@ def get_data(id, referenceName=None, format=None, start=None, end=None):
                 index_filename=index_file
             )
 
-        file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
+        file_out = AlignmentFile(ntf.name, 'wb', header=file_in.header)
 
     for rec in file_in.fetch(contig=referenceName, start=start, end=end):
         file_out.write(rec)
