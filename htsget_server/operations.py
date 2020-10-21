@@ -274,6 +274,7 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
 
     :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
     :param referenceName: Chromesome Number
+    :param format: Format of output ( e.g bam, sam)
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
