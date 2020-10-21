@@ -289,6 +289,9 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
     if referenceName == "None":
         referenceName = None
 
+    if format not in ["bam", "sam"]:
+        return "Invalid format.", 400
+
     file_name = ""
     file_format = ""
     file_in_path = ""
@@ -340,14 +343,12 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
                 index_filename=index_file
             )
 
-        if format == "bam":
-            format = "wb"
-        elif format == "sam":
-            format = "w"
+        if format == "sam":
+            output_format = "w"
         else:
-            return "Invalid format.", 400
+            output_format = "wb"
 
-        file_out = AlignmentFile(ntf.name, format, header=file_in.header)
+        file_out = AlignmentFile(ntf.name, output_format, header=file_in.header)
 
     for rec in file_in.fetch(contig=referenceName, start=start, end=end):
         file_out.write(rec)
