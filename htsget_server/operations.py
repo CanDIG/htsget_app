@@ -267,7 +267,7 @@ def get_variants(id, referenceName=None, start=None, end=None):
     return response, http_status_code
 
 
-def get_data(id, referenceName=None, format=None, start=None, end=None):
+def get_data(id, referenceName=None, format="bam", start=None, end=None):
     # start = 17148269, end = 17157211, referenceName = 21
     """
     Returns the specified variant or read file:
@@ -340,7 +340,14 @@ def get_data(id, referenceName=None, format=None, start=None, end=None):
                 index_filename=index_file
             )
 
-        file_out = AlignmentFile(ntf.name, 'wb', header=file_in.header)
+        if format == "bam":
+            format = "wb"
+        elif format == "sam":
+            format = "w"
+        else:
+            return "Invalid format.", 400
+
+        file_out = AlignmentFile(ntf.name, format, header=file_in.header)
 
     for rec in file_in.fetch(contig=referenceName, start=start, end=end):
         file_out.write(rec)
