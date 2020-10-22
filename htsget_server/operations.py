@@ -195,8 +195,8 @@ def _create_slices(chunk_size, id, referenceName, start, end):
         _create_slice(urls, id, referenceName, slice_start, end)
     else:  # One slice only
         url = f"http://{request.host}{BASE_PATH}/data/{id}"
-        if referenceName is not None:
-            url += f"?referenceName={referenceName}"
+        if referenceName and start and end:
+            url += f"?referenceName={referenceName}&start={start}&end={end}"
         urls.append({"url": url})
 
     return urls
@@ -267,13 +267,14 @@ def get_variants(id, referenceName=None, start=None, end=None):
     return response, http_status_code
 
 
-def get_data(id, referenceName=None, format=None, start=None, end=None):
+def get_data(id, referenceName=None, format="bam", start=None, end=None):
     # start = 17148269, end = 17157211, referenceName = 21
     """
     Returns the specified variant or read file:
 
     :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
     :param referenceName: Chromesome Number
+    :param format: Format of output ( e.g bam, sam)
     :param start: Index of file to begin at
     :param end: Index of file to end at
     """
@@ -288,6 +289,9 @@ def get_data(id, referenceName=None, format=None, start=None, end=None):
 
     if referenceName == "None":
         referenceName = None
+
+    if format not in ["bam", "sam"]:
+        return "Invalid format.", 400
 
     file_name = ""
     file_format = ""
@@ -328,9 +332,6 @@ def get_data(id, referenceName=None, format=None, start=None, end=None):
 
         file_out = VariantFile(ntf.name, 'w', header=file_in.header)
     elif file_format == "BAM" or file_format == "CRAM":  # Reads
-        referenceName = referenceName.lower().replace("chr", "").upper()
-        if not referenceName.isnumeric() and referenceName not in ["X", "Y"]:
-            return "Invalid Reference Name", 400
 
         if FILE_RETRIEVAL == "db":
             file_in = AlignmentFile(file_in_path)
@@ -340,9 +341,20 @@ def get_data(id, referenceName=None, format=None, start=None, end=None):
                 index_filename=index_file
             )
 
-        file_out = AlignmentFile(ntf.name, 'w', header=file_in.header)
+        if format == "sam":
+            output_format = "w"
+        else:
+            output_format = "wb"
 
-    for rec in file_in.fetch(contig=referenceName, start=start, end=end):
+        file_out = AlignmentFile(ntf.name, output_format, header=file_in.header)
+
+    try:
+        fetch = file_in.fetch(contig=referenceName, start=start, end=end)
+    except ValueError:
+        referenceName = referenceName.lower().replace("chr", "").upper()
+        fetch = file_in.fetch(contig=referenceName, start=start, end=end)
+
+    for rec in fetch:
         file_out.write(rec)
 
     file_in.close()
