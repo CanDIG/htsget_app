@@ -332,9 +332,6 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
 
         file_out = VariantFile(ntf.name, 'w', header=file_in.header)
     elif file_format == "BAM" or file_format == "CRAM":  # Reads
-        referenceName = referenceName.lower().replace("chr", "").upper()
-        if not referenceName.isnumeric() and referenceName not in ["X", "Y"]:
-            return "Invalid Reference Name", 400
 
         if FILE_RETRIEVAL == "db":
             file_in = AlignmentFile(file_in_path)
@@ -351,7 +348,13 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
 
         file_out = AlignmentFile(ntf.name, output_format, header=file_in.header)
 
-    for rec in file_in.fetch(contig=referenceName, start=start, end=end):
+    try:
+        fetch = file_in.fetch(contig=referenceName, start=start, end=end)
+    except ValueError:
+        referenceName = referenceName.lower().replace("chr", "").upper()
+        fetch = file_in.fetch(contig=referenceName, start=start, end=end)
+
+    for rec in fetch:
         file_out.write(rec)
 
     file_in.close()
