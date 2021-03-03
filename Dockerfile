@@ -8,7 +8,7 @@ USER root
 
 RUN apk update
 
-RUN apk add \
+RUN apk add --no-cache \
 	autoconf \
 	automake \
 	make \
@@ -31,6 +31,6 @@ COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
 
-RUN python setup.py install && pip install -U connexion
+RUN python setup.py install && pip install --no-cache-dir -U connexion
 
 ENTRYPOINT ["python3", "htsget_server/server.py"]
