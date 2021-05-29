@@ -4,4 +4,4 @@ minio==7.0.3
 Connexion==2.7.0
 ga4gh-dos-schemas==0.4.2
 pysam==0.16.0.1
-sqlalchemy==1.4.15
+sqlalchemy==1.4.17
