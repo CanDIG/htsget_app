@@ -8,7 +8,7 @@ from flask import request, send_file
 from flask import send_file
 from pysam import VariantFile, AlignmentFile
 from minio import Minio
-from minio.error import ResponseError
+from minio.error import InvalidResponseError
 from database import MyDatabase
 
 
@@ -135,7 +135,7 @@ def _download_minio_file(drs_objects):
     if not file_size or file_size != drs_objects['file']['size']:
         try:
             client.fget_object(bucket, file_name, file_path)
-        except ResponseError as err:
+        except InvalidResponseError as err:
             raise Exception(err)
 
     if index_file_url:
@@ -150,7 +150,7 @@ def _download_minio_file(drs_objects):
         if not index_file_size or index_file_size != drs_objects['index_file']['size']:
             try:
                 client.fget_object(bucket, index_file_name, index_file_path)
-            except ResponseError as err:
+            except InvalidResponseError as err:
                 raise Exception(err)
     else:
         index_file_path = None

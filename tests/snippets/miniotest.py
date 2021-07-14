@@ -1,5 +1,5 @@
 from minio import Minio
-from minio.error import (ResponseError, BucketAlreadyOwnedByYou,BucketAlreadyExists)
+from minio.error import (InvalidResponseError, BucketAlreadyOwnedByYou,BucketAlreadyExists)
 from pysam import VariantFile
 import json
 import sys
@@ -24,27 +24,27 @@ def create_bucket():
     except BucketAlreadyExists as err:
         print("Bucket already exists")
         pass
-    except ResponseError as err:
+    except InvalidResponseError as err:
         raise
     else:
             # Put an object 'pumaserver_debug.log' with contents from 'pumaserver_debug.log'.
             print("else statement")
             try:
                 minioClient.fput_object('maylogs', 'pumaserver_debug.log', '/tmp/pumaserver_debug.log')
-            except ResponseError as err:
+            except InvalidResponseError as err:
                 print(err)
 
 def upload_file():
     try:
         minioClient.fput_object('test', 'NA18537.vcf.gz', '../../data/files/NA18537.vcf.gz')
-    except ResponseError as err:
+    except InvalidResponseError as err:
         print(err)
 
 def download_file():
     try:
         data = minioClient.fget_object('test', 'NA18537.vcf.gz.tbi', '../data/files/test.vcf.gz')
         print(data.object_name)
-    except ResponseError as err:
+    except InvalidResponseError as err:
         print(err)
 
 def stream_gzip_decompress(stream):
@@ -103,7 +103,7 @@ def download_file_2():
         # infile = VariantFile("-", "r")
         # for s in infile:
         #     print(s)
-    except ResponseError as err:
+    except InvalidResponseError as err:
         print(err)
 
 
