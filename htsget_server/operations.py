@@ -362,7 +362,7 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
 
     # Send the temporary file as the response
     print(ntf.name)
-    print(TEMPORARY_FILES_PATH)
+    print(file_name)
     response = send_file(path_or_file=ntf.name,
                          attachment_filename=file_name, as_attachment=True)
     response.headers["x-filename"] = file_name
