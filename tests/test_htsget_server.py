@@ -68,8 +68,8 @@ def test_file_without_start_end_data():
 @pytest.mark.parametrize('id, referenceName, file_extension, file_type', test_file_without_start_end_data())
 def test_file_without_start_end(id, referenceName, file_extension, file_type):
     url = f"{HOST}/data/{id}?referenceName={referenceName}"
-    res = requests.get(url)
     print("howdy1")
+    res = requests.get(url)
     file_name = f"{id}{file_extension}"
     path = f"./{file_name}"
     f = open(path, 'wb')
