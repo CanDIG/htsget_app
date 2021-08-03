@@ -361,8 +361,8 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
     file_out.close()
 
     # Send the temporary file as the response
-    print(ntf.name)
-    print(file_name)
+    print(f"temp file's name is {ntf.name}")
+    print(f"file name is {file_name}")
     response = send_file(path_or_file=ntf.name,
                          attachment_filename=file_name, as_attachment=True)
     response.headers["x-filename"] = file_name
