@@ -68,9 +68,8 @@ def test_file_without_start_end_data():
 @pytest.mark.parametrize('id, referenceName, file_extension, file_type', test_file_without_start_end_data())
 def test_file_without_start_end(id, referenceName, file_extension, file_type):
     url = f"{HOST}/data/{id}?referenceName={referenceName}"
-    print(f"howdy1 {url}")
     res = requests.get(url)
-    print("howdy2")
+
     file_name = f"{id}{file_extension}"
     path = f"./{file_name}"
     f = open(path, 'wb')
@@ -85,14 +84,12 @@ def test_file_without_start_end(id, referenceName, file_extension, file_type):
         file_one = AlignmentFile(path)
         file_two = AlignmentFile(f"{FILE_PATH}/{file_name}")
     equal = True
-    print("howdy3")
     for x, y in zip(file_one.fetch(), file_two.fetch(contig=referenceName)):
         if x != y:
             equal = False
             os.remove(path)
             assert equal
     os.remove(path)
-    print("howdy4")
     assert equal
 
 
