@@ -70,11 +70,11 @@ def test_file_without_start_end(id, referenceName, file_extension, file_type):
     url = f"{HOST}/data/{id}?referenceName={referenceName}"
     print("howdy1")
     res = requests.get(url)
+    print("howdy2")
     file_name = f"{id}{file_extension}"
     path = f"./{file_name}"
     f = open(path, 'wb')
     f.write(res.content)
-    print("howdy2")
 
     file_one = None
     file_two = None
