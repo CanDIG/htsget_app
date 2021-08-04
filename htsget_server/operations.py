@@ -365,6 +365,7 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
     print(f"file name is {file_name}")
     response = send_file(path_or_file=ntf.name,
                          attachment_filename=file_name, as_attachment=True)
+    print(f"mimetype is {response.mimetype}")
     response.headers["x-filename"] = file_name
     response.headers["Access-Control-Expose-Headers"] = 'x-filename'
     os.remove(ntf.name)
