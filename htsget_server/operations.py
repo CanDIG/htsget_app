@@ -309,7 +309,7 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
         main_file, index_file = _download_minio_file(drs_objects)
 
     # Write slice to temporary file
-    ntf = NamedTemporaryFile(prefix='htsget', suffix='',
+    ntf = NamedTemporaryFile(prefix='htsget', suffix=file_extension,
                              dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
 
     file_in = None
