@@ -309,7 +309,7 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
         main_file, index_file = _download_minio_file(drs_objects)
 
     # Write slice to temporary file
-    ntf = NamedTemporaryFile(prefix='htsget', suffix='',
+    ntf = NamedTemporaryFile(prefix='htsget', suffix=file_extension,
                              dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
 
     file_in = None
@@ -361,7 +361,7 @@ def get_data(id, referenceName=None, format="bam", start=None, end=None):
     file_out.close()
 
     # Send the temporary file as the response
-    response = send_file(filename_or_fp=ntf.name,
+    response = send_file(path_or_file=ntf.name,
                          attachment_filename=file_name, as_attachment=True)
     response.headers["x-filename"] = file_name
     response.headers["Access-Control-Expose-Headers"] = 'x-filename'
