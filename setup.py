@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 requirements = [
         'Connexion==1.4.2',
         'Flask==1.1.2',
-        'minio==5.0.10',
+        'minio==7.1.0',
         'ga4gh-dos-schemas==0.4.2',
         'jsonschema==3.2.0',
         'pysam==0.16.0.1',
