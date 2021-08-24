@@ -5,6 +5,7 @@ python:
 cache: pip
 install:
   - python setup.py install
+  - pip install --no-cache-dir -U connexion
   - pip install -r requirements.txt
   - pip install -r requirements_dev.txt
 
