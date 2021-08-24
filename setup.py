@@ -36,6 +36,7 @@ setup(
     ],
     description="CanDIG htsget API that follows the htsget standard",
     install_requires=install_requires,
+    dependency_links=["git+https://github.com/ga4gh/data-repository-service-schemas.git", "git+https://github.com/zalando/connexion.git"],
     include_package_data=True,
     keywords='htsget_app',
     name='htsget_app',
