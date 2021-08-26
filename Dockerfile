@@ -31,6 +31,6 @@ COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
 
-RUN python setup.py install && pip install --no-cache-dir -U connexion
+RUN python setup.py install && pip install --no-cache-dir -r requirements.txt
 
 ENTRYPOINT ["python3", "htsget_server/server.py"]
