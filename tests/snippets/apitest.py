@@ -1,5 +1,7 @@
 import requests
 from ast import literal_eval
+
+# This comes from a deprecated repo; it can be accessed at https://github.com/ga4gh/data-repository-service-schemas/releases/tag/drs-1.1.0
 from ga4gh.dos.client import Client
 from datetime import datetime, timezone
 import pytz
