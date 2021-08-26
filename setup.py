@@ -12,18 +12,6 @@ with open("requirements_dev.txt") as dev_requirements:
         version_pin = line.split()[0]
         test_requirements.append(version_pin)
 
-install_requires = []
-with open("requirements.txt") as requirements:
-    for line in requirements:
-        line = line.strip()
-        if len(line) == 0:
-            continue
-        if line[0] == '#':
-            continue
-
-        version_pin = line.split()[0]
-        install_requires.append(version_pin)
-
 setup(
     author="Jackson Zheng",
     author_email="j75zheng@edu.uwaterloo.ca",
@@ -35,8 +23,6 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     description="CanDIG htsget API that follows the htsget standard",
-    install_requires=install_requires,
-    dependency_links=["git+https://github.com/ga4gh/data-repository-service-schemas.git", "git+https://github.com/zalando/connexion.git"],
     include_package_data=True,
     keywords='htsget_app',
     name='htsget_app',
