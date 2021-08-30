@@ -44,7 +44,7 @@ docker pull quay.io/candig/htsget_app
 By default this application stores its files in a sqlite DB and on the current filesystem, but
 it is also possible to use a DRS implementation to catalog these files and to host them in MinIO,
 a S3-like self-hosted service. To do so, you can install [MinIO](https://min.io/) and 
-[CHORD DRS](https://github.com/c3g/chord_drs). 
+[CHORD DRS](https://github.com/CanDIG/chord_drs). 
 
 When these are setup, do please adjust the relevant variable in the config.ini file, namely:
 
