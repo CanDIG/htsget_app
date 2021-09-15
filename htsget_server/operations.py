@@ -284,7 +284,6 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
     :param end: Index of file to end at
     """
     params = locals()
-    print(locals())
     if end is not None and end < start:
         response = {
             "detail": "End index cannot be smaller than start index",
@@ -316,7 +315,6 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
         file_format = _get_file_format_drs(drs_objects)
         main_file, index_file = _download_minio_file(drs_objects)
 
-
     file_in = None
 
     if FILE_RETRIEVAL == "db":
@@ -332,32 +330,29 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
         #    drs_objects['file']['access_methods'][0]['access_url']['url'],
         #    index_filename=drs_objects['index_file']['access_methods'][0]['access_url']['url']
         #)
-
+    ntf = NamedTemporaryFile(prefix='htsget', suffix=file_extension,
+                             dir=TEMPORARY_FILES_PATH, mode='w', delete=False)
     if class_ == "header":
-        ntf = NamedTemporaryFile(prefix='htsget', suffix=file_extension,
-                                 dir=TEMPORARY_FILES_PATH, mode='w', delete=False)
         print(str(file_in.header),file=ntf)
     else:
-        ntf = NamedTemporaryFile(prefix='htsget', suffix=file_extension,
-                                 dir=TEMPORARY_FILES_PATH, mode='w', delete=False)
-
+        contigs = list(file_in.header.contigs)
+        if reference_name not in contigs:
+            return {"message": f"Contig not found: '{reference_name}' not one of {contigs}"}, 400
         try:
             fetch = file_in.fetch(contig=reference_name, start=start, end=end)
-        except ValueError:
-            reference_name = reference_name.lower().replace("chr", "").upper()
-            fetch = file_in.fetch(contig=reference_name, start=start, end=end)
+        except ValueError as e:
+            return {"message": e.message}, 400
 
         for rec in fetch:
             print(str(rec),file=ntf)
 
-        file_in.close()
+    file_in.close()
 
     # Send the temporary file as the response
     response = send_file(path_or_file=ntf.name,
                          attachment_filename=file_name, as_attachment=True)
     response.headers["x-filename"] = file_name
     response.headers["Access-Control-Expose-Headers"] = 'x-filename'
-    response.headers["locals"] = params
     os.remove(ntf.name)
     return response, 200
 
