@@ -25,7 +25,8 @@ RUN apk add --no-cache \
 	curl-dev \
 	yaml-dev \
 	libressl-dev \
-	git
+	git \
+	sqlite
 
 COPY . /app/htsget_server
 
