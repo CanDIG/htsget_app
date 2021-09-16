@@ -5,23 +5,23 @@ info:
 servers:
   - url: /htsget/v1
 paths:
-#    /reads/service-info:
-#        get:
-#            tags:
-#                - Reads
-#                - Service Info
-#            summary: Get reads service info
-#            operationId: "operations.get_read_service_info"
-#            description: Get metadata about this service's Reads API
-#            responses:
-#                200:
-#                    description: successfully retrieved reads service info
-#                    content:
-#                        application/json:
-#                            schema:
-#                                $ref: '#/components/schemas/HtsgetReadsServiceInfo'
-#                5XX:
-#                    '$ref': '#/components/responses/5xxServerError'
+    /reads/service-info:
+       get:
+           tags:
+               - Reads
+               - Service Info
+           summary: Get reads service info
+           operationId: "operations.get_read_service_info"
+           description: Get metadata about this service's Reads API
+           responses:
+               200:
+                   description: successfully retrieved reads service info
+                   content:
+                       application/json:
+                           schema:
+                               $ref: '#/components/schemas/HtsgetReadsServiceInfo'
+               5XX:
+                   '$ref': '#/components/responses/5xxServerError'
 
     /reads/{id}:
         get:
@@ -39,9 +39,9 @@ paths:
                 - $ref: '#/components/parameters/referenceNameParam'
                 - $ref: '#/components/parameters/startParam'
                 - $ref: '#/components/parameters/endParam'
-                - $ref: '#/components/parameters/readsFieldsParam'
-                - $ref: '#/components/parameters/readsTagsParam'
-                - $ref: '#/components/parameters/readsNoTagsParam'
+#                - $ref: '#/components/parameters/readsFieldsParam'
+#                - $ref: '#/components/parameters/readsTagsParam'
+#                - $ref: '#/components/parameters/readsNoTagsParam'
             responses:
                 200:
                     description: Successfully retrieved htsget ticket
@@ -104,12 +104,12 @@ paths:
                - $ref: '#/components/parameters/referenceNameParam'
                - $ref: '#/components/parameters/startParam'
                - $ref: '#/components/parameters/endParam'
-               - $ref: '#/components/parameters/readsFieldsParam'
-               - $ref: '#/components/parameters/readsTagsParam'
-               - $ref: '#/components/parameters/readsNoTagsParam'
-               - $ref: '#/components/parameters/htsgetBlockClassHeaderParam'
-               - $ref: '#/components/parameters/htsgetCurrentBlockHeaderParam'
-               - $ref: '#/components/parameters/htsgetTotalBlocksHeaderParam'
+#               - $ref: '#/components/parameters/readsFieldsParam'
+#               - $ref: '#/components/parameters/readsTagsParam'
+#               - $ref: '#/components/parameters/readsNoTagsParam'
+#               - $ref: '#/components/parameters/htsgetBlockClassHeaderParam'
+#               - $ref: '#/components/parameters/htsgetCurrentBlockHeaderParam'
+#               - $ref: '#/components/parameters/htsgetTotalBlocksHeaderParam'
            responses:
                200:
                    description: Successfully streamed file part of large genomic alignment file
@@ -125,23 +125,23 @@ paths:
                5XX:
                    $ref: '#/components/responses/5xxServerError'
 
-#    /variants/service-info:
-#        get:
-#            tags:
-#                - Variants
-#                - Service Info
-#            summary: Get variants service info
-#            operationId: "operations.get_variant_service_info"
-#            description: Get metadata about this service's Variants API
-#            responses:
-#                200:
-#                    description: successfully retrieved variants service info
-#                    content:
-#                        application/json:
-#                            schema:
-#                                $ref: '#/components/schemas/HtsgetVariantsServiceInfo'
-#                5XX:
-#                    $ref: '#/components/responses/5xxServerError'
+    /variants/service-info:
+       get:
+           tags:
+               - Variants
+               - Service Info
+           summary: Get variants service info
+           operationId: "operations.get_variant_service_info"
+           description: Get metadata about this service's Variants API
+           responses:
+               200:
+                   description: successfully retrieved variants service info
+                   content:
+                       application/json:
+                           schema:
+                               $ref: '#/components/schemas/HtsgetVariantsServiceInfo'
+               5XX:
+                   $ref: '#/components/responses/5xxServerError'
 
     /variants/{id}:
         get:
@@ -200,9 +200,9 @@ paths:
                 # - $ref: '#/components/parameters/variantsFieldsParam'
                 # - $ref: '#/components/parameters/variantsTagsParam'
                 # - $ref: '#/components/parameters/variantsNoTagsParam'
-                - $ref: '#/components/parameters/htsgetBlockClassHeaderParam'
-                - $ref: '#/components/parameters/htsgetCurrentBlockHeaderParam'
-                - $ref: '#/components/parameters/htsgetTotalBlocksHeaderParam'
+#                - $ref: '#/components/parameters/htsgetBlockClassHeaderParam'
+#                - $ref: '#/components/parameters/htsgetCurrentBlockHeaderParam'
+#                - $ref: '#/components/parameters/htsgetTotalBlocksHeaderParam'
             responses:
                 200:
                     description: Successfully streamed file part of large genomic variant file

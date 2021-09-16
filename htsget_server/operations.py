@@ -203,6 +203,29 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
 
 
 # Endpoints
+def get_read_service_info():
+    return {
+        "id": "org.candig.htsget",
+        "name": "CanDIG htsget service",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "htsget",
+            "version": "v1.3.0"
+        },
+        "description": "An htsget-compliant server for CanDIG genomic data",
+        "organization": {
+            "name": "CanDIG",
+            "url": "https://www.distributedgenomics.ca"
+        },
+        "version": "1.0.0",
+        "htsget": {
+            "datatype": "reads",
+            "formats": ["BAM", "CRAM", "SAM"],
+            "fieldsParameterEffective": False,
+            "tagsParametersEffective": False
+        }
+    }
+
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     """
     Return URIs of reads:
@@ -238,6 +261,29 @@ def test_this(assert_="foofoo", class_="blank", start="dd", filter_="sdfsdfs"):
     response = locals()
     http_status_code = 200
     return response, http_status_code
+
+def get_variant_service_info():
+    return {
+        "id": "org.candig.htsget",
+        "name": "CanDIG htsget service",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "htsget",
+            "version": "v1.3.0"
+        },
+        "description": "An htsget-compliant server for CanDIG genomic data",
+        "organization": {
+            "name": "CanDIG",
+            "url": "https://www.distributedgenomics.ca"
+        },
+        "version": "1.0.0",
+        "htsget": {
+            "datatype": "variants",
+            "formats": ["VCF", "BCF"],
+            "fieldsParameterEffective": False,
+            "tagsParametersEffective": False
+        }
+    }
 
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     """
