@@ -358,7 +358,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
         write_mode = "wc"
 
     file_in = None
-    file_out_name = f"{id_}.{format_}"
+    file_name = f"{id_}.{format_}"
 
     if FILE_RETRIEVAL == "db":
         file = _get_file_by_id(id_)
@@ -401,8 +401,8 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
 
     # Send the temporary file as the response
     response = send_file(path_or_file=ntf.name,
-                         attachment_filename=file_out_name, as_attachment=True)
-    response.headers["x-filename"] = file_out_name
+                         attachment_filename=file_name, as_attachment=True)
+    response.headers["x-filename"] = file_name
     response.headers["Access-Control-Expose-Headers"] = 'x-filename'
     os.remove(ntf.name)
     return response, 200
