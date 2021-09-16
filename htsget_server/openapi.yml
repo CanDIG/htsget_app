@@ -100,6 +100,7 @@ paths:
            parameters:
                - $ref: '#/components/parameters/idPathParam'
                - $ref: '#/components/parameters/readsFormatParam'
+               - $ref: '#/components/parameters/classParam'
                - $ref: '#/components/parameters/referenceNameParam'
                - $ref: '#/components/parameters/startParam'
                - $ref: '#/components/parameters/endParam'
@@ -269,7 +270,7 @@ components:
         ReadsFormats:
             type: string
             description: Acceptable file formats for genomic alignment files
-            enum: [BAM, CRAM]
+            enum: [BAM, CRAM, SAM]
             example: BAM
         ReadsFields:
             type: array
@@ -568,7 +569,7 @@ components:
             required: false
             schema:
                 type: string
-                enum: [VCF]
+                enum: [VCF, BCF]
                 default: VCF
         classParam:
             in: query

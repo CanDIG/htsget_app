@@ -271,19 +271,23 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
     http_status_code = obj["http_status_code"]
     return response, http_status_code
 
-
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
+    return _get_data(id_, reference_name, start, end, class_, format_)
+
+def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
+    return _get_data(id_, reference_name, start, end, class_, format_)
+
+def _get_data(id_, reference_name=None, start=None, end=None, class_="body", format_="VCF"):
     # start = 17148269, end = 17157211, reference_name = 21
     """
-    Returns the specified variant file:
+    Returns the specified file:
 
-    :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
-    :param reference_name: Chromesome Number
-    :param format: Format of output ( e.g vcf, bcf)
-    :param start: Index of file to begin at
-    :param end: Index of file to end at
+    :param id: ID of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
+    :param reference_name: Chromosome or contig name
+    :param format: Format of output (e.g. vcf, bcf)
+    :param start: Position index to begin at (1-based inclusive)
+    :param end: Position index to end at (1-based inclusive)
     """
-    params = locals()
     if end is not None and end < start:
         response = {
             "detail": "End index cannot be smaller than start index",
@@ -297,152 +301,66 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
         reference_name = None
 
     format_ = format_.lower()
-    if format_ not in ["vcf", "bcf"]:
-        return {"message": "Invalid format.", "locals": params}, 400
+    file_type = "variant"
+    if format_ in ["bam", "sam", "cram"]:
+        file_type = "alignment"
+    
+    write_mode = "w"
+    if format_ in ["bcf", "bam"]:
+        write_mode = "wb"
+    elif format_ in ["cram"]:
+        write_mode = "wc"
 
-    file_name = ""
-    file_format = ""
-    file_in_path = ""
+    file_in = None
+    file_out_name = f"{id_}.{format_}"
 
     if FILE_RETRIEVAL == "db":
         file = _get_file_by_id(id_)
-        file_extension = file[0][1]
-        file_format = file[0][2]
-        file_name = f"{id_}{file_extension}"
-        file_in_path = f"{LOCAL_FILES_PATH}/{file_name}"
+        file_in_path = f"{LOCAL_FILES_PATH}/{file[0][0]}{file[0][1]}"
+        if file_type == "variant":
+            file_in = VariantFile(file_in_path)
+        else:
+            file_in = AlignmentFile(file_in_path)
     elif FILE_RETRIEVAL == "minio":
         drs_objects = search_drs(id_)
-        file_format = _get_file_format_drs(drs_objects)
         main_file, index_file = _download_minio_file(drs_objects)
-
-    file_in = None
-
-    if FILE_RETRIEVAL == "db":
-        file_in = VariantFile(file_in_path)
-    elif FILE_RETRIEVAL == "minio":
-        file_in = VariantFile(
-            main_file,
-            index_filename=index_file
-        )
+        if file_type == "variant":
+            file_in = VariantFile(main_file, index_filename=index_file)
+        else:
+            file_in = AlignmentFile(main_file, index_filename=index_file)
 
         # TODO: leaving this here, works but may not be efficient to read from DRS directly
         #file_in = VariantFile(
         #    drs_objects['file']['access_methods'][0]['access_url']['url'],
         #    index_filename=drs_objects['index_file']['access_methods'][0]['access_url']['url']
         #)
-    ntf = NamedTemporaryFile(prefix='htsget', suffix=file_extension,
-                             dir=TEMPORARY_FILES_PATH, mode='w', delete=False)
-    if class_ == "header":
-        print(str(file_in.header),file=ntf)
+
+    ntf = NamedTemporaryFile(prefix='htsget', suffix=format_,
+                             dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
+    if file_type == "variant":
+        file_out = VariantFile(ntf, mode=write_mode, header=file_in.header)
     else:
-        contigs = list(file_in.header.contigs)
-        if reference_name not in contigs:
-            return {"message": f"Contig not found: '{reference_name}' not one of {contigs}"}, 400
+        file_out = AlignmentFile(ntf, mode=write_mode, header=file_in.header)
+    if class_ != "header":
         try:
             fetch = file_in.fetch(contig=reference_name, start=start, end=end)
         except ValueError as e:
-            return {"message": e.message}, 400
+            return {"error": str(e)}, 400
 
         for rec in fetch:
-            print(str(rec),file=ntf)
-
-    file_in.close()
-
-    # Send the temporary file as the response
-    response = send_file(path_or_file=ntf.name,
-                         attachment_filename=file_name, as_attachment=True)
-    response.headers["x-filename"] = file_name
-    response.headers["Access-Control-Expose-Headers"] = 'x-filename'
-    os.remove(ntf.name)
-    return response, 200
-
-def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_=None):
-    # start = 17148269, end = 17157211, reference_name = 21
-    """
-    Returns the specified variant or read file:
-
-    :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
-    :param reference_name: Chromesome Number
-    :param format: Format of output ( e.g bam, sam)
-    :param start: Index of file to begin at
-    :param end: Index of file to end at
-    """
-    print(locals())
-    if end is not None and end < start:
-        response = {
-            "detail": "End index cannot be smaller than start index",
-            "status": 400,
-            "title": "Bad Request",
-            "type": "about:blank"
-        }
-        return "end cannot be less than start", 400
-
-    if reference_name == "None":
-        reference_name = None
-
-    format_ = format_.lower()
-    if format_ not in ["bam", "sam"]:
-        return "Invalid format.", 400
-
-    file_name = ""
-    file_format = ""
-    file_in_path = ""
-
-    if FILE_RETRIEVAL == "db":
-        file = _get_file_by_id(id_)
-        file_extension = file[0][1]
-        file_format = file[0][2]
-        file_name = f"{id_}{file_extension}"
-        file_in_path = f"{LOCAL_FILES_PATH}/{file_name}"
-    elif FILE_RETRIEVAL == "minio":
-        drs_objects = search_drs(id_)
-        file_format = _get_file_format_drs(drs_objects)
-        main_file, index_file = _download_minio_file(drs_objects)
-
-    # Write slice to temporary file
-    ntf = NamedTemporaryFile(prefix='htsget', suffix=file_extension,
-                             dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
-
-    file_in = None
-    file_out = None
-
-    if file_format == "BAM" or file_format == "CRAM":  # Reads
-
-        if FILE_RETRIEVAL == "db":
-            file_in = AlignmentFile(file_in_path)
-        elif FILE_RETRIEVAL == "minio":
-            file_in = AlignmentFile(
-                main_file,
-                index_filename=index_file
-            )
-
-        if format_ == "sam":
-            output_format = "w"
-        else:
-            output_format = "wb"
-
-        file_out = AlignmentFile(ntf.name, output_format, header=file_in.header)
-
-    try:
-        fetch = file_in.fetch(contig=reference_name, start=start, end=end)
-    except ValueError:
-        reference_name = reference_name.lower().replace("chr", "").upper()
-        fetch = file_in.fetch(contig=reference_name, start=start, end=end)
-
-    for rec in fetch:
-        file_out.write(rec)
+            file_out.write(rec)
 
     file_in.close()
     file_out.close()
 
     # Send the temporary file as the response
     response = send_file(path_or_file=ntf.name,
-                         attachment_filename=file_name, as_attachment=True)
-    response.headers["x-filename"] = file_name
+                         attachment_filename=file_out_name, as_attachment=True)
+    response.headers["x-filename"] = file_out_name
     response.headers["Access-Control-Expose-Headers"] = 'x-filename'
     os.remove(ntf.name)
     return response, 200
-
+  
 def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
     Searches for file from local sqlite db or minio from ID and Return URLS for Read/Variant
