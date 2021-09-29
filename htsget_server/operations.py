@@ -5,19 +5,17 @@ from tempfile import NamedTemporaryFile
 import sqlite3
 import requests
 from flask import request, send_file
-from flask import send_file
 from pysam import VariantFile, AlignmentFile
 from minio import Minio
 from minio.error import InvalidResponseError
-from database import MyDatabase
-
+import database
+from urllib.parse import urlparse
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
 
 BASE_PATH = config['DEFAULT']['BasePath']
 LOCAL_FILES_PATH = config['paths']['LocalFilesPath']
-LOCAL_DB_PATH = config['paths']['LocalDBPath']
 TEMPORARY_FILES_PATH = config['paths']['TemporaryFilesPath']
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 FILE_RETRIEVAL = config['DEFAULT']['FileRetrieval']
@@ -26,26 +24,10 @@ MINIO_END_POINT = config['minio']['EndPoint']
 MINIO_ACCESS_KEY = config['minio']['AccessKey']
 MINIO_SECRET_KEY = config['minio']['SecretKey']
 DATABASE = config['DEFAULT']['DataBase']
-DB_PATH = config['paths']['DBPath']
-
 
 """ Helper Functions"""
 def _get_file_by_id(id):
-    """
-    Returns an array of tuples of a file based on ID from DBV
-
-    :param id: The id of the file
-    """
-    query = """SELECT * FROM  files WHERE id = (:id) LIMIT 1"""
-    param_obj = {'id': id}
-    db = MyDatabase(DB_PATH)
-    return db.get_data(query, param_obj)
-
-
-def file_exists_db(id):
-    file = _get_file_by_id(id)  # returns an array of tuples0
-    return (len(file) != 0)
-
+    return database.get_file_by_id(id)
 
 def search_drs(id):
     drs_objects = {}
@@ -247,19 +229,10 @@ def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, 
     if reference_name == "None":
         reference_name = None
 
-    obj = {}
-    if FILE_RETRIEVAL == "db":
-        obj = _get_urls("db", "read", id_, reference_name, start, end, class_)
-    elif FILE_RETRIEVAL == "minio":
-        obj = _get_urls("minio", "read", id_, reference_name, start, end, class_)
+    obj = _get_urls("read", id_, reference_name, start, end, class_)
 
     response = obj["response"]
     http_status_code = obj["http_status_code"]
-    return response, http_status_code
-
-def test_this(assert_="foofoo", class_="blank", start="dd", filter_="sdfsdfs"):
-    response = locals()
-    http_status_code = 200
     return response, http_status_code
 
 def get_variant_service_info():
@@ -295,7 +268,7 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
     :param end: Index of file to end at
     :param class: "header" or "body"
     """
-    print(locals())
+
     if end is not None and end < start:
         response = {
             "detail": "End index cannot be smaller than start index",
@@ -308,11 +281,7 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
     if reference_name == "None":
         reference_name = None
 
-    obj = {}
-    if FILE_RETRIEVAL == "db":
-        obj = _get_urls("db", "variant", id_, reference_name, start, end, class_)
-    elif FILE_RETRIEVAL == "minio":
-        obj = _get_urls("minio", "variant", id_, reference_name, start, end, class_)
+    obj = _get_urls("variant", id_, reference_name, start, end, class_)
     response = obj["response"]
     http_status_code = obj["http_status_code"]
     return response, http_status_code
@@ -360,29 +329,26 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     file_in = None
     file_name = f"{id_}.{format_}"
 
-    if FILE_RETRIEVAL == "db":
-        file = _get_file_by_id(id_)
-        file_in_path = f"{LOCAL_FILES_PATH}/{file[0][0]}{file[0][1]}"
-        if file_type == "variant":
-            file_in = VariantFile(file_in_path)
-        else:
-            file_in = AlignmentFile(file_in_path)
-    elif FILE_RETRIEVAL == "minio":
-        drs_objects = search_drs(id_)
-        main_file, index_file = _download_minio_file(drs_objects)
-        if file_type == "variant":
-            file_in = VariantFile(main_file, index_filename=index_file)
-        else:
-            file_in = AlignmentFile(main_file, index_filename=index_file)
+# get a file and index from drs, based on the id_
 
-        # TODO: leaving this here, works but may not be efficient to read from DRS directly
-        #file_in = VariantFile(
-        #    drs_objects['file']['access_methods'][0]['access_url']['url'],
-        #    index_filename=drs_objects['index_file']['access_methods'][0]['access_url']['url']
-        #)
+
+#     if FILE_RETRIEVAL == "db":
+#         file = _get_file_by_id(id_)
+#         file_in_path = f"{LOCAL_FILES_PATH}/{file[0][0]}{file[0][1]}"
+#         if file_type == "variant":
+#             file_in = VariantFile(file_in_path)
+#         else:
+#             file_in = AlignmentFile(file_in_path)
+#     elif FILE_RETRIEVAL == "minio":
+#         drs_objects = search_drs(id_)
+#         main_file, index_file = _download_minio_file(drs_objects)
+#         if file_type == "variant":
+#             file_in = VariantFile(main_file, index_filename=index_file)
+#         else:
+#             file_in = AlignmentFile(main_file, index_filename=index_file)
 
     ntf = NamedTemporaryFile(prefix='htsget', suffix=format_,
-                             dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
+                             mode='wb', delete=False)
     if file_type == "variant":
         file_out = VariantFile(ntf, mode=write_mode, header=file_in.header)
     else:
@@ -407,11 +373,10 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     os.remove(ntf.name)
     return response, 200
   
-def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, end=None, _class=None):
+def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
     Searches for file from local sqlite db or minio from ID and Return URLS for Read/Variant
 
-    :param file_retrieval: "minio" or "db"
     :param file_type: "read" or "variant"
     :param id: ID of a file
     :param reference_name: Chromosome Number
@@ -426,10 +391,10 @@ def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, en
 
     file = ""
     file_exists = False
-    if file_retrieval == "db":
+    if FILE_RETRIEVAL == "db":
         file = _get_file_by_id(id)  # returns an array of tuples
         file_exists = len(file) != 0
-    elif file_retrieval == "minio":
+    elif FILE_RETRIEVAL == "minio":
         drs_objects = search_drs(id)
 
         if drs_objects:
@@ -440,11 +405,11 @@ def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, en
     if file_exists:
         file_format = ""
         file_path = ""
-        if file_retrieval == "db":
+        if FILE_RETRIEVAL == "db":
             file_name = file[0][0] + file[0][1]
             file_format = file[0][2]
             file_path = f"{LOCAL_FILES_PATH}/{file_name}"
-        elif file_retrieval == "minio":
+        elif FILE_RETRIEVAL == "minio":
             file_format = _get_file_format_drs(drs_objects)
             file_path = drs_objects
 
@@ -461,9 +426,9 @@ def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, en
 
         else:
           if start is None:
-              start = _get_index(file_retrieval, "start", file_path, file_type)
+              start = _get_index("start", file_path, file_type)
           if end is None:
-              end = _get_index(file_retrieval, "end", file_path, file_type)
+              end = _get_index("end", file_path, file_type)
 
           urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end, file_type)
         response = {
@@ -477,7 +442,7 @@ def _get_urls(file_retrieval, file_type, id, reference_name=None, start=None, en
         return not_found_error
 
 
-def _get_index(file_retrieval, position, file_path, file_type):
+def _get_index(position, file_path, file_type):
     """
     Get the first or last index of a reads or variant file.
     File must be stored locally or on minio s3 bucket
@@ -497,12 +462,12 @@ def _get_index(file_retrieval, position, file_path, file_type):
         return "That format is not available"
 
     file_in = 0
-    if file_retrieval == "db":
+    if FILE_RETRIEVAL == "db":
         if file_type == "variant":
             file_in = VariantFile(file_path, "r")
         elif file_type == "read":
             file_in = AlignmentFile(file_path, "r")
-    elif file_retrieval == "minio":
+    elif FILE_RETRIEVAL == "minio":
         main_file, index_file = _download_minio_file(file_path)
 
         if file_type == "variant":
@@ -528,3 +493,37 @@ def _get_index(file_retrieval, position, file_path, file_type):
         for rec in file_in.fetch():
             end = rec.pos
         return end
+        
+        
+# This is specific to our particular use case: a DRS object that represents a 
+# particular sample can have a variant or read file and an associated index file.
+# We need to query DRS to get the bundling object, which should contain links to
+# two contents objects. We can instantiate them into temp files and pass those 
+# file handles back.
+def get_genomic_files(object_id):
+    # should have two contents objects
+    index_file = None
+    data_file = None
+
+    drs_obj = database.get_drs_object(object_id)
+    if drs_obj is not None:
+        for contents in drs_object.contents:
+            # get each drs object (should be the genomic file and its index)
+            sub_obj = database.get_drs_object(contents.id)
+            # get access_methods for this sub_obj
+            for method in sub_obj.access_methods:
+                if "access_id" in method:
+                    # we need to go to the access endpoint to get the url and file
+                    r = requests.get(get_access_url(object_id, method.access_id))
+                    if "access_id" == "index":
+                        index_file = tempfile.TemporaryFile()
+                        index_file.write(r.text)
+                    elif "access_id" == "variant" or "access_id" == "read":
+                        data_file = tempfile.TemporaryFile()
+                        data_file.write(r.text)
+                else:
+                    # the access_url has all the info we need
+                    url_pieces = urlparse(method.access_url.url)
+                    if url_pieces["scheme"] == "file" and url_pieces["netloc"] == "":
+                        
+    return index_file, data_file
