@@ -1,17 +1,13 @@
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, MetaData, ForeignKey, create_engine
 import configparser
 import json
 from pathlib import Path
 from datetime import datetime
-from minio import Minio
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
 DB_PATH = config['paths']['DBPath']
-MINIO_END_POINT = config['minio']['EndPoint']
-MINIO_ACCESS_KEY = config['minio']['AccessKey']
-MINIO_SECRET_KEY = config['minio']['SecretKey']
 
 engine = create_engine(DB_PATH, echo=True)
 
@@ -114,11 +110,12 @@ def get_file_by_id(id):
 def get_drs_object(object_id, expand=False):
     with Session() as session:
         result = session.query(DrsObject).filter_by(id=object_id).one_or_none()
-        new_obj = json.loads(str(result))
+        if result is not None:
+            new_obj = json.loads(str(result))
 #         if expand:
 #             result
-        return new_obj
-
+            return new_obj
+        return None
 def create_drs_object(obj):
     with Session() as session:
         new_object = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
