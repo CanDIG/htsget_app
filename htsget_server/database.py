@@ -167,8 +167,8 @@ def create_drs_object(obj):
             obj['contents'] = []
         if len(new_object.contents) != 0:
             for contents in new_object.contents:
-                session.delete(contents)             
-        for contents in obj['contents']:            
+                session.delete(contents)
+        for contents in obj['contents']:
             new_contents = ContentsObject()
             new_contents.drs_object_id = new_object.id
             new_contents.name = contents['name']
