@@ -124,11 +124,14 @@ def create_drs_object(obj):
             new_object = DrsObject()
         new_object.id = obj['id']
         new_object.self_uri = obj['self_uri']
-        new_object.updated_time = datetime.today().isoformat()
         if 'name' in obj:
             new_object.name = obj['name']
         else:
             new_object.name = obj['id']
+        if 'created_time' in obj:
+            new_object.created_time = obj['created_time']
+        if 'updated_time' in obj:
+            new_object.updated_time = obj['updated_time']
         if 'mime_type' in obj:
             new_object.mime_type = obj['mime_type']
         if 'version' in obj:
