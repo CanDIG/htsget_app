@@ -116,6 +116,7 @@ def get_drs_object(object_id, expand=False):
 #             result
             return new_obj
         return None
+
 def create_drs_object(obj):
     with Session() as session:
         new_object = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
@@ -123,14 +124,11 @@ def create_drs_object(obj):
             new_object = DrsObject()
         new_object.id = obj['id']
         new_object.self_uri = obj['self_uri']
+        new_object.updated_time = datetime.today().isoformat()
         if 'name' in obj:
             new_object.name = obj['name']
         else:
             new_object.name = obj['id']
-        if 'created_time' in obj:
-            new_object.created_time = obj['created_time']
-        if 'updated_time' in obj:
-            new_object.updated_time = obj['updated_time']
         if 'mime_type' in obj:
             new_object.mime_type = obj['mime_type']
         if 'version' in obj:
