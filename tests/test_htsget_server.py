@@ -135,7 +135,7 @@ def drs_objects():
       {
         "access_url": {
           "headers": [],
-          "url": "file:///app/htsget_server/data/files/NA18537.vcf.gz.tbi"
+          "url": "file://data/files/NA18537.vcf.gz.tbi"
         },
         "type": "file"
       }
@@ -157,7 +157,7 @@ def drs_objects():
       {
         "access_url": {
           "headers": [],
-          "url": "file:///app/htsget_server/data/files/NA18537.vcf.gz"
+          "url": "file://data/files/NA18537.vcf.gz"
         },
         "type": "file"
       }
@@ -295,7 +295,7 @@ def drs_objects():
       {
         "access_url": {
           "headers": [],
-          "url": "file:///app/htsget_server/data/files/NA02102.bam"
+          "url": "file://data/files/NA02102.bam"
         },
         "type": "file"
       }
