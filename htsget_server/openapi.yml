@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-    version: 1.0.0 
+    version: 1.0.0
     title: candig htsget
 servers:
   - url: /htsget/v1
@@ -61,9 +61,9 @@ paths:
 #                - Reads
 #            summary: Get alignment (reads) file download ticket
 #            description: |
-#                Gets an htsget ticket containing URLs that will enable the 
+#                Gets an htsget ticket containing URLs that will enable the
 #                transfer of a requested alignment file. Compared to the
-#                equivalent `GET` endpoint, this `POST` endpoint allows more 
+#                equivalent `GET` endpoint, this `POST` endpoint allows more
 #                complex genomic region requests via the `regions` parameter
 #            parameters:
 #                - $ref: '#/components/parameters/idPathParam'
@@ -93,7 +93,7 @@ paths:
            description: |
                Stream a single file part of a requested alignment file. Streams
                requested region(s), fields, and tags.
-    
+
                NOTE: This endpoint, while public, should not be requested as an
                initial request. Rather, the ticket endpoint `/reads/{id}` will
                yield `URLs` to the `/reads/data/{id}` endpoint.
@@ -150,7 +150,7 @@ paths:
             summary: Get variant file download ticket
             operationId: "operations.get_variants"
             description: |
-                Gets an htsget ticket containing URLs that will enable the 
+                Gets an htsget ticket containing URLs that will enable the
                 transfer of a requested variant file
             parameters:
                 - $ref: '#/components/parameters/idPathParam'
@@ -175,7 +175,7 @@ paths:
                     $ref: '#/components/responses/404NotFoundError'
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
-    
+
     /variants/data/{id}:
         get:
             tags:
@@ -186,9 +186,9 @@ paths:
             description: |
                 Stream a single file part of a requested variant file. Streams
                 requested region(s).
-                
+
                 NOTE: This endpoint, while public, should not be requested as an
-                initial request. Rather, the ticket endpoint `/variants/{id}` 
+                initial request. Rather, the ticket endpoint `/variants/{id}`
                 will yields `URLs` to the `/variants/data/{id}` endpoint.
             parameters:
                 - $ref: '#/components/parameters/idPathParam'
@@ -291,7 +291,7 @@ components:
             items:
                 type: string
             example: [OQ, HI]
-        
+
         # GENOMIC INTERVAL, REUSABLE SCHEMAS
         ReferenceName:
             type: string
@@ -331,7 +331,7 @@ components:
             '$ref': https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/v1.0.0/service-info.yaml#/components/schemas/Service
         HtsgetServiceInfoExtension:
             type: object
-            description: Htsget-specific properties integrated into base service info data model 
+            description: Htsget-specific properties integrated into base service info data model
             properties:
                 datatype:
                     type: string
@@ -387,7 +387,7 @@ components:
                                 example: variants
                             formats:
                                 example: VCF
-        
+
         # REQUEST BODY SCHEMAS
         ReadsRequestBody:
             type: object
@@ -403,7 +403,7 @@ components:
                     $ref: '#/components/schemas/ReadsNoTags'
                 regions:
                     $ref: '#/components/schemas/Regions'
-        
+
         # HTSGET TICKET SCHEMAS
         HtsgetBlockClass:
             type: string
@@ -502,7 +502,7 @@ components:
                                                     - properties:
                                                         FilePath:
                                                             example: "/data/variants/object00001.vcf"
-        
+
         # ERROR SCHEMAS
         Error:
             type: object

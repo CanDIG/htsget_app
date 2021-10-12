@@ -77,7 +77,7 @@ paths:
                   - $ref: '#/components/schemas/GenomicDrsObject'
       tags:
         - Objects
-        
+
   /objects/{object_id}/access/{access_id}:
     get:
       summary: Get a URL for fetching bytes
@@ -502,7 +502,7 @@ components:
           description: The full filename of the genomic data file, including extensions.
         id:
           type: string
-          enum: 
+          enum:
             - variant
             - read
         drs_uri:
@@ -525,7 +525,7 @@ components:
           description: The full filename of the genomic index file, including extensions.
         id:
           type: string
-          enum: 
+          enum:
             - index
         drs_uri:
           type: array

@@ -75,7 +75,6 @@ def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None
     return _get_data(id_, reference_name, start, end, class_, format_)
 
 
-""" Helper Functions"""
 def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     """
     Creates slice and appends it to array of urls
@@ -233,8 +232,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
             }
         }
         return response, 200
-    else:
-        return f"No {file_type} found for id: {id}, try using the other endpoint", 404
+    return f"No {file_type} found for id: {id}, try using the other endpoint", 404
 
 
 def _get_index(position, file_in):
