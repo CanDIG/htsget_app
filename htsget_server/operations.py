@@ -323,11 +323,11 @@ def _get_genomic_obj(object_id):
                 if url_pieces.scheme == "file":
                     if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
                         if index_match is not None:
-                            index_file = url_pieces.path
+                            index_file = url_pieces.path[1:]
                         elif read_match is not None:
-                            read_file = url_pieces.path
+                            read_file = url_pieces.path[1:]
                         elif variant_match is not None:
-                            variant_file = url_pieces.path
+                            variant_file = url_pieces.path[1:]
     if variant_file is not None:
         print(index_file, variant_file)
         result = VariantFile(variant_file, index_filename=index_file)
