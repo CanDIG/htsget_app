@@ -23,4 +23,4 @@ def index():
     return 'INDEX'
 
 if __name__ == '__main__':
-    app.run(port = config['DEFAULT']['Port'])
+    app.run(port = config['DEFAULT']['Port'], debug=True)

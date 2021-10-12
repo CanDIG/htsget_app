@@ -9,7 +9,7 @@ config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
 DB_PATH = config['paths']['DBPath']
 
-engine = create_engine(DB_PATH, echo=True)
+engine = create_engine(DB_PATH)
 
 ObjectDBBase = declarative_base()
 
