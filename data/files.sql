@@ -1,18 +1,5 @@
 PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
-CREATE TABLE files (
-        id VARCHAR NOT NULL, 
-        file_type VARCHAR, 
-        format VARCHAR, 
-        PRIMARY KEY (id)
-);
-INSERT INTO files VALUES('HG02102','.vcf.gz','VCF');
-INSERT INTO files VALUES('NA18537','.vcf.gz','VCF');
-INSERT INTO files VALUES('NA20787','.vcf.gz','VCF');
-INSERT INTO files VALUES('HG02102','.vcf.gz','VCF');
-INSERT INTO files VALUES('NA18537','.vcf.gz','VCF');
-INSERT INTO files VALUES('NA20787','.vcf.gz','VCF');
-INSERT INTO files VALUES('NA02102','.bam','BAM');
 CREATE TABLE drs_object (
         id VARCHAR NOT NULL, 
         name VARCHAR, 
@@ -46,8 +33,8 @@ CREATE TABLE access_method (
 );
 INSERT INTO access_method VALUES(1,'NA18537.vcf.gz.tbi','file','','','file:///app/htsget_server/data/files/NA18537.vcf.gz.tbi','[]');
 INSERT INTO access_method VALUES(2,'NA18537.vcf.gz','file','','','file:///app/htsget_server/data/files/NA18537.vcf.gz','[]');
-INSERT INTO access_method VALUES(3,'NA20787.vcf.gz.tbi','s3','vcf.gz.tbi','','','[]');
-INSERT INTO access_method VALUES(4,'NA20787.vcf.gz','s3','vcf.gz','','','[]');
+INSERT INTO access_method VALUES(3,'NA20787.vcf.gz.tbi','s3','NA20787.vcf.gz.tbi','','','[]');
+INSERT INTO access_method VALUES(4,'NA20787.vcf.gz','s3','NA20787.vcf.gz','','','[]');
 CREATE TABLE content_object (
         id INTEGER NOT NULL, 
         drs_object_id INTEGER, 

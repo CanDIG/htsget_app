@@ -1,12 +1,10 @@
 import configparser
 import os
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from urllib import parse
-
 import pytest
 import requests
-from pysam import AlignmentFile, TabixFile, VariantFile
+from pysam import AlignmentFile, VariantFile
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
@@ -14,12 +12,18 @@ config.read(Path('./config.ini'))
 BASE_PATH = config['DEFAULT']['BasePath']
 PORT = config['DEFAULT']['Port']
 HOST = f"http://localhost:{PORT}{BASE_PATH}"
-FILE_RETRIEVAL = config['DEFAULT']['FileRetrieval']
 LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
-MINIO_FILE_PATH = config['paths']['MinioFilePath']
 
 FILE_PATH = LOCAL_FILE_PATH
 
+def test_post_objects(drs_objects):
+    """
+    Install test objects. Will fail if any post request returns an error.
+    """
+    for obj in drs_objects:
+        url = f"http://localhost:{PORT}/ga4gh/drs/v1/objects"
+        response = requests.post(url, json=obj)
+        assert response.status_code == 200
 
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]
@@ -63,34 +67,6 @@ def test_existent_file(id, expected_status):
 
 def test_file_without_start_end_data():
     return [('NA18537', '21', '.vcf.gz', 'variant'), ('NA20787', '21', '.vcf.gz', 'variant')]
-
-
-@pytest.mark.parametrize('id, referenceName, file_extension, file_type', test_file_without_start_end_data())
-def test_file_without_start_end(id, referenceName, file_extension, file_type):
-    url = f"{HOST}/data/{id}?referenceName={referenceName}"
-    res = requests.get(url)
-
-    file_name = f"{id}{file_extension}"
-    path = f"./{file_name}"
-    f = open(path, 'wb')
-    f.write(res.content)
-
-    file_one = None
-    file_two = None
-    if file_type == "variant":
-        file_one = VariantFile(path)
-        file_two = VariantFile(f"{FILE_PATH}/{file_name}")
-    elif file_type == "read":
-        file_one = AlignmentFile(path)
-        file_two = AlignmentFile(f"{FILE_PATH}/{file_name}")
-    equal = True
-    for x, y in zip(file_one.fetch(), file_two.fetch(contig=referenceName)):
-        if x != y:
-            equal = False
-            os.remove(path)
-            assert equal
-    os.remove(path)
-    assert equal
 
 
 def test_pull_slices_data():
@@ -138,3 +114,231 @@ def test_pull_slices(params, id_, file_extension, file_type):
                 assert equal
         os.remove(f_slice_path)
     assert equal
+
+def test_get_read_header():
+    """
+    A header of a SAM file should contain at least one @SQ line
+    """
+    url = f"{HOST}/reads/data/NA02102?class=header&format=SAM"
+    res = requests.get(url)
+    for line in res.iter_lines():
+        if "@SQ" in line.decode("utf-8"):
+            assert True
+            return
+    assert False
+
+@pytest.fixture
+def drs_objects():
+    return [
+  {
+    "access_methods": [
+      {
+        "access_url": {
+          "headers": [],
+          "url": "file:///app/htsget_server/data/files/NA18537.vcf.gz.tbi"
+        },
+        "type": "file"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "NA18537.vcf.gz.tbi",
+    "mime_type": "application/octet-stream",
+    "name": "NA18537.vcf.gz.tbi",
+    "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_url": {
+          "headers": [],
+          "url": "file:///app/htsget_server/data/files/NA18537.vcf.gz"
+        },
+        "type": "file"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "NA18537.vcf.gz",
+    "mime_type": "application/octet-stream",
+    "name": "NA18537.vcf.gz",
+    "self_uri": "drs://localhost/NA18537.vcf.gz",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
+      {
+        "drs_uri": [
+          "drs://localhost/NA18537.vcf.gz"
+        ],
+        "name": "NA18537.vcf.gz",
+        "id": "variant"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/NA18537.vcf.gz.tbi"
+        ],
+        "name": "NA18537.vcf.gz.tbi",
+        "id": "index"
+      }
+    ],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "NA18537",
+    "mime_type": "application/octet-stream",
+    "name": "NA18537",
+    "self_uri": "drs://localhost/NA18537",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_id": "NA20787.vcf.gz.tbi",
+        "type": "s3"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:58:56.663378",
+    "description": "",
+    "id": "NA20787.vcf.gz.tbi",
+    "mime_type": "application/octet-stream",
+    "name": "NA20787.vcf.gz.tbi",
+    "self_uri": "drs://localhost/NA20787.vcf.gz.tbi",
+    "size": 0,
+    "updated_time": "2021-09-27T18:58:56.663442",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_id": "NA20787.vcf.gz",
+        "type": "s3"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:58:56.663378",
+    "description": "",
+    "id": "NA20787.vcf.gz",
+    "mime_type": "application/octet-stream",
+    "name": "NA20787.vcf.gz",
+    "self_uri": "drs://localhost/NA20787.vcf.gz",
+    "size": 0,
+    "updated_time": "2021-09-27T18:58:56.663442",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
+      {
+        "drs_uri": [
+          "drs://localhost/NA20787.vcf.gz"
+        ],
+        "name": "NA20787.vcf.gz",
+        "id": "variant"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/NA20787.vcf.gz.tbi"
+        ],
+        "name": "NA20787.vcf.gz.tbi",
+        "id": "index"
+      }
+    ],
+    "created_time": "2021-09-27T18:58:56.663378",
+    "description": "",
+    "id": "NA20787",
+    "mime_type": "application/octet-stream",
+    "name": "NA20787",
+    "self_uri": "drs://localhost/NA20787",
+    "size": 0,
+    "updated_time": "2021-09-27T18:58:56.663442",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_id": "NA02102.bam.bai",
+        "region": "ap-northeast-1",
+        "type": "s3"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:58:56.663378",
+    "description": "",
+    "id": "NA02102.bam.bai",
+    "mime_type": "application/octet-stream",
+    "name": "NA02102.bam.bai",
+    "self_uri": "drs://localhost/NA02102.bam.bai",
+    "size": 0,
+    "updated_time": "2021-09-27T18:58:56.663442",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_url": {
+          "headers": [],
+          "url": "file:///app/htsget_server/data/files/NA02102.bam"
+        },
+        "type": "file"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:58:56.663378",
+    "description": "",
+    "id": "NA02102.bam",
+    "mime_type": "application/octet-stream",
+    "name": "NA02102.bam",
+    "self_uri": "drs://localhost/NA02102.bam",
+    "size": 0,
+    "updated_time": "2021-09-27T18:58:56.663442",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
+      {
+        "drs_uri": [
+          "drs://localhost/NA02102.bam"
+        ],
+        "name": "NA02102.bam",
+        "id": "read"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/NA02102.bam.bai"
+        ],
+        "name": "NA02102.bam.bai",
+        "id": "index"
+      }
+    ],
+    "created_time": "2021-09-27T18:58:56.663378",
+    "description": "",
+    "id": "NA02102",
+    "mime_type": "application/octet-stream",
+    "name": "NA02102",
+    "self_uri": "drs://localhost/NA02102",
+    "size": 0,
+    "updated_time": "2021-09-27T18:58:56.663442",
+    "version": "v1"
+  }
+]

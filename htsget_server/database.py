@@ -13,15 +13,7 @@ engine = create_engine(DB_PATH, echo=True)
 
 ObjectDBBase = declarative_base()
 
-class Object(ObjectDBBase):
-    __tablename__ = 'files'
-    id = Column(String, primary_key=True)
-    file_type = Column(String)
-    format = Column(String)
 
-    def __repr__(self):
-        return {'id': self.id, 'file_type': self.file_type, 'format': self.format}
-        
 class DrsObject(ObjectDBBase):
     __tablename__ = 'drs_object'
     id = Column(String, primary_key=True)
@@ -37,8 +29,9 @@ class DrsObject(ObjectDBBase):
     description = Column(String, default='')
     aliases = Column(String, default='[]') # JSON array of strings of aliases
     contents = relationship("ContentsObject")
+
     def __repr__(self):
-        return json.dumps({
+        result = {
             'id': self.id,
             'name': self.name,
             'self_uri': self.self_uri,
@@ -46,13 +39,17 @@ class DrsObject(ObjectDBBase):
             'created_time': self.created_time,
             'updated_time': self.updated_time,
             'version': self.version,
-            'mime_type': self.mime_type,
             'checksums': json.loads(self.checksums),
-            'access_methods': json.loads(self.access_methods.__repr__()),
             'description': self.description,
-            'aliases': json.loads(self.aliases),
-            'contents': json.loads(self.contents.__repr__())
-        })
+            'mime_type': self.mime_type,
+            'aliases': json.loads(self.aliases)
+        }
+        if len(list(self.contents)) > 0:
+            result['contents'] = json.loads(self.contents.__repr__())
+        if len(list(self.access_methods)) > 0:
+            result['access_methods'] = json.loads(self.access_methods.__repr__())
+        return json.dumps(result)
+
 
 class AccessMethod(ObjectDBBase):
     __tablename__ = 'access_method'
@@ -64,16 +61,23 @@ class AccessMethod(ObjectDBBase):
     region = Column(String, default='')
     url = Column(String, default='')
     headers = Column(String, default='[]') # JSON array of strings
+
     def __repr__(self):
-        return json.dumps({
-            'type': self.type,
-            'access_id': self.access_id,
-            'region': self.region,
-            'access_url': {
+        result = {
+            'type': self.type
+        }
+        if self.region is not "":
+            result['region'] = self.region
+        if self.url is not "":
+            result['access_url'] = {
                 'url': self.url,
                 'headers': json.loads(self.headers)
             }
-        })
+        if self.access_id is not "":
+            result['access_id'] = self.access_id
+
+        return json.dumps(result)
+
 
 class ContentsObject(ObjectDBBase):
     __tablename__ = 'content_object'
@@ -84,38 +88,39 @@ class ContentsObject(ObjectDBBase):
     drs_uri = Column(String, default='[]') # JSON array of strings of DRS id URIs
     contents = Column(String, default='[]') # JSON array of ContentsObject.ids
     def __repr__(self):
-        return json.dumps({
+        result = {
             'name': self.name,
-            'drs_uri': json.loads(self.drs_uri),
-            'contents': json.loads(self.contents)
-        })
+            'drs_uri': json.loads(self.drs_uri)
+        }
+        if len(json.loads(self.contents)) > 0:
+            result['contents'] = json.loads(self.contents)
+
+        return json.dumps(result)
     
     
 ObjectDBBase.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
 """ Helper Functions"""
-def get_file_by_id(id):
-    """
-    Returns an array of tuples of a file based on ID from DBV
-
-    :param id: The id of the file
-    """
-    results = []
-    with Session() as session:
-        for instance in session.query(Object).filter(Object.id==id):
-            results.append([instance.id, instance.file_type, instance.format])
-    return results
-
 def get_drs_object(object_id, expand=False):
     with Session() as session:
         result = session.query(DrsObject).filter_by(id=object_id).one_or_none()
         if result is not None:
             new_obj = json.loads(str(result))
 #         if expand:
-#             result
+#             expand doesn't do anything on this DRS server
             return new_obj
         return None
+
+
+def list_drs_objects():
+    with Session() as session:
+        result = session.query(DrsObject).all()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
 
 def create_drs_object(obj):
     with Session() as session:
@@ -162,7 +167,7 @@ def create_drs_object(obj):
             if 'access_url' in method:
                 new_method.url = method['access_url']['url']
                 if 'headers' in method['access_url']:
-                    new_method.headers = method['access_url']['headers']
+                    new_method.headers = json.dumps(method['access_url']['headers'])
             session.add(new_method)
         if 'contents' not in obj:
             obj['contents'] = []
