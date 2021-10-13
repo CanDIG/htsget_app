@@ -130,13 +130,14 @@ def create_drs_object(obj):
 
         # required fields:
         new_object.id = obj['id']
-        new_object.self_uri = obj['self_uri']
         if 'name' in obj:
             new_object.name = obj['name']
         else:
             new_object.name = obj['id']
 
         # optional string fields
+        if 'self_uri' in obj:
+            new_object.self_uri = obj['self_uri']
         if 'created_time' in obj:
             new_object.created_time = obj['created_time']
         if 'updated_time' in obj:
