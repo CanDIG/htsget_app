@@ -127,12 +127,16 @@ def create_drs_object(obj):
         new_object = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_object is None:
             new_object = DrsObject()
+
+        # required fields:
         new_object.id = obj['id']
         new_object.self_uri = obj['self_uri']
         if 'name' in obj:
             new_object.name = obj['name']
         else:
             new_object.name = obj['id']
+
+        # optional string fields
         if 'created_time' in obj:
             new_object.created_time = obj['created_time']
         if 'updated_time' in obj:
@@ -143,12 +147,16 @@ def create_drs_object(obj):
             new_object.version = obj['version']
         if 'size' in obj:
             new_object.size = obj['size']
-        if 'checksums' in obj:
-            new_object.checksums = json.dumps(obj['checksums'])
         if 'description' in obj:
             new_object.description = obj['description']
+
+        # json arrays stored as strings
+        if 'checksums' in obj:
+            new_object.checksums = json.dumps(obj['checksums'])
         if 'aliases' in obj:
             new_object.aliases = json.dumps(obj['aliases'])
+
+        # access methods is special
         if 'access_methods' not in obj:
             obj['access_methods'] = []
         # only add access methods after removing any previous ones
@@ -169,6 +177,8 @@ def create_drs_object(obj):
                 if 'headers' in method['access_url']:
                     new_method.headers = json.dumps(method['access_url']['headers'])
             session.add(new_method)
+
+        # contents objects are special
         if 'contents' not in obj:
             obj['contents'] = []
         if len(new_object.contents) != 0:
