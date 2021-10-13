@@ -274,62 +274,62 @@ def _get_genomic_obj(object_id):
     file_format = None
     result = None
 
-    tempdir = tempfile.mkdtemp() # TODO: clean this up
-    (drs_obj, status_code) = drs_operations.get_object(object_id)
-    if status_code != 200:
-        return None
+    with tempfile.TemporaryDirectory() as tempdir:
+        (drs_obj, status_code) = drs_operations.get_object(object_id)
+        if status_code != 200:
+            return None
 
-    # drs_obj should have two contents objects
-    for contents in drs_obj["contents"]:
-        # get each drs object (should be the genomic file and its index)
-        print(contents)
-        (sub_obj, status_code) = drs_operations.get_object(contents["name"])
+        # drs_obj should have two contents objects
+        for contents in drs_obj["contents"]:
+            # get each drs object (should be the genomic file and its index)
+            print(contents)
+            (sub_obj, status_code) = drs_operations.get_object(contents["name"])
 
-        # if sub_obj.name matches an index file regex, it's an index file
-        index_match = re.fullmatch('.+\.(..i)$', sub_obj["name"])
+            # if sub_obj.name matches an index file regex, it's an index file
+            index_match = re.fullmatch('.+\.(..i)$', sub_obj["name"])
 
-        # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
-        read_match = re.fullmatch('.+\.(.+?am)$', sub_obj["name"])
+            # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
+            read_match = re.fullmatch('.+\.(.+?am)$', sub_obj["name"])
 
-        # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
-        variant_match = re.fullmatch('.+\.(.cf)(\.gz)*$', sub_obj["name"])
+            # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
+            variant_match = re.fullmatch('.+\.(.cf)(\.gz)*$', sub_obj["name"])
 
-        if read_match is not None:
-            file_format = read_match.group(1).upper()
-        elif variant_match is not None:
-            file_format = variant_match.group(1).upper()
+            if read_match is not None:
+                file_format = read_match.group(1).upper()
+            elif variant_match is not None:
+                file_format = variant_match.group(1).upper()
 
-        # get access_methods for this sub_obj
-        for method in sub_obj["access_methods"]:
-            if "access_id" in method and method["access_id"] != "":
-                # we need to go to the access endpoint to get the url and file
-                (url, status_code) = drs_operations.get_access_url(sub_obj["name"], method["access_id"])
-                f_path = os.path.join(tempdir, sub_obj["name"])
-                with open(f_path, mode='wb') as f:
-                    with requests.get(url["url"], stream=True) as r:
-                        with r.raw as content:
-                            f.write(content.data)
-                if index_match is not None:
-                    index_file = f_path
-                elif read_match is not None:
-                    read_file = f_path
-                elif variant_match is not None:
-                    variant_file = f_path
-            else:
-                # the access_url has all the info we need
-                url_pieces = urlparse(method["access_url"]["url"])
-                if url_pieces.scheme == "file":
-                    if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
-                        if index_match is not None:
-                            index_file = url_pieces.path[1:]
-                        elif read_match is not None:
-                            read_file = url_pieces.path[1:]
-                        elif variant_match is not None:
-                            variant_file = url_pieces.path[1:]
-    if variant_file is not None:
-        print(index_file, variant_file)
-        result = VariantFile(variant_file, index_filename=index_file)
-    elif read_file is not None:
-        result = AlignmentFile(read_file, index_filename=index_file)
+            # get access_methods for this sub_obj
+            for method in sub_obj["access_methods"]:
+                if "access_id" in method and method["access_id"] != "":
+                    # we need to go to the access endpoint to get the url and file
+                    (url, status_code) = drs_operations.get_access_url(sub_obj["name"], method["access_id"])
+                    f_path = os.path.join(tempdir, sub_obj["name"])
+                    with open(f_path, mode='wb') as f:
+                        with requests.get(url["url"], stream=True) as r:
+                            with r.raw as content:
+                                f.write(content.data)
+                    if index_match is not None:
+                        index_file = f_path
+                    elif read_match is not None:
+                        read_file = f_path
+                    elif variant_match is not None:
+                        variant_file = f_path
+                else:
+                    # the access_url has all the info we need
+                    url_pieces = urlparse(method["access_url"]["url"])
+                    if url_pieces.scheme == "file":
+                        if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
+                            if index_match is not None:
+                                index_file = url_pieces.path[1:]
+                            elif read_match is not None:
+                                read_file = url_pieces.path[1:]
+                            elif variant_match is not None:
+                                variant_file = url_pieces.path[1:]
+        if variant_file is not None:
+            print(index_file, variant_file)
+            result = VariantFile(variant_file, index_filename=index_file)
+        elif read_file is not None:
+            result = AlignmentFile(read_file, index_filename=index_file)
 
     return { "file": result, "file_format": file_format }
