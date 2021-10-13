@@ -25,12 +25,15 @@ RUN apk add --no-cache \
 	curl-dev \
 	yaml-dev \
 	libressl-dev \
-	git
+	git \
+	sqlite
 
 COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
 
 RUN python setup.py install && pip install --no-cache-dir -r requirements.txt
+
+RUN sqlite3 data/files.db -init data/files.sql
 
 ENTRYPOINT ["python3", "htsget_server/server.py"]

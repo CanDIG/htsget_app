@@ -1,0 +1,694 @@
+openapi: 3.0.3
+info:
+    version: 1.0.0
+    title: candig htsget
+servers:
+  - url: /htsget/v1
+paths:
+    /reads/service-info:
+       get:
+           tags:
+               - Reads
+               - Service Info
+           summary: Get reads service info
+           operationId: "operations.get_read_service_info"
+           description: Get metadata about this service's Reads API
+           responses:
+               200:
+                   description: successfully retrieved reads service info
+                   content:
+                       application/json:
+                           schema:
+                               $ref: '#/components/schemas/HtsgetReadsServiceInfo'
+               5XX:
+                   '$ref': '#/components/responses/5xxServerError'
+
+    /reads/{id}:
+        get:
+            tags:
+                - Reads
+            summary: Get alignment (reads) file download ticket
+            operationId: "operations.get_reads"
+            description: |
+                Gets an htsget ticket containing URLs that will enable the
+                transfer of a requested alignment file
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+                - $ref: '#/components/parameters/readsFormatParam'
+                - $ref: '#/components/parameters/classParam'
+                - $ref: '#/components/parameters/referenceNameParam'
+                - $ref: '#/components/parameters/startParam'
+                - $ref: '#/components/parameters/endParam'
+#                - $ref: '#/components/parameters/readsFieldsParam'
+#                - $ref: '#/components/parameters/readsTagsParam'
+#                - $ref: '#/components/parameters/readsNoTagsParam'
+            responses:
+                200:
+                    description: Successfully retrieved htsget ticket
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/HtsgetReadsTicket'
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+
+#        post:
+#            tags:
+#                - Reads
+#            summary: Get alignment (reads) file download ticket
+#            description: |
+#                Gets an htsget ticket containing URLs that will enable the
+#                transfer of a requested alignment file. Compared to the
+#                equivalent `GET` endpoint, this `POST` endpoint allows more
+#                complex genomic region requests via the `regions` parameter
+#            parameters:
+#                - $ref: '#/components/parameters/idPathParam'
+#            requestBody:
+#                $ref: '#/components/requestBodies/ReadsRequestBody'
+#            responses:
+#                200:
+#                    description: Successfully retrieved htsget ticket
+#                    content:
+#                        application/json:
+#                            schema:
+#                                $ref: '#/components/schemas/HtsgetReadsTicket'
+#                400:
+#                    $ref: '#/components/responses/400BadRequestError'
+#                404:
+#                    $ref: '#/components/responses/404NotFoundError'
+#                5XX:
+#                    $ref: '#/components/responses/5xxServerError'
+
+    /reads/data/{id}:
+       get:
+           tags:
+               - Reads
+               - Streaming
+           summary: Stream alignment file part
+           operationId: "operations.get_reads_data"
+           description: |
+               Stream a single file part of a requested alignment file. Streams
+               requested region(s), fields, and tags.
+
+               NOTE: This endpoint, while public, should not be requested as an
+               initial request. Rather, the ticket endpoint `/reads/{id}` will
+               yield `URLs` to the `/reads/data/{id}` endpoint.
+           parameters:
+               - $ref: '#/components/parameters/idPathParam'
+               - $ref: '#/components/parameters/readsFormatParam'
+               - $ref: '#/components/parameters/classParam'
+               - $ref: '#/components/parameters/referenceNameParam'
+               - $ref: '#/components/parameters/startParam'
+               - $ref: '#/components/parameters/endParam'
+#               - $ref: '#/components/parameters/readsFieldsParam'
+#               - $ref: '#/components/parameters/readsTagsParam'
+#               - $ref: '#/components/parameters/readsNoTagsParam'
+#               - $ref: '#/components/parameters/htsgetBlockClassHeaderParam'
+#               - $ref: '#/components/parameters/htsgetCurrentBlockHeaderParam'
+#               - $ref: '#/components/parameters/htsgetTotalBlocksHeaderParam'
+           responses:
+               200:
+                   description: Successfully streamed file part of large genomic alignment file
+                   content:
+                       application/octet-stream:
+                           schema:
+                               type: string
+                               format: binary
+               400:
+                   $ref: '#/components/responses/400BadRequestError'
+               404:
+                   $ref: '#/components/responses/404NotFoundError'
+               5XX:
+                   $ref: '#/components/responses/5xxServerError'
+
+    /variants/service-info:
+       get:
+           tags:
+               - Variants
+               - Service Info
+           summary: Get variants service info
+           operationId: "operations.get_variant_service_info"
+           description: Get metadata about this service's Variants API
+           responses:
+               200:
+                   description: successfully retrieved variants service info
+                   content:
+                       application/json:
+                           schema:
+                               $ref: '#/components/schemas/HtsgetVariantsServiceInfo'
+               5XX:
+                   $ref: '#/components/responses/5xxServerError'
+
+    /variants/{id}:
+        get:
+            tags:
+                - Variants
+            summary: Get variant file download ticket
+            operationId: "operations.get_variants"
+            description: |
+                Gets an htsget ticket containing URLs that will enable the
+                transfer of a requested variant file
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+                - $ref: '#/components/parameters/variantsFormatParam'
+                - $ref: '#/components/parameters/classParam'
+                - $ref: '#/components/parameters/referenceNameParam'
+                - $ref: '#/components/parameters/startParam'
+                - $ref: '#/components/parameters/endParam'
+                # - $ref: '#/components/parameters/variantsFieldsParam'
+                # - $ref: '#/components/parameters/variantsTagsParam'
+                # - $ref: '#/components/parameters/variantsNoTagsParam'
+            responses:
+                200:
+                    description: Successfully retrieved htsget ticket
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+
+    /variants/data/{id}:
+        get:
+            tags:
+                - Variants
+                - Streaming
+            summary: Stream variant file part
+            operationId: "operations.get_variants_data"
+            description: |
+                Stream a single file part of a requested variant file. Streams
+                requested region(s).
+
+                NOTE: This endpoint, while public, should not be requested as an
+                initial request. Rather, the ticket endpoint `/variants/{id}`
+                will yields `URLs` to the `/variants/data/{id}` endpoint.
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+                - $ref: '#/components/parameters/variantsFormatParam'
+                - $ref: '#/components/parameters/classParam'
+                - $ref: '#/components/parameters/referenceNameParam'
+                - $ref: '#/components/parameters/startParam'
+                - $ref: '#/components/parameters/endParam'
+                # - $ref: '#/components/parameters/variantsFieldsParam'
+                # - $ref: '#/components/parameters/variantsTagsParam'
+                # - $ref: '#/components/parameters/variantsNoTagsParam'
+#                - $ref: '#/components/parameters/htsgetBlockClassHeaderParam'
+#                - $ref: '#/components/parameters/htsgetCurrentBlockHeaderParam'
+#                - $ref: '#/components/parameters/htsgetTotalBlocksHeaderParam'
+            responses:
+                200:
+                    description: Successfully streamed file part of large genomic variant file
+                    content:
+                        application/octet-stream:
+                            schema:
+                                type: string
+                                format: binary
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+    
+#    /file-bytes:
+#        get:
+#            tags:
+#                - Streaming
+#            summary: Stream bytes of a local file
+#            description: |
+#                Streams a single file part of a requested genomic file (reads or variants).
+#                This endpoint performs no region filtering or field/tag modification,
+#                rather it streams a file part by simple byte positions.
+#            parameters:
+#                - $ref: '#/components/parameters/htsgetFilePathHeaderParam'
+#                - $ref: '#/components/parameters/rangeHeaderParam'
+#            responses:
+#                200:
+#                    description:
+#                        Successfully stream file part of large genomic file
+#                    content:
+#                        application/octet-stream:
+#                            schema:
+#                                type: string
+#                                format: binary
+#                400:
+#                    $ref: '#/components/responses/400BadRequestError'
+#                404:
+#                    $ref: '#/components/responses/404NotFoundError'
+#                5XX:
+#                    $ref: '#/components/responses/5xxServerError'
+
+tags:
+    - name: Reads
+      description: |
+        Enables the retrieval of genomic alignment files (BAM, CRAM) via the
+        htsget protocol
+    - name: Variants
+      description: |
+        Enables the retrieval of genomic variant files (VCF, BCF) via the
+        htsget protocol
+    - name: Service Info
+      description: |
+        Describes htsget-related API endpoints according to the GA4GH Service Info specification
+      externalDocs:
+        url: https://github.com/ga4gh-discovery/ga4gh-service-info
+    - name: Streaming
+      description: |
+        Large byte transfers of genomic files
+components:
+    schemas:
+
+        # LOW-LEVEL, REUSABLE SCHEMAS
+        ReadsFormats:
+            type: string
+            description: Acceptable file formats for genomic alignment files
+            enum: [BAM, CRAM, SAM]
+            example: BAM
+        ReadsFields:
+            type: array
+            description: Acceptable requested fields for genomic alignment files
+            items:
+                type: string
+                enum: [QNAME, FLAG, RNAME, POS, MAPQ, CIGAR, RNEXT, PNEXT, TLEN, SEQ, QUAL]
+            example: [QNAME, RNAME]
+        ReadsTags:
+            type: array
+            description: Tags to include in returned alignment file
+            items:
+                type: string
+            example: [MD, NM]
+        ReadsNoTags:
+            type: array
+            description: Tags to exclude from returned alignment file
+            items:
+                type: string
+            example: [OQ, HI]
+
+        # GENOMIC INTERVAL, REUSABLE SCHEMAS
+        ReferenceName:
+            type: string
+            description: Reference sequence name
+            example: chr1
+        Start:
+            type: integer
+            description: The start position of the range on the reference, 0-based, inclusive
+            format: int64
+            minimum: 0
+            example: 12312
+        End:
+            type: integer
+            description: The end position of the range on the reference, 0-based, exclusive
+            format: int64
+            example: 99999
+        Region:
+            type: object
+            description: Represents a genomic interval
+            properties:
+                referenceName:
+                    $ref: '#/components/schemas/ReferenceName'
+                start:
+                    $ref: '#/components/schemas/Start'
+                end:
+                    $ref: '#/components/schemas/End'
+            required:
+                - referenceName
+        Regions:
+            type: array
+            description: A listing of genomic intervals
+            items:
+                $ref: '#/components/schemas/Region'
+
+        # SERVICE-INFO SCHEMAS
+        ServiceInfo:
+            '$ref': https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/v1.0.0/service-info.yaml#/components/schemas/Service
+        HtsgetServiceInfoExtension:
+            type: object
+            description: Htsget-specific properties integrated into base service info data model
+            properties:
+                datatype:
+                    type: string
+                    description: Indicates the htsget API (reads or variants) that this service info endpoint refers to
+                    enum: [reads, variants]
+                formats:
+                    type: array
+                    description: |
+                        The file format(s) that the endpoint supports. Indicates
+                        what values can be submitted via the `?format=` query
+                        parameter
+                    items:
+                        type: string
+                        enum: [BAM, CRAM, VCF, BCF]
+                fieldsParameterEffective:
+                    type: boolean
+                    description: |
+                        If true, submitting the `fields` query parameter will
+                        yield custom field inclusion/exclusion according to htsget
+                        protocol
+                    example: true
+                tagsParametersEffective:
+                    type: boolean
+                    description: |
+                        If true, submitting the `tags` and/or `notags` query
+                        parameters will yield custom tag inclusion/exclusion
+                        according to htsget protocol
+                    example: true
+        HtsgetServiceInfo:
+            allOf:
+                - '$ref': '#/components/schemas/ServiceInfo'
+                - properties:
+                    type:
+                        properties:
+                            artifact:
+                                example: htsget
+                            version:
+                                example: 1.2.0
+                    htsget:
+                        '$ref': '#/components/schemas/HtsgetServiceInfoExtension'
+                  required:
+                    - htsget
+        HtsgetReadsServiceInfo:
+            allOf:
+                - '$ref': '#/components/schemas/HtsgetServiceInfo'
+        HtsgetVariantsServiceInfo:
+            allOf:
+                - '$ref': '#/components/schemas/HtsgetServiceInfo'
+                - properties:
+                    htsget:
+                        properties:
+                            datatype:
+                                example: variants
+                            formats:
+                                example: VCF
+
+        # REQUEST BODY SCHEMAS
+        ReadsRequestBody:
+            type: object
+            description: Specify desired file format, fields, tags, and regions from an alignment file
+            properties:
+                format:
+                    $ref: '#/components/schemas/ReadsFormats'
+                fields:
+                    $ref: '#/components/schemas/ReadsFields'
+                tags:
+                    $ref: '#/components/schemas/ReadsTags'
+                notags:
+                    $ref: '#/components/schemas/ReadsNoTags'
+                regions:
+                    $ref: '#/components/schemas/Regions'
+
+        # HTSGET TICKET SCHEMAS
+        HtsgetBlockClass:
+            type: string
+            description: When supplied to the data transfer URL, indicates whether a header or body file part is to be returned
+            enum: [header, body]
+            example: header
+        HtsgetCurrentBlock:
+            type: string
+            description: "Indicates the file part's position within the overall downloaded file"
+            example: "0"
+        HtsgetTotalBlocks:
+            type: string
+            description: Indicates how many file parts the overall genomic file transfer has been broken into
+            example: "100"
+        HtsgetFilePath:
+            type: string
+            description: Path to a local file that is to be streamed on simple byte indices
+            example: /data/reads/object00001.bam
+        Range:
+            type: string
+            description: The start/end byte positions of the file to be streamed
+            example: bytes=0-500000
+        HtsgetHeaders:
+            type: object
+            description: Headers that must be supplied in the request to a data transfer URL
+            properties:
+                HtsgetBlockClass:
+                    $ref: '#/components/schemas/HtsgetBlockClass'
+                HtsgetCurrentBlock:
+                    $ref: '#/components/schemas/HtsgetCurrentBlock'
+                HtsgetTotalBlocks:
+                    $ref: '#/components/schemas/HtsgetTotalBlocks'
+                HtsgetFilePath:
+                    $ref: '#/components/schemas/HtsgetFilePath'
+                Range:
+                    $ref: '#/components/schemas/Range'
+        HtsgetUrl:
+            type: object
+            description: a URL and associated headers that, when requested, perform transfer of a requested file
+            properties:
+                url:
+                    type: string
+                    description: Data transfer URL
+                    example: https://htsget.ga4gh.org/reads/data/object00001?referenceName=chr1
+                headers:
+                    $ref: '#/components/schemas/HtsgetHeaders'
+                class:
+                    type: string
+                    description: Indicates whether the url is responsible for downloading the requested file header or body
+                    enum: [header, body]
+            required:
+                - url
+                - headers
+        HtsgetTicket:
+            type: object
+            description: Container for the htsget ticket
+            properties:
+                htsget:
+                    type: object
+                    description: Contains htsget ticket attributes that will enable genomic file transfer
+                    properties:
+                        format:
+                            type: string
+                            description: The format of the returned file
+                            enum: [BAM, CRAM, VCF, BCF]
+                        urls:
+                            type: array
+                            description: An array of URLs and headers that, when requested, will transfer individual file parts of a requested genomic file
+                            items:
+                                $ref: '#/components/schemas/HtsgetUrl'
+                    required:
+                        - format
+                        - urls
+            required:
+                - htsget
+        HtsgetReadsTicket:
+            $ref: '#/components/schemas/HtsgetTicket'
+        HtsgetVariantsTicket:
+            allOf:
+                - $ref: '#/components/schemas/HtsgetTicket'
+                - properties:
+                    htsget:
+                        properties:
+                            format:
+                                example: VCF
+                            urls:
+                                items:
+                                    allOf:
+                                        - $ref: '#/components/schemas/HtsgetUrl'
+                                        - properties:
+                                            url:
+                                                example: https://htsget.ga4gh.org/variants/data/00001
+                                            headers:
+                                                allOf:
+                                                    - $ref: '#/components/schemas/HtsgetHeaders'
+                                                    - properties:
+                                                        FilePath:
+                                                            example: "/data/variants/object00001.vcf"
+
+        # ERROR SCHEMAS
+        Error:
+            type: object
+            properties:
+                htsget:
+                    type: object
+                    description: Error object container
+                    properties:
+                        error:
+                            type: string
+                            description: Name/type of the error that occurred
+                            example: ServerError
+                        message:
+                            type: string
+                            description: Message explaining why the error occurred
+                            example: An unspecified server error occurred
+                    required:
+                        - error
+                        - message
+            required:
+                - htsget
+        BadRequestError:
+            allOf:
+                - $ref: '#/components/schemas/Error'
+                - properties:
+                    htsget:
+                        properties:
+                            error:
+                                example: InvalidInput
+                            message:
+                                example: "'FOO' is not an acceptable field"
+        NotFoundError:
+            allOf:
+                - $ref: '#/components/schemas/Error'
+                - properties:
+                    htsget:
+                        properties:
+                            error:
+                                example: NotFound
+                            message:
+                                example: The requested resource could not be located
+
+    parameters:
+        idPathParam:
+            in: path
+            name: id
+            description: read or variant object identifier
+            required: true
+            schema:
+                type: string
+        readsFormatParam:
+            in: query
+            name: format
+            description: Desired read file format
+            example: BAM
+            required: false
+            schema:
+                $ref: '#/components/schemas/ReadsFormats'
+        variantsFormatParam:
+            in: query
+            name: format
+            description: Desired variant file format
+            example: VCF
+            required: false
+            schema:
+                type: string
+                enum: [VCF, BCF]
+                default: VCF
+        classParam:
+            in: query
+            name: class
+            description: Request different classes of data. By default, i.e., when class is not specified, the response will represent a complete read or variant data stream, encompassing SAM/CRAM/VCF headers, body data records, and EOF marker
+            example: header
+            required: false
+            schema:
+                type: string
+                enum: [header]
+        referenceNameParam:
+            in: query
+            name: referenceName
+            required: false
+            schema:
+                $ref: '#/components/schemas/ReferenceName'
+        startParam:
+            in: query
+            name: start
+            required: false
+            schema:
+                $ref: '#/components/schemas/Start'
+        endParam:
+            in: query
+            name: end
+            required: false
+            schema:
+                $ref: '#/components/schemas/End'
+        readsFieldsParam:
+            in: query
+            name: fields
+            description: A comma-separated list of SAM fields to include. By default, i.e., when fields is not specified, all fields will be included
+            example: QNAME,RNAME
+            required: false
+            schema:
+                $ref: '#/components/schemas/ReadsFields'
+        variantsFieldsParam:
+            in: query
+            name: fields
+            description: Placeholder, currently does not do anything
+            schema:
+                $ref: '#/components/schemas/ReadsFields'
+        readsTagsParam:
+            in: query
+            name: tags
+            description: A comma-separated list of tags to include. By default, i.e., when tags is not specified, all tags will be included
+            example: MD,NM
+            required: false
+            schema:
+                $ref: '#/components/schemas/ReadsTags'
+        variantsTagsParam:
+            in: query
+            name: tags
+            description: Placeholder, currently does not do anything
+            schema:
+                $ref: '#/components/schemas/ReadsFields'
+        readsNoTagsParam:
+            in: query
+            name: notags
+            description: A comma-separated list of tags to exclude. By default, i.e., when notags is not specified, no tags will be excluded
+            example: OQ,HI
+            required: false
+            schema:
+                $ref: '#/components/schemas/ReadsNoTags'
+        variantsNoTagsParam:
+            in: query
+            name: notags
+            description: Placeholder, currently does not do anything
+            schema:
+                $ref: '#/components/schemas/ReadsFields'
+        htsgetBlockClassHeaderParam:
+            in: header
+            name: HtsgetBlockClass
+            schema:
+                $ref: '#/components/schemas/HtsgetBlockClass'
+        htsgetCurrentBlockHeaderParam:
+            in: header
+            name: HtsgetCurrentBlock
+            schema:
+                $ref: '#/components/schemas/HtsgetCurrentBlock'
+        htsgetTotalBlocksHeaderParam:
+            in: header
+            name: HtsgetTotalBlocks
+            schema:
+                $ref: '#/components/schemas/HtsgetTotalBlocks'
+        htsgetFilePathHeaderParam:
+            in: header
+            name: HtsgetFilePath
+            schema:
+                $ref: '#/components/schemas/HtsgetFilePath'
+        rangeHeaderParam:
+            in: header
+            name: Range
+            schema:
+                $ref: '#/components/schemas/Range'
+    requestBodies:
+        ReadsRequestBody:
+            description: Specify desired file format, fields, tags, and regions from an alignment file
+            required: false
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ReadsRequestBody'
+    responses:
+        400BadRequestError:
+            description: The request was not processed, as the request parameters did not adhere to the specification
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/BadRequestError'
+        404NotFoundError:
+            description: The request was not processed, as the requested object was not found
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/NotFoundError'
+        5xxServerError:
+            description: Unspecified server error encountered
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'

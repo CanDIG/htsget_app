@@ -1,18 +1,20 @@
 # Htsget Application
 
-Htsget API implementation that is based on the [Htsget retrieval API specifications](http://samtools.github.io/hts-specs/htsget.html). Endpoints include /reads, /variants, and /data. Reads and variants are to request slices of URIs of a variant or read file, and /data is to return the file slices themselves. File storage and retrieval are implemented with two configurable options: a sqlalchemy compatible database, or DRS + MINIO. 
+Htsget API implementation that is based on the [Htsget retrieval API specifications](http://samtools.github.io/hts-specs/htsget.html).
+
+Access to the underlying data objects is mediated through a "baby DRS" server which runs as a separate REST API. The [OpenAPI file](htsget_server/drs_openapi.yml) specifies a suggested format for DRS-compliant genomic variant, read, and index objects. Hopefully a compatible, separate DRS server will be able to implement this API as-is.
+
 
 Thank you to [gel-htsget](https://github.com/genomicsengland/gel-htsget) for being a good starting point to this project
 
 [![Build Status](https://travis-ci.org/CanDIG/htsget_app.svg?branch=master)](https://travis-ci.org/CanDIG/htsget_app)
 [![CodeFactor](https://www.codefactor.io/repository/github/CanDIG/htsget_app/badge)](https://www.codefactor.io/repository/github/CanDIG/htsget_app)
 [![PyUp](https://pyup.io/repos/github/CanDIG/htsget_app/shield.svg)](https://pyup.io/repos/github/CanDIG/htsget_app/)
-[![Quay.io](https://quay.io/repository/candig/htsget_app/status)](https://quay.io/repository/candig/htsget_app)
 
 ## Stack
 - [Connexion](https://github.com/zalando/connexion) for implementing the API
 - [Sqlite3](https://www.sqlite.org/index.html)
-- [ga4gh Data-Repostitory-Service(DRS)](https://github.com/ga4gh/data-repository-service-schemas)
+- [ga4gh Data-Repository-Service(DRS)](https://github.com/ga4gh/data-repository-service-schemas)
 - [minio-py](https://github.com/minio/minio-py)
 - [Flask](http://flask.pocoo.org/)
 - Python 3
@@ -36,39 +38,17 @@ The server can be run with:
 python htsget_server/server.py
 ```
 
-A docker container can be pulled with
-```
-docker pull quay.io/candig/htsget_app
-```
+This application can also be set up in a docker container. A docker-compose file and Dockerfile are provided.
 
-By default this application stores its files in a sqlite DB and on the current filesystem, but
-it is also possible to use a DRS implementation to catalog these files and to host them in MinIO,
-a S3-like self-hosted service. To do so, you can install [MinIO](https://min.io/) and 
-[CHORD DRS](https://github.com/CanDIG/chord_drs). 
+The default MinIO location specified in the config.ini file is the sandbox at MinIO, but a different location can be specified there as well. Be sure to update the access key and secret key values in config.ini.
 
-When these are setup, do please adjust the relevant variable in the config.ini file, namely:
-
-```
-FileRetrieval = minio
-DRSPath = the url for the CHORD DRS installation
-```
-
-And of course, those in the "minio" section.
 
 ## Testing
 
 For testing, a small test suite under tests/test_htsget_server.py can be run by starting the server and running:
 
 ```
-pytest tests/test_htsget_server.py
-```
-
-If you are using DRS and MinIO for storing files, you may run this script (it'll upload the files
-used in the aforementioned test suite in DRS):
-
-```
-python tests/upload_test_files_drs.py
-pytest tests/test_htsget_server.py
+pytest
 ```
 
 For automated testing, activate the repo with [Travis-CI](https://travis-ci.com/getting_started)

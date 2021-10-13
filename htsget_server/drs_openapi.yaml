@@ -1,0 +1,550 @@
+openapi: 3.0.3
+info:
+  title: Data Repository Service
+  version: 1.2.0
+  termsOfService: 'https://www.ga4gh.org/terms-and-conditions/'
+  license:
+    name: Apache 2.0
+    url: 'https://raw.githubusercontent.com/ga4gh/data-repository-service-schemas/master/LICENSE'
+servers:
+  - url: /ga4gh/drs/v1
+security:
+  - {}
+  - BasicAuth: []
+  - BearerAuth: []
+paths:
+  /service-info:
+    get:
+      summary: Retrieve information about this service
+      description: Returns information about the DRS service
+      operationId: drs_operations.get_service_info
+      responses:
+        200:
+          description: Retrieve info about the DRS service
+          content:
+            application/json:
+              schema:
+                type: object
+  /objects:
+    get:
+      summary: List all DRS objects
+      description: >-
+        Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+      operationId: drs_operations.list_objects
+      responses:
+        200:
+          description: The `DrsObject` was found successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: '#/components/schemas/GenomicDrsObject'
+                    - $ref: '#/components/schemas/GenomicDataDrsObject'
+                    - $ref: '#/components/schemas/GenomicIndexDrsObject'
+      tags:
+        - Objects
+    post:
+        summary: Add a DrsObject to the db
+        operationId: drs_operations.post_object
+        requestBody:
+            $ref: '#/components/requestBodies/DrsObjectRequest'
+        responses:
+            200:
+              description: The `DrsObject` was found successfully
+              content:
+                application/json:
+                    schema:
+                        type: object
+  /objects/{object_id}:
+    parameters:
+        - $ref: '#/components/parameters/ObjectId'
+    delete:
+      summary: Delete a DrsObject.
+      description: >-
+        Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+      operationId: drs_operations.delete_object
+      responses:
+          200:
+            description: The `DrsObject` was found successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+    get:
+      summary: Get info about a DrsObject.
+      description: >-
+        Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+      operationId: drs_operations.get_object
+      parameters:
+        - $ref: '#/components/parameters/Expand'
+      responses:
+        200:
+          description: The `DrsObject` was found successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/GenomicDrsObject'
+      tags:
+        - Objects
+
+  /objects/{object_id}/access/{access_id}:
+    get:
+      summary: Get a URL for fetching bytes
+      description: >-
+        Returns a URL that can be used to fetch the bytes of a `DrsObject`.
+      operationId: drs_operations.get_access_url
+      parameters:
+        - $ref: '#/components/parameters/ObjectId'
+        - $ref: '#/components/parameters/AccessId'
+      responses:
+        200:
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: full URL required to get bytes
+                  headers:
+                    type: array
+                    items:
+                      type: string
+                    description: array of strings that need to be passed with the URL to get bytes
+      tags:
+        - Objects
+components:
+  parameters:
+    ObjectId:
+      in: path
+      name: object_id
+      required: true
+      description: '`DrsObject` identifier'
+      schema:
+        type: string
+    Expand:
+      in: query
+      name: expand
+      schema:
+        type: boolean
+      example: false
+      description: >-
+        If false and the object_id refers to a bundle, then the ContentsObject array
+        contains only those objects directly contained in the bundle. That is, if the
+        bundle contains other bundles, those other bundles are not recursively
+        included in the result.
+        If true and the object_id refers to a bundle, then the entire set of objects
+        in the bundle is expanded. That is, if the bundle contains aother bundles,
+        then those other bundles are recursively expanded and included in the result.
+        Recursion continues through the entire sub-tree of the bundle.
+        If the object_id refers to a blob, then the query parameter is ignored.
+    AccessId:
+      in: path
+      name: access_id
+      required: true
+      description: An `access_id` from the `access_methods` list of a `DrsObject`
+      schema:
+        type: string
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        A valid authorization token must be passed in the 'Authorization' header,
+        e.g. "Basic ${token_string}"
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description:
+        A valid authorization token must be passed in the 'Authorization' header,
+        e.g. "Bearer ${token_string}"
+  requestBodies:
+    DrsObjectRequest:
+      content:
+        'application/json':
+          schema:
+            anyOf:
+              - $ref: "#/components/schemas/GenomicDrsObject"
+              - $ref: "#/components/schemas/GenomicDataDrsObject"
+  schemas:
+    GenomicDrsObject:
+      type: object
+      description: A DrsObject that describes a bundled genomic data entity. It usually will consist of a genomic data file, e.g. a variant or read file, and its associated index file.
+      required:
+        - id
+        - contents
+#        - self_uri
+#        - size
+#        - created_time
+#        - checksums
+      properties:
+        id:
+          type: string
+          description: The descriptor for this genomic data entity
+        name:
+          type: string
+          description: |-
+            The filename for this entity, not including its file extensions.
+            This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
+        self_uri:
+          type: string
+          description: |-
+            A drs:// hostname-based URI, as defined in the DRS documentation, that tells clients how to access this object.
+            The intent of this field is to make DRS objects self-contained, and therefore easier for clients to store and pass around.  For example, if you arrive at this DRS JSON by resolving a compact identifier-based DRS URI, the `self_uri` presents you with a hostname and properly encoded DRS ID for use in subsequent `access` endpoint calls.
+          example:
+            drs://drs.example.org/314159
+        size:
+          type: integer
+          format: int64
+          description: The cumulative size, in bytes, of items in the `contents` field.
+        created_time:
+          type: string
+          format: date-time
+          description: |-
+            Timestamp of content creation in RFC3339.
+            (This is the creation time of the underlying content, not of the JSON object.)
+        updated_time:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp of content update in RFC3339, identical to `created_time` in systems
+            that do not support updates.
+            (This is the update time of the underlying content, not of the JSON object.)
+        version:
+          type: string
+          description: >-
+            A string representing a version.
+            (Some systems may use checksum, a RFC3339 timestamp, or an incrementing version number.)
+        checksums:
+          type: array
+          # minItems: 1
+          items:
+            $ref: '#/components/schemas/Checksum'
+          description: >-
+            The checksum of the `DrsObject`. At least one checksum must be provided.
+            For blobs, the checksum is computed over the bytes in the blob.
+            For bundles, the checksum is computed over a sorted concatenation of the
+            checksums of its top-level contained objects (not recursive, names not included).
+            The list of checksums is sorted alphabetically (hex-code) before concatenation
+            and a further checksum is performed on the concatenated checksum value.
+            For example, if a bundle contains blobs with the following checksums:
+            md5(blob1) = 72794b6d
+            md5(blob2) = 5e089d29
+            Then the checksum of the bundle is:
+            md5( concat( sort( md5(blob1), md5(blob2) ) ) )
+            = md5( concat( sort( 72794b6d, 5e089d29 ) ) )
+            = md5( concat( 5e089d29, 72794b6d ) )
+            = md5( 5e089d2972794b6d )
+            = f7a29a04
+        contents:
+          type: array
+          description: The specific genomic contents objects that comprise this genomic DRS entity. Should contain a GenomicDataContentsObject and an optional GenomicIndexContentsObject.
+          minItems: 1
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/GenomicDataContentsObject'
+              - $ref: '#/components/schemas/GenomicIndexContentsObject'
+        description:
+          type: string
+          description: A human readable description of the `DrsObject`.
+        aliases:
+          type: array
+          items:
+            type: string
+          description: >-
+            A list of strings that can be used to find other metadata
+            about this `DrsObject` from external metadata sources. These
+            aliases can be used to represent secondary
+            accession numbers or external GUIDs.
+    GenomicDataDrsObject:
+      type: object
+      description: A DrsObject that describes a genomic data file, e.g. a variant or read file.
+      required:
+        - id
+        - access_methods
+#        - self_uri
+#        - size
+#        - created_time
+#        - checksums
+      properties:
+        id:
+          type: string
+          description: The filename for this genomic data file, including its file extensions.
+        name:
+          type: string
+          description: |-
+            The filename for this entity, not including its file extensions.
+            This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
+        self_uri:
+          type: string
+          description: |-
+            A drs:// hostname-based URI, as defined in the DRS documentation, that tells clients how to access this object.
+            The intent of this field is to make DRS objects self-contained, and therefore easier for clients to store and pass around.  For example, if you arrive at this DRS JSON by resolving a compact identifier-based DRS URI, the `self_uri` presents you with a hostname and properly encoded DRS ID for use in subsequent `access` endpoint calls.
+          example:
+            drs://drs.example.org/314159
+        size:
+          type: integer
+          format: int64
+          description: the blob size in bytes
+        created_time:
+          type: string
+          format: date-time
+          description: |-
+            Timestamp of content creation in RFC3339.
+            (This is the creation time of the underlying content, not of the JSON object.)
+        updated_time:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp of content update in RFC3339, identical to `created_time` in systems
+            that do not support updates.
+            (This is the update time of the underlying content, not of the JSON object.)
+        version:
+          type: string
+          description: >-
+            A string representing a version.
+            (Some systems may use checksum, a RFC3339 timestamp, or an incrementing version number.)
+        checksums:
+          type: array
+          # minItems: 1
+          items:
+            $ref: '#/components/schemas/Checksum'
+          description: >-
+            The checksum of the `DrsObject`. At least one checksum must be provided.
+            For blobs, the checksum is computed over the bytes in the blob.
+            For bundles, the checksum is computed over a sorted concatenation of the
+            checksums of its top-level contained objects (not recursive, names not included).
+            The list of checksums is sorted alphabetically (hex-code) before concatenation
+            and a further checksum is performed on the concatenated checksum value.
+            For example, if a bundle contains blobs with the following checksums:
+            md5(blob1) = 72794b6d
+            md5(blob2) = 5e089d29
+            Then the checksum of the bundle is:
+            md5( concat( sort( md5(blob1), md5(blob2) ) ) )
+            = md5( concat( sort( 72794b6d, 5e089d29 ) ) )
+            = md5( concat( 5e089d29, 72794b6d ) )
+            = md5( 5e089d2972794b6d )
+            = f7a29a04
+        access_methods:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AccessMethod"
+          description: |-
+            The list of access methods that can be used to fetch the `DrsObject`.
+        description:
+          type: string
+          description: A description of this genomic data file
+        mime_type:
+          type: string
+          description: A string providing the mime-type of the DrsObject.
+        aliases:
+          type: array
+          items:
+            type: string
+          description: >-
+            A list of strings that can be used to find other metadata
+            about this `DrsObject` from external metadata sources. These
+            aliases can be used to represent secondary
+            accession numbers or external GUIDs.
+    GenomicIndexDrsObject:
+      type: object
+      description: A DrsObject that describes a genomic index file associated with a genomic drs object
+      required:
+        - id
+        - access_methods
+#        - self_uri
+#        - size
+#        - created_time
+#        - checksums
+      properties:
+        id:
+          type: string
+          description: The filename for this genomic index file, including its file extensions.
+        name:
+          type: string
+          description: |-
+            The filename for this entity, not including its file extensions.
+            This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
+        self_uri:
+          type: string
+          description: |-
+            A drs:// hostname-based URI, as defined in the DRS documentation, that tells clients how to access this object.
+            The intent of this field is to make DRS objects self-contained, and therefore easier for clients to store and pass around.  For example, if you arrive at this DRS JSON by resolving a compact identifier-based DRS URI, the `self_uri` presents you with a hostname and properly encoded DRS ID for use in subsequent `access` endpoint calls.
+          example:
+            drs://drs.example.org/314159
+        size:
+          type: integer
+          format: int64
+          description: the blob size in bytes
+        created_time:
+          type: string
+          format: date-time
+          description: |-
+            Timestamp of content creation in RFC3339.
+            (This is the creation time of the underlying content, not of the JSON object.)
+        updated_time:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp of content update in RFC3339, identical to `created_time` in systems
+            that do not support updates.
+            (This is the update time of the underlying content, not of the JSON object.)
+        version:
+          type: string
+          description: >-
+            A string representing a version.
+            (Some systems may use checksum, a RFC3339 timestamp, or an incrementing version number.)
+        checksums:
+          type: array
+          items:
+            $ref: '#/components/schemas/Checksum'
+          description: >-
+            The checksum of the `DrsObject`. At least one checksum must be provided.
+            For blobs, the checksum is computed over the bytes in the blob.
+            For bundles, the checksum is computed over a sorted concatenation of the
+            checksums of its top-level contained objects (not recursive, names not included).
+            The list of checksums is sorted alphabetically (hex-code) before concatenation
+            and a further checksum is performed on the concatenated checksum value.
+            For example, if a bundle contains blobs with the following checksums:
+            md5(blob1) = 72794b6d
+            md5(blob2) = 5e089d29
+            Then the checksum of the bundle is:
+            md5( concat( sort( md5(blob1), md5(blob2) ) ) )
+            = md5( concat( sort( 72794b6d, 5e089d29 ) ) )
+            = md5( concat( 5e089d29, 72794b6d ) )
+            = md5( 5e089d2972794b6d )
+            = f7a29a04
+        access_methods:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AccessMethod"
+          description: |-
+            The list of access methods that can be used to fetch the `DrsObject`.
+        description:
+          type: string
+          description: A description of this genomic data file
+        mime_type:
+          type: string
+          description: A string providing the mime-type of the DrsObject.
+        aliases:
+          type: array
+          items:
+            type: string
+          description: >-
+            A list of strings that can be used to find other metadata
+            about this `DrsObject` from external metadata sources. These
+            aliases can be used to represent secondary
+            accession numbers or external GUIDs.
+    Checksum:
+      type: object
+      required:
+        - checksum
+        - type
+      properties:
+        checksum:
+          type: string
+          description: The hex-string encoded checksum for the data
+        type:
+          type: string
+          description: >-
+            The digest method used to create the checksum.
+            The value (e.g. `sha-256`) SHOULD be listed as `Hash Name String` in the https://www.iana.org/assignments/named-information/named-information.xhtml#hash-alg[IANA Named Information Hash Algorithm Registry].
+            Other values MAY be used, as long as implementors are aware of the issues discussed in https://tools.ietf.org/html/rfc6920#section-9.4[RFC6920].
+            GA4GH may provide more explicit guidance for use of non-IANA-registered algorithms in the future.
+            Until then, if implementors do choose such an algorithm (e.g. because it's implemented by their storage provider), they SHOULD use an existing
+            standard `type` value such as `md5`, `etag`, `crc32c`, `trunc512`, or `sha1`.
+          example: sha-256
+    LocalFileAccessMethod:
+      description: A full URL describing the file's location
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - file
+        access_url:
+          type: object
+          required:
+            - url
+          properties:
+            url:
+              type: string
+            headers:
+              type: array
+              items:
+                type: string
+    S3AccessMethod:
+      description: An access id and region that might be needed to specify to get a signed URL for obtaining bytes
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - s3
+        access_id:
+          type: string
+          description: The filename of the file
+        region:
+          type: string
+          description: >-
+            Name of the region in the cloud service provider that the object belongs to.
+          example: us-east-1
+    AccessMethod:
+      anyOf:
+        - $ref: '#/components/schemas/LocalFileAccessMethod'
+        - $ref: '#/components/schemas/S3AccessMethod'
+    GenomicDataContentsObject:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+          description: The full filename of the genomic data file, including extensions.
+        id:
+          type: string
+          enum:
+            - variant
+            - read
+        drs_uri:
+          type: array
+          description: >-
+            A list of full DRS identifier URI paths
+            that may be used to obtain the object.
+            These URIs may be external to this DRS instance.
+          example: drs://drs.example.org/314159
+          items:
+            type: string
+    GenomicIndexContentsObject:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+          description: The full filename of the genomic index file, including extensions.
+        id:
+          type: string
+          enum:
+            - index
+        drs_uri:
+          type: array
+          description: >-
+            A list of full DRS identifier URI paths
+            that may be used to obtain the object.
+            These URIs may be external to this DRS instance.
+          example: drs://drs.example.org/314159
+          items:
+            type: string

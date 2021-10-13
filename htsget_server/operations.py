@@ -1,185 +1,102 @@
 import os
+import re
 import configparser
 from pathlib import Path
-from tempfile import NamedTemporaryFile
-import sqlite3
+import tempfile
 import requests
 from flask import request, send_file
-from flask import send_file
 from pysam import VariantFile, AlignmentFile
-from minio import Minio
-from minio.error import InvalidResponseError
-from database import MyDatabase
-
+from urllib.parse import urlparse
+import drs_operations
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
 
 BASE_PATH = config['DEFAULT']['BasePath']
-LOCAL_FILES_PATH = config['paths']['LocalFilesPath']
-LOCAL_DB_PATH = config['paths']['LocalDBPath']
-TEMPORARY_FILES_PATH = config['paths']['TemporaryFilesPath']
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
-FILE_RETRIEVAL = config['DEFAULT']['FileRetrieval']
-DRS_URL = config['paths']['DRSPath']
-MINIO_END_POINT = config['minio']['EndPoint']
-MINIO_ACCESS_KEY = config['minio']['AccessKey']
-MINIO_SECRET_KEY = config['minio']['SecretKey']
-DATABASE = config['DEFAULT']['DataBase']
-DB_PATH = config['paths']['DBPath']
+
+# Endpoints
+def get_read_service_info():
+    return {
+        "id": "org.candig.htsget",
+        "name": "CanDIG htsget service",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "htsget",
+            "version": "v1.3.0"
+        },
+        "description": "An htsget-compliant server for CanDIG genomic data",
+        "organization": {
+            "name": "CanDIG",
+            "url": "https://www.distributedgenomics.ca"
+        },
+        "version": "1.0.0",
+        "htsget": {
+            "datatype": "reads",
+            "formats": ["BAM", "CRAM", "SAM"],
+            "fieldsParameterEffective": False,
+            "tagsParametersEffective": False
+        }
+    }
+
+def get_variant_service_info():
+    return {
+        "id": "org.candig.htsget",
+        "name": "CanDIG htsget service",
+        "type": {
+            "group": "org.ga4gh",
+            "artifact": "htsget",
+            "version": "v1.3.0"
+        },
+        "description": "An htsget-compliant server for CanDIG genomic data",
+        "organization": {
+            "name": "CanDIG",
+            "url": "https://www.distributedgenomics.ca"
+        },
+        "version": "1.0.0",
+        "htsget": {
+            "datatype": "variants",
+            "formats": ["VCF", "BCF"],
+            "fieldsParameterEffective": False,
+            "tagsParametersEffective": False
+        }
+    }
+
+def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
+    return _get_urls("read", id_, reference_name, start, end, class_)
+
+def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
+    return _get_urls("variant", id_, reference_name, start, end, class_)
+
+def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
+    return _get_data(id_, reference_name, start, end, class_, format_)
+
+def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
+    return _get_data(id_, reference_name, start, end, class_, format_)
 
 
-""" Helper Functions"""
-def _get_file_by_id(id):
-    """
-    Returns an array of tuples of a file based on ID from DBV
-
-    :param id: The id of the file
-    """
-    query = """SELECT * FROM  files WHERE id = (:id) LIMIT 1"""
-    param_obj = {'id': id}
-    db = MyDatabase(DB_PATH)
-    return db.get_data(query, param_obj)
-
-
-def file_exists_db(id):
-    file = _get_file_by_id(id)  # returns an array of tuples0
-    return (len(file) != 0)
-
-
-def search_drs(id):
-    drs_objects = {}
-    url = f"{DRS_URL}/search?fuzzy_name={id}"
-
-    res = requests.get(url)
-    res.raise_for_status()
-    data = res.json()
-
-    # TODO: what happens when for a single name, we have both a vcf & bcf?
-    # TODO: also do we cover every possible extension?
-    for obj in data:
-        if any(ext in obj['name'].lower() for ext in ['tbi', 'bai']):
-            if 'index_file' in drs_objects:
-                print('We have found multiple index files for this DRS query')
-            else:
-                drs_objects['index_file'] = obj
-        elif any(ext in obj['name'].lower() for ext in ['vcf', 'bcf', 'bam', 'cram']):
-            if 'file' in drs_objects:
-                print('We have found multiple files for this DRS query')
-            else:
-                drs_objects['file'] = obj
-
-    if 'file' in drs_objects:
-        return drs_objects
-    else:
-        return None
-
-
-def _get_file_format_drs(drs_objects):
-    # TODO: should we provide custom mime_type in DRS?
-    if 'vcf' in drs_objects['file']['name'].lower():
-        return 'VCF'
-    elif 'bcf' in drs_objects['file']['name'].lower():
-        return 'BCF'
-    elif 'bam' in drs_objects['file']['name'].lower():
-        return 'BAM'
-    elif 'cram' in drs_objects['file']['name'].lower():
-        return 'CRAM'
-    else:
-        return None
-
-
-def _download_minio_file(drs_objects):
-    """
-    Download file from minio
-    - assume indexed file is stored in minio and DRS
-    """
-    if '127.0.0.1' in MINIO_END_POINT or 'localhost' in MINIO_END_POINT:
-        secure = False
-    else:
-        secure = True
-
-    client = Minio(
-        MINIO_END_POINT,
-        access_key=MINIO_ACCESS_KEY,
-        secret_key=MINIO_SECRET_KEY,
-        secure=secure
-    )
-    file_url = ""
-    index_file_url = ""
-
-    for method in drs_objects['file']['access_methods']:
-        if method['type'] == 's3':
-            file_url = method['access_url']['url']
-
-    if not file_url:
-        raise Exception('Cannot find proper minio (s3) access method in the DRS objects queried')
-
-    if 'index_file' in drs_objects:
-        for method in drs_objects['index_file']['access_methods']:
-            if method['type'] == 's3':
-                index_file_url = method['access_url']['url']
-    else:
-        index_file_url = None
-
-    bucket = file_url.split('/')[-2]
-    file_name = file_url.split('/')[-1]
-    file_path = os.path.join(LOCAL_FILES_PATH, file_name)
-
-    if os.path.exists(file_path):
-        file_size = os.path.getsize(file_path)
-    else:
-        file_size = None
-
-    # Only download the file if the local size and DRS size differ
-    if not file_size or file_size != drs_objects['file']['size']:
-        try:
-            client.fget_object(bucket, file_name, file_path)
-        except InvalidResponseError as err:
-            raise Exception(err)
-
-    if index_file_url:
-        index_file_name = index_file_url.split('/')[-1]
-        index_file_path = os.path.join(LOCAL_FILES_PATH, index_file_name)
-
-        if os.path.exists(index_file_path):
-            index_file_size = os.path.getsize(index_file_path)
-        else:
-            index_file_size = None
-
-        if not index_file_size or index_file_size != drs_objects['index_file']['size']:
-            try:
-                client.fget_object(bucket, index_file_name, index_file_path)
-            except InvalidResponseError as err:
-                raise Exception(err)
-    else:
-        index_file_path = None
-
-    return file_path, index_file_path
-
-
-def _create_slice(arr, id, referenceName, slice_start, slice_end):
+def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     """
     Creates slice and appends it to array of urls
 
     :param arr: The array to store urls
     :param id: ID of the file
-    :param referenceName: The Chromosome number
+    :param reference_name: The Chromosome number
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
     """
-    url = f"http://{request.host}{BASE_PATH}/data/{id}?referenceName={referenceName}&start={slice_start}&end={slice_end}"
+    url = f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}?referenceName={reference_name}&start={slice_start}&end={slice_end}"
     arr.append({'url': url, })
 
 
-def _create_slices(chunk_size, id, referenceName, start, end):
+def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     """
     Returns array of slices of URLs
 
     :param chunk_size: The size of the chunk or slice
                       ( e.g. 10,000,000 pieces of data )
     :param id: ID of the file
-    :param referenceName: Chromosome Number
+    :param reference_name: Chromosome Number
     :param start: Desired starting index of a file
     :param end: Desired ending index of a file
     """
@@ -190,59 +107,28 @@ def _create_slices(chunk_size, id, referenceName, start, end):
     if chunks >= 1 and start is not None and end is not None:
         for i in range(chunks):
             slice_end = slice_start + chunk_size
-            _create_slice(urls, id, referenceName, slice_start, slice_end)
+            _create_slice(urls, id, reference_name, slice_start, slice_end, file_type)
             slice_start = slice_end
-        _create_slice(urls, id, referenceName, slice_start, end)
+        _create_slice(urls, id, reference_name, slice_start, end, file_type)
     else:  # One slice only
-        url = f"http://{request.host}{BASE_PATH}/data/{id}"
-        if referenceName and start and end:
-            url += f"?referenceName={referenceName}&start={start}&end={end}"
+        url = f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}"
+        if reference_name and start and end:
+            url += f"?referenceName={reference_name}&start={start}&end={end}"
         urls.append({"url": url})
 
     return urls
 
 
-# Endpoints
-def get_reads(id, referenceName=None, start=None, end=None):
+def _get_data(id_, reference_name=None, start=None, end=None, class_="body", format_="VCF"):
+    # start = 17148269, end = 17157211, reference_name = 21
     """
-    Return URIs of reads:
+    Returns the specified file:
 
-    :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
-    :param referenceName: Chromesome Number
-    :param start: Index of file to begin at
-    :param end: Index of file to end at
-    """
-    if end is not None and end < start:
-        response = {
-            "detail": "End index cannot be less than start index",
-            "status": 400,
-            "title": "Bad Request",
-            "type": "about:blank"
-        }
-        return "end cannot be less than start", 400
-
-    if referenceName == "None":
-        referenceName = None
-
-    obj = {}
-    if FILE_RETRIEVAL == "db":
-        obj = _get_urls("db", "read", id, referenceName, start, end)
-    elif FILE_RETRIEVAL == "minio":
-        obj = _get_urls("minio", "read", id, referenceName, start, end)
-
-    response = obj["response"]
-    http_status_code = obj["http_status_code"]
-    return response, http_status_code
-
-
-def get_variants(id, referenceName=None, start=None, end=None):
-    """
-    Return URIs of variants:
-
-    :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
-    :param referenceName: Chromesome Number
-    :param start: Index of file to begin at
-    :param end: Index of file to end at
+    :param id: ID of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
+    :param reference_name: Chromosome or contig name
+    :param format: Format of output (e.g. vcf, bcf)
+    :param start: Position index to begin at (1-based inclusive)
+    :param end: Position index to end at (1-based inclusive)
     """
     if end is not None and end < start:
         response = {
@@ -253,225 +139,114 @@ def get_variants(id, referenceName=None, start=None, end=None):
         }
         return "end cannot be less than start", 400
 
-    if referenceName == "None":
-        referenceName = None
+    if reference_name == "None":
+        reference_name = None
 
-    obj = {}
-    if FILE_RETRIEVAL == "db":
-        obj = _get_urls("db", "variant", id, referenceName, start, end)
-    elif FILE_RETRIEVAL == "minio":
-        obj = _get_urls("minio", "variant", id, referenceName, start, end)
-
-    response = obj["response"]
-    http_status_code = obj["http_status_code"]
-    return response, http_status_code
-
-
-def get_data(id, referenceName=None, format="bam", start=None, end=None):
-    # start = 17148269, end = 17157211, referenceName = 21
-    """
-    Returns the specified variant or read file:
-
-    :param id: id of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
-    :param referenceName: Chromesome Number
-    :param format: Format of output ( e.g bam, sam)
-    :param start: Index of file to begin at
-    :param end: Index of file to end at
-    """
-    if end is not None and end < start:
-        response = {
-            "detail": "End index cannot be smaller than start index",
-            "status": 400,
-            "title": "Bad Request",
-            "type": "about:blank"
-        }
-        return "end cannot be less than start", 400
-
-    if referenceName == "None":
-        referenceName = None
-
-    if format not in ["bam", "sam"]:
-        return "Invalid format.", 400
-
-    file_name = ""
-    file_format = ""
-    file_in_path = ""
-
-    if FILE_RETRIEVAL == "db":
-        file = _get_file_by_id(id)
-        file_extension = file[0][1]
-        file_format = file[0][2]
-        file_name = f"{id}{file_extension}"
-        file_in_path = f"{LOCAL_FILES_PATH}/{file_name}"
-    elif FILE_RETRIEVAL == "minio":
-        drs_objects = search_drs(id)
-        file_format = _get_file_format_drs(drs_objects)
-        main_file, index_file = _download_minio_file(drs_objects)
-
-    # Write slice to temporary file
-    ntf = NamedTemporaryFile(prefix='htsget', suffix=file_extension,
-                             dir=TEMPORARY_FILES_PATH, mode='wb', delete=False)
+    format_ = format_.lower()
+    file_type = "variant"
+    if format_ in ["bam", "sam", "cram"]:
+        file_type = "alignment"
+    
+    write_mode = "w"
+    if format_ in ["bcf", "bam"]:
+        write_mode = "wb"
+    elif format_ in ["cram"]:
+        write_mode = "wc"
 
     file_in = None
-    file_out = None
+    file_name = f"{id_}.{format_}"
 
-    if file_format == "VCF" or file_format == "BCF":  # Variants
-        if FILE_RETRIEVAL == "db":
-            file_in = VariantFile(file_in_path)
-        elif FILE_RETRIEVAL == "minio":
-            file_in = VariantFile(
-                main_file,
-                index_filename=index_file
-            )
-
-            # TODO: leaving this here, works but may not be efficient to read from DRS directly
-            #file_in = VariantFile(
-            #    drs_objects['file']['access_methods'][0]['access_url']['url'],
-            #    index_filename=drs_objects['index_file']['access_methods'][0]['access_url']['url']
-            #)
-
-        file_out = VariantFile(ntf.name, 'w', header=file_in.header)
-    elif file_format == "BAM" or file_format == "CRAM":  # Reads
-
-        if FILE_RETRIEVAL == "db":
-            file_in = AlignmentFile(file_in_path)
-        elif FILE_RETRIEVAL == "minio":
-            file_in = AlignmentFile(
-                main_file,
-                index_filename=index_file
-            )
-
-        if format == "sam":
-            output_format = "w"
+    # get a file and index from drs, based on the id_
+    gen_obj = _get_genomic_obj(id_)
+    if gen_obj is not None:
+        file_in = gen_obj["file"]
+        ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
+                                 mode='wb', delete=False)
+        if file_type == "variant":
+            file_out = VariantFile(ntf, mode=write_mode, header=file_in.header)
         else:
-            output_format = "wb"
+            file_out = AlignmentFile(ntf, mode=write_mode, header=file_in.header)
+        if class_ != "header":
+            try:
+                fetch = file_in.fetch(contig=reference_name, start=start, end=end)
+            except ValueError as e:
+                return {"error": str(e)}, 400
 
-        file_out = AlignmentFile(ntf.name, output_format, header=file_in.header)
+            for rec in fetch:
+                file_out.write(rec)
 
-    try:
-        fetch = file_in.fetch(contig=referenceName, start=start, end=end)
-    except ValueError:
-        referenceName = referenceName.lower().replace("chr", "").upper()
-        fetch = file_in.fetch(contig=referenceName, start=start, end=end)
+        file_in.close()
+        file_out.close()
 
-    for rec in fetch:
-        file_out.write(rec)
-
-    file_in.close()
-    file_out.close()
-
-    # Send the temporary file as the response
-    response = send_file(path_or_file=ntf.name,
-                         attachment_filename=file_name, as_attachment=True)
-    response.headers["x-filename"] = file_name
-    response.headers["Access-Control-Expose-Headers"] = 'x-filename'
-    os.remove(ntf.name)
-    return response, 200
-
-
-def _get_urls(file_retrieval, file_type, id, referenceName=None, start=None, end=None):
+        # Send the temporary file as the response
+        response = send_file(path_or_file=ntf.name,
+                             attachment_filename=file_name, as_attachment=True)
+        response.headers["x-filename"] = file_name
+        response.headers["Access-Control-Expose-Headers"] = 'x-filename'
+        os.remove(ntf.name)
+        return response, 200
+    return { "message": "no object matching id found" }, 404
+  
+def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
-    Searches for file from local sqlite db or minio from ID and Return URLS for Read/Variant
+    Searches for file from ID and Return URLS for Read/Variant
 
-    :param file_retrieval: "minio" or "db"
     :param file_type: "read" or "variant"
     :param id: ID of a file
-    :param referenceName: Chromosome Number
+    :param reference_name: Chromosome Number
     :param start: Desired starting index of the file
     :param end: Desired ending index of the file
     """
+    if end is not None and end < start:
+        response = {
+            "detail": "End index cannot be smaller than start index",
+            "status": 400,
+            "title": "Bad Request",
+            "type": "about:blank"
+        }
+        return "end cannot be less than start", 400
+
+    if reference_name == "None":
+        reference_name = None
+
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
-    err_msg = f"No {file_type} found for id: {id}, try using the other endpoint"
-    not_found_error = {"response": err_msg, "http_status_code": 404}
+    gen_obj = _get_genomic_obj(id)
+    if gen_obj is not None:
+        if _class == "header":
+            urls = [{"url": f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}?class=header",
+            "class": "header"}]
+        else:
+                file_in = gen_obj["file"]
+                if start is None:
+                    start = _get_index("start", file_in)
+                if end is None:
+                    end = _get_index("end", file_in)
 
-    file = ""
-    file_exists = False
-    if file_retrieval == "db":
-        file = _get_file_by_id(id)  # returns an array of tuples
-        file_exists = len(file) != 0
-    elif file_retrieval == "minio":
-        drs_objects = search_drs(id)
-
-        if drs_objects:
-            file_exists = True
-    else:
-        raise ValueError("file retrieval must be 'db' or 'minio'")
-
-    if file_exists:
-        file_format = ""
-        file_path = ""
-        if file_retrieval == "db":
-            file_name = file[0][0] + file[0][1]
-            file_format = file[0][2]
-            file_path = f"{LOCAL_FILES_PATH}/{file_name}"
-        elif file_retrieval == "minio":
-            file_format = _get_file_format_drs(drs_objects)
-            file_path = drs_objects
-
-        if file_format == "VCF" or file_format == "BCF":
-            if file_type != "variant":
-                return not_found_error
-        elif file_format == "BAM" or file_format == "CRAM":
-            if file_type != "read":
-                return not_found_error
-
-        if start is None:
-            start = _get_index(file_retrieval, "start", file_path, file_type)
-        if end is None:
-            end = _get_index(file_retrieval, "end", file_path, file_type)
-
-        urls = _create_slices(CHUNK_SIZE, id, referenceName, start, end)
+                urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end, file_type)
         response = {
             'htsget': {
-                'format': file_format,
+                'format': gen_obj["file_format"],
                 'urls': urls
             }
         }
-        return {"response": response, "http_status_code": 200}
-    else:
-        return not_found_error
+        return response, 200
+    return f"No {file_type} found for id: {id}, try using the other endpoint", 404
 
 
-def _get_index(file_retrieval, position, file_path, file_type):
+def _get_index(position, file_in):
     """
     Get the first or last index of a reads or variant file.
-    File must be stored locally or on minio s3 bucket
 
     :param position: Get either first or last index.
         Options: first - "start"
                  last - "end"
-    :param file_path: path of file
-    :param file_type: Read or Variant
+    :param id: ID of a file
     """
     position = position.lower()
     if position not in ["start", "end"]:
         return "That position is not available"
-
-    file_type = file_type.lower()
-    if file_type not in ["variant", "read"]:
-        return "That format is not available"
-
-    file_in = 0
-    if file_retrieval == "db":
-        if file_type == "variant":
-            file_in = VariantFile(file_path, "r")
-        elif file_type == "read":
-            file_in = AlignmentFile(file_path, "r")
-    elif file_retrieval == "minio":
-        main_file, index_file = _download_minio_file(file_path)
-
-        if file_type == "variant":
-            file_in = VariantFile(
-                main_file,
-                index_filename=index_file
-            )
-        elif file_type == "read":
-            file_in = AlignmentFile(
-                main_file,
-                index_filename=index_file
-            )
 
     # get the required index
     if position == "start":
@@ -485,3 +260,76 @@ def _get_index(file_retrieval, position, file_path, file_type):
         for rec in file_in.fetch():
             end = rec.pos
         return end
+
+
+# This is specific to our particular use case: a DRS object that represents a 
+# particular sample can have a variant or read file and an associated index file.
+# We need to query DRS to get the bundling object, which should contain links to
+# two contents objects. We can instantiate them into temp files and pass those 
+# file handles back.
+def _get_genomic_obj(object_id):
+    index_file = None
+    variant_file = None
+    read_file = None
+    file_format = None
+    result = None
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        (drs_obj, status_code) = drs_operations.get_object(object_id)
+        if status_code != 200:
+            return None
+
+        # drs_obj should have two contents objects
+        for contents in drs_obj["contents"]:
+            # get each drs object (should be the genomic file and its index)
+            print(contents)
+            (sub_obj, status_code) = drs_operations.get_object(contents["name"])
+
+            # if sub_obj.name matches an index file regex, it's an index file
+            index_match = re.fullmatch('.+\.(..i)$', sub_obj["name"])
+
+            # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
+            read_match = re.fullmatch('.+\.(.+?am)$', sub_obj["name"])
+
+            # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
+            variant_match = re.fullmatch('.+\.(.cf)(\.gz)*$', sub_obj["name"])
+
+            if read_match is not None:
+                file_format = read_match.group(1).upper()
+            elif variant_match is not None:
+                file_format = variant_match.group(1).upper()
+
+            # get access_methods for this sub_obj
+            for method in sub_obj["access_methods"]:
+                if "access_id" in method and method["access_id"] != "":
+                    # we need to go to the access endpoint to get the url and file
+                    (url, status_code) = drs_operations.get_access_url(sub_obj["name"], method["access_id"])
+                    f_path = os.path.join(tempdir, sub_obj["name"])
+                    with open(f_path, mode='wb') as f:
+                        with requests.get(url["url"], stream=True) as r:
+                            with r.raw as content:
+                                f.write(content.data)
+                    if index_match is not None:
+                        index_file = f_path
+                    elif read_match is not None:
+                        read_file = f_path
+                    elif variant_match is not None:
+                        variant_file = f_path
+                else:
+                    # the access_url has all the info we need
+                    url_pieces = urlparse(method["access_url"]["url"])
+                    if url_pieces.scheme == "file":
+                        if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
+                            if index_match is not None:
+                                index_file = url_pieces.path[1:]
+                            elif read_match is not None:
+                                read_file = url_pieces.path[1:]
+                            elif variant_match is not None:
+                                variant_file = url_pieces.path[1:]
+        if variant_file is not None:
+            print(index_file, variant_file)
+            result = VariantFile(variant_file, index_filename=index_file)
+        elif read_file is not None:
+            result = AlignmentFile(read_file, index_filename=index_file)
+
+    return { "file": result, "file_format": file_format }
