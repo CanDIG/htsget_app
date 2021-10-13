@@ -20,10 +20,36 @@ def test_post_objects(drs_objects):
     """
     Install test objects. Will fail if any post request returns an error.
     """
+    # clean up old objects in db:
+    url = f"http://localhost:{PORT}/ga4gh/drs/v1/objects"
+    response = requests.get(url)
+    for obj in response.json():
+        url = f"http://localhost:{PORT}/ga4gh/drs/v1/objects/{obj['id']}"
+        response = requests.delete(url)
+        assert response.status_code == 200
     for obj in drs_objects:
         url = f"http://localhost:{PORT}/ga4gh/drs/v1/objects"
         response = requests.post(url, json=obj)
         assert response.status_code == 200
+
+def test_post_update():
+    url = f"http://localhost:{PORT}/ga4gh/drs/v1/objects"
+    obj = {
+    "access_methods": [
+      {
+        "access_url": {
+          "url": "file:///./data/files/NA18537.vcf.gz.tbi"
+        },
+        "type": "file"
+      }
+    ],
+    "id": "NA18537.vcf.gz.tbi",
+    "name": "NA18537.vcf.gz.tbi",
+    "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
+    "size": 100
+  }
+    response = requests.post(url, json=obj)
+    assert response.json()["size"] == 100
 
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]

@@ -60,6 +60,18 @@ paths:
   /objects/{object_id}:
     parameters:
         - $ref: '#/components/parameters/ObjectId'
+    delete:
+      summary: Delete a DrsObject.
+      description: >-
+        Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+      operationId: drs_operations.delete_object
+      responses:
+          200:
+            description: The `DrsObject` was found successfully
+            content:
+              application/json:
+                schema:
+                  type: object
     get:
       summary: Get info about a DrsObject.
       description: >-

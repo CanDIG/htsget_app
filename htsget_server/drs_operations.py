@@ -79,3 +79,11 @@ def post_object():
                     except Exception as e:
                         return {"message": str(e)}, 500
     return new_object, 200
+
+
+def delete_object(object_id):
+    try:
+        new_object = database.delete_drs_object(object_id)
+        return new_object, 200
+    except Exception as e:
+        return {"message": str(e)}, 500
