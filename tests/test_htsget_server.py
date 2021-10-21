@@ -300,7 +300,6 @@ def drs_objects():
     "access_methods": [
       {
         "access_id": "NA02102.bam.bai",
-        "region": "ap-northeast-1",
         "type": "s3"
       }
     ],
