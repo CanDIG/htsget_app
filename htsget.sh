@@ -1,10 +1,5 @@
-#!/usr/bin/env bash
-
-# Check if command exists
-if ! command -v python3 &>/dev/null; then
-     echo "python3: command not found"
-     exit 127
-fi
+#!/usr/bin/env bash 
+set -xe # To print debug message 
 
 # Check python version
 if ! [[ $(python3 --version | awk '{print $2}') =~ 3.6.* ]]; then 
@@ -21,5 +16,7 @@ python3 -m pip install -r requirements_dev.txt
 python3 htsget_server/server.py &
 sleep 5
 pytest tests/test_htsget_server.py
+
+
 
 
