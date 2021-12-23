@@ -2,5 +2,5 @@ Flask==2.0.1
 Flask-Cors==3.0.10
 minio==7.1.1
 pysam==0.17.0
-sqlalchemy==1.4.26
+sqlalchemy==1.4.29
 connexion@git+https://github.com/zalando/connexion.git
