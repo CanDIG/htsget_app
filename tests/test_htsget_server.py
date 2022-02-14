@@ -29,6 +29,7 @@ def test_post_objects(drs_objects):
         assert response.status_code == 200
     for obj in drs_objects:
         url = f"http://localhost:{PORT}/ga4gh/drs/v1/objects"
+        print(f"POST {obj['name']}")
         response = requests.post(url, json=obj)
         assert response.status_code == 200
 
