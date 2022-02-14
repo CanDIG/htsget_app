@@ -72,7 +72,7 @@ def post_object():
                         )
                         #create the minio bucket/object/etc
                         if 'NoSuchBucket' in url_obj['message']:
-                            client.make_bucket(MINIO_BUCKET_NAME, location=method['region'])
+                            client.make_bucket(MINIO_BUCKET_NAME)
                         file = Path(LOCAL_FILE_PATH).joinpath(new_object['id'])
                         with Path.open(file, "rb") as fp:
                             result = client.put_object(MINIO_BUCKET_NAME, new_object['id'], fp, file.stat().st_size)
