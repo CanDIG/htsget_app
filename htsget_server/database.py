@@ -74,12 +74,15 @@ class DrsObject(ObjectDBBase):
             'checksums': json.loads(self.checksums),
             'description': self.description,
             'mime_type': self.mime_type,
-            'aliases': json.loads(self.aliases)
+            'aliases': json.loads(self.aliases),
+            'datasets': []
         }
         if len(list(self.contents)) > 0:
             result['contents'] = json.loads(self.contents.__repr__())
         if len(list(self.access_methods)) > 0:
             result['access_methods'] = json.loads(self.access_methods.__repr__())
+        for drs_assoc in self.associated_datasets:
+            result['datasets'].append(drs_assoc.id)
         return json.dumps(result)
 
 

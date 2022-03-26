@@ -8,6 +8,7 @@ from flask import request, send_file
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import urlparse
 import drs_operations
+import authz
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
@@ -39,6 +40,7 @@ def get_read_service_info():
         }
     }
 
+
 def get_variant_service_info():
     return {
         "id": "org.candig.htsget",
@@ -62,17 +64,38 @@ def get_variant_service_info():
         }
     }
 
+
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    return _get_urls("read", id_, reference_name, start, end, class_)
+    if _is_authed(id_, request):
+        return _get_urls("read", id_, reference_name, start, end, class_)
+    return None, 403
+
 
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    return _get_urls("variant", id_, reference_name, start, end, class_)
+    if _is_authed(id_, request):
+        return _get_urls("variant", id_, reference_name, start, end, class_)
+    return None, 403
+
 
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
-    return _get_data(id_, reference_name, start, end, class_, format_)
+    if _is_authed(id_, request):
+        return _get_data(id_, reference_name, start, end, class_, format_)
+    return None, 403
+
 
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
-    return _get_data(id_, reference_name, start, end, class_, format_)
+    if _is_authed(id_, request):
+        return _get_data(id_, reference_name, start, end, class_, format_)
+    return None, 403
+
+
+def _is_authed(id_, request):
+    authed_datasets = authz.get_opa_res(request.headers, request.path, request.method)
+    obj, code2 = drs_operations.get_object(id_)
+    for dataset in obj["datasets"]:
+        if dataset in authed_datasets:
+            return True
+    return False
 
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
