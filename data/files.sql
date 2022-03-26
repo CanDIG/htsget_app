@@ -48,4 +48,15 @@ INSERT INTO content_object VALUES(1,'NA18537','NA18537.vcf.gz','["drs://localhos
 INSERT INTO content_object VALUES(2,'NA18537','NA18537.vcf.gz.tbi','["drs://localhost/NA18537.vcf.gz.tbi"]','[]');
 INSERT INTO content_object VALUES(5,'NA20787','NA20787.vcf.gz','["drs://localhost/NA20787.vcf.gz"]','[]');
 INSERT INTO content_object VALUES(6,'NA20787','NA20787.vcf.gz.tbi','["drs://localhost/NA20787.vcf.gz.tbi"]','[]');
+CREATE TABLE dataset (
+	id VARCHAR NOT NULL, 
+	PRIMARY KEY (id)
+);
+CREATE TABLE dataset_association (
+	dataset_id VARCHAR NOT NULL, 
+	drs_object_id VARCHAR NOT NULL, 
+	PRIMARY KEY (dataset_id, drs_object_id), 
+	FOREIGN KEY(dataset_id) REFERENCES dataset (id), 
+	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
+);
 COMMIT;
