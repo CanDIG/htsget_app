@@ -90,3 +90,28 @@ def delete_object(object_id):
         return new_object, 200
     except Exception as e:
         return {"message": str(e)}, 500
+
+
+def list_datasets():
+    datasets = database.list_datasets()
+    return datasets, 200
+    
+
+def post_dataset():
+    new_dataset = database.create_dataset(connexion.request.json)
+    return new_dataset, 200
+    
+    
+def get_dataset(dataset_id):
+    new_dataset = database.get_dataset(dataset_id)
+    if new_dataset is None:
+        return {"message": "No matching dataset found"}, 404
+    return new_dataset, 200
+
+
+def delete_dataset(dataset_id):
+    try:
+        new_dataset = database.delete_dataset(dataset_id)
+        return new_dataset, 200
+    except Exception as e:
+        return {"message": str(e)}, 500

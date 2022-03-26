@@ -124,6 +124,64 @@ paths:
                     description: array of strings that need to be passed with the URL to get bytes
       tags:
         - Objects
+  /datasets:
+    get:
+      description: List all datasets available
+      operationId: drs_operations.list_datasets
+      parameters:
+        - $ref: '#/components/parameters/BearerAuth'
+      responses:
+        200:
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                description: array of datasets
+    post:
+      description: Create a dataset
+      operationId: drs_operations.post_dataset
+      parameters:
+        - $ref: '#/components/parameters/BearerAuth'
+      requestBody:
+          $ref: '#/components/requestBodies/DatasetRequest'
+      responses:
+          200:
+            description: The `Dataset` was created successfully
+            content:
+              application/json:
+                  schema:
+                    type: object
+
+  /datasets/{dataset_id}:
+    parameters:
+      - $ref: "#/components/parameters/DatasetId"
+    get:
+      description: Describe a dataset
+      operationId: drs_operations.get_dataset
+      parameters:
+        - $ref: '#/components/parameters/BearerAuth'
+      responses:
+        200:
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dataset'
+    delete:
+      summary: Delete a dataset.
+      description: >-
+        Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+      operationId: drs_operations.delete_dataset
+      responses:
+          200:
+            description: The dataset was deleted successfully
+            content:
+              application/json:
+                schema:
+                  type: object
 components:
   parameters:
     BearerAuth:
@@ -133,6 +191,13 @@ components:
       schema:
         type: string
         description: A string of the format 'Bearer <token>'
+    DatasetId:
+      in: path
+      name: dataset_id
+      required: true
+      description: DatasetId
+      schema:
+        type: string
     ObjectId:
       in: path
       name: object_id
@@ -184,7 +249,24 @@ components:
             anyOf:
               - $ref: "#/components/schemas/GenomicDrsObject"
               - $ref: "#/components/schemas/GenomicDataDrsObject"
+    DatasetRequest:
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/Dataset'
+              
   schemas:
+    Dataset:
+      type: object
+      properties:
+        id:
+          type: string
+          description: name of dataset
+        drsobjects:
+          type: array
+          items:
+            type: string
+            description: a DRS object's self_uri
     GenomicDrsObject:
       type: object
       description: A DrsObject that describes a bundled genomic data entity. It usually will consist of a genomic data file, e.g. a variant or read file, and its associated index file.
