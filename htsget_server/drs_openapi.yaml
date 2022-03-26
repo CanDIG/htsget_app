@@ -31,6 +31,8 @@ paths:
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.list_objects
+      parameters:
+        - $ref: '#/components/parameters/BearerAuth'
       responses:
         200:
           description: The `DrsObject` was found successfully
@@ -48,6 +50,8 @@ paths:
     post:
         summary: Add a DrsObject to the db
         operationId: drs_operations.post_object
+        parameters:
+          - $ref: '#/components/parameters/BearerAuth'
         requestBody:
             $ref: '#/components/requestBodies/DrsObjectRequest'
         responses:
@@ -55,11 +59,12 @@ paths:
               description: The `DrsObject` was found successfully
               content:
                 application/json:
-                    schema:
-                        type: object
+                  schema:
+                    type: object
   /objects/{object_id}:
     parameters:
         - $ref: '#/components/parameters/ObjectId'
+        - $ref: '#/components/parameters/BearerAuth'
     delete:
       summary: Delete a DrsObject.
       description: >-
@@ -78,6 +83,7 @@ paths:
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.get_object
       parameters:
+        - $ref: '#/components/parameters/BearerAuth'
         - $ref: '#/components/parameters/Expand'
       responses:
         200:
@@ -97,6 +103,7 @@ paths:
         Returns a URL that can be used to fetch the bytes of a `DrsObject`.
       operationId: drs_operations.get_access_url
       parameters:
+        - $ref: '#/components/parameters/BearerAuth'
         - $ref: '#/components/parameters/ObjectId'
         - $ref: '#/components/parameters/AccessId'
       responses:
@@ -119,6 +126,13 @@ paths:
         - Objects
 components:
   parameters:
+    BearerAuth:
+      in: header
+      name: Authorization
+      required: true
+      schema:
+        type: string
+        description: A string of the format 'Bearer <token>'
     ObjectId:
       in: path
       name: object_id

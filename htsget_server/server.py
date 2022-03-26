@@ -10,8 +10,8 @@ config.read('./config.ini')
 app = connexion.App(__name__, specification_dir='./')
 CORS(app.app)
 
-app.add_api('openapi.yml', pythonic_params=True)
-app.add_api('drs_openapi.yaml', pythonic_params=True)
+app.add_api('openapi.yml', pythonic_params=True, strict_validation=True)
+app.add_api('drs_openapi.yaml', pythonic_params=True, strict_validation=True)
 
 # Just leaving this here as a note: these are all of the pythonic params that
 # will get shadowed by pythonic_params:
