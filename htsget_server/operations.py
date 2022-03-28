@@ -69,40 +69,47 @@ def get_variant_service_info():
 
 
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    if _is_authed(id_, request):
+    auth_code = _is_authed(id_, request)
+    if auth_code == 200:
         return _get_urls("read", id_, reference_name, start, end, class_)
-    return None, 403
+    return None, auth_code
 
 
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    if _is_authed(id_, request):
+    auth_code = _is_authed(id_, request)
+    if auth_code == 200:
         return _get_urls("variant", id_, reference_name, start, end, class_)
-    return None, 403
+    return None, auth_code
 
 
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
-    if _is_authed(id_, request):
+    auth_code = _is_authed(id_, request)
+    if auth_code == 200:
         return _get_data(id_, reference_name, start, end, class_, format_)
-    return None, 403
+    return None, auth_code
 
 
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
-    if _is_authed(id_, request):
+    auth_code = _is_authed(id_, request)
+    if auth_code == 200:
         return _get_data(id_, reference_name, start, end, class_, format_)
-    return None, 403
+    return None, auth_code
 
 
 def _is_authed(id_, request):
     if config["authz"]["CANDIG_AUTHORIZATION"] != "OPA":
         print("WARNING: AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
-        return True # no auth
-    authed_datasets = authz.get_opa_res(request.headers, request.path, request.method)
-    obj, code2 = drs_operations.get_object(id_)
-    for dataset in obj["datasets"]:
-        if dataset in authed_datasets:
-            return True
-    return False
+        return 200 # no auth
+    if "Authorization" in request.headers:
+        authed_datasets = authz.get_opa_res(request.headers, request.path, request.method)
+        obj, code2 = drs_operations.get_object(id_)
+        for dataset in obj["datasets"]:
+            if dataset in authed_datasets:
+                return 200
+    else:
+        return 401
+    return 403
 
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):

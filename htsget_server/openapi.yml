@@ -647,7 +647,6 @@ components:
         authHeaderParam:
             in: header
             name: Authorization
-            required: true
             schema:
                 type: string
                 description: A string of the format 'Bearer <token>'
