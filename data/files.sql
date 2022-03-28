@@ -52,6 +52,7 @@ CREATE TABLE dataset (
 	id VARCHAR NOT NULL, 
 	PRIMARY KEY (id)
 );
+INSERT INTO dataset VALUES('controlled4');
 CREATE TABLE dataset_association (
 	dataset_id VARCHAR NOT NULL, 
 	drs_object_id VARCHAR NOT NULL, 
@@ -59,4 +60,5 @@ CREATE TABLE dataset_association (
 	FOREIGN KEY(dataset_id) REFERENCES dataset (id), 
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
+INSERT INTO dataset_association VALUES('controlled4','NA20787');
 COMMIT;
