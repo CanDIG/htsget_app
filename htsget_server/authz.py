@@ -1,5 +1,4 @@
 import requests
-import re
 import json
 import configparser
 
@@ -18,6 +17,7 @@ def get_opa_token_from_request(headers):
     else:
         return token.split()[1]
 
+
 def get_request_body(headers, path, method):
     """
     Returns request body required to query OPA
@@ -31,6 +31,7 @@ def get_request_body(headers, path, method):
             }
         }
     }
+
 
 def get_opa_res(headers, path, method):
     """
@@ -52,8 +53,8 @@ def get_opa_res(headers, path, method):
         return ("error", response)
     allowed_datasets = response.json()["result"]
     return allowed_datasets
-    
-    
+
+
 def is_site_admin(headers):
     try:
         response = requests.post(

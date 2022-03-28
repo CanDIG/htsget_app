@@ -21,6 +21,7 @@ dataset_association = Table(
     Column('drs_object_id', ForeignKey('drs_object.id'), primary_key=True)
 )
 
+
 class Dataset(ObjectDBBase):
     __tablename__ = 'dataset'
     id = Column(String, primary_key=True)
@@ -40,7 +41,6 @@ class Dataset(ObjectDBBase):
 
 
 ## DRS database entities
-
 class DrsObject(ObjectDBBase):
     __tablename__ = 'drs_object'
     id = Column(String, primary_key=True)
@@ -135,6 +135,7 @@ class ContentsObject(ObjectDBBase):
     
 ObjectDBBase.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
+
 
 """ Helper Functions"""
 def get_drs_object(object_id, expand=False):

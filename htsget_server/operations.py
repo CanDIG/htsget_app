@@ -16,6 +16,7 @@ config.read(Path('./config.ini'))
 BASE_PATH = config['DEFAULT']['BasePath']
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 
+
 # Endpoints
 def get_read_service_info():
     return {
@@ -209,6 +210,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
         os.remove(ntf.name)
         return response, 200
     return { "message": "no object matching id found" }, 404
+  
   
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
