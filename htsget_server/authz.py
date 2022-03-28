@@ -14,8 +14,7 @@ def get_opa_token_from_request(headers):
     token = headers['Authorization']
     if token is None:
         return ""
-    else:
-        return token.split()[1]
+    return token.split()[1]
 
 
 def get_request_body(headers, path, method):
