@@ -32,6 +32,12 @@ COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
 
+# copy env vars into config.ini
+ARG opa_secret
+ARG opa_url
+RUN sed -i s/\<CANDIG_OPA_SECRET\>/${opa_secret}/ config.ini
+RUN sed -i s@\<OPA_URL\>@${opa_url}@ config.ini
+
 RUN python setup.py install && pip install --no-cache-dir -r requirements.txt
 
 RUN sqlite3 data/files.db -init data/files.sql
