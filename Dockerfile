@@ -38,7 +38,7 @@ ARG opa_url
 ARG candig_auth
 RUN sed -i s@\<CANDIG_OPA_SECRET\>@${opa_secret}@ config.ini \
     && sed -i s@\<OPA_URL\>@${opa_url}@ config.ini \
-    && sed -i s@\<CANDIG_AUTHORIZATION>@${candig_auth}@ config.ini
+    && sed -i s@\<CANDIG_AUTHORIZATION\>@${candig_auth}@ config.ini
 
 RUN python setup.py install && pip install --no-cache-dir -r requirements.txt
 
