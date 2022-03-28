@@ -45,9 +45,7 @@ def get_opa_res(headers, path, method):
         response.raise_for_status()
     except requests.exceptions.RequestException:
         error_response = {
-            "error": "This request failed because we are unable to retrieve necessary info \
-                            related to your account. Please contact your system administrator \
-                            for assistance."
+            "error": "This request failed because we are unable to retrieve necessary info related to your account. Please contact your system administrator for assistance."
         }
         response = HttpResponseForbidden(json.dumps(error_response))
         response["Content-Type"] = "application/json"
@@ -66,9 +64,7 @@ def is_site_admin(headers):
         response.raise_for_status()
     except requests.exceptions.RequestException:
         error_response = {
-            "error": "This request failed because we are unable to retrieve necessary info \
-                            related to your account. Please contact your system administrator \
-                            for assistance."
+            "error": "This request failed because we are unable to retrieve necessary info related to your account. Please contact your system administrator for assistance."
         }
         response = HttpResponseForbidden(json.dumps(error_response))
         response["Content-Type"] = "application/json"
