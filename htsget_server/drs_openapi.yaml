@@ -253,7 +253,7 @@ components:
         'application/json':
           schema:
             $ref: '#/components/schemas/Dataset'
-  
+
   schemas:
     Dataset:
       type: object
