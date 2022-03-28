@@ -35,9 +35,10 @@ WORKDIR /app/htsget_server
 # copy env vars into config.ini
 ARG opa_secret
 ARG opa_url
+ARG candig_auth
 RUN sed -i s@\<CANDIG_OPA_SECRET\>@${opa_secret}@ config.ini
 RUN sed -i s@\<OPA_URL\>@${opa_url}@ config.ini
-RUN sed -i s@\<CANDIG_AUTHORIZATION>@$OPA@ config.ini
+RUN sed -i s@\<CANDIG_AUTHORIZATION>@${candig_auth}@ config.ini
 
 RUN python setup.py install && pip install --no-cache-dir -r requirements.txt
 
