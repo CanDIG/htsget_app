@@ -92,6 +92,7 @@ def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None
 
 def _is_authed(id_, request):
     if config["authz"]["CANDIG_AUTHORIZATION"] != "OPA":
+        print("WARNING: AUTHORIZATION IS DISABLED")
         return True # no auth
     authed_datasets = authz.get_opa_res(request.headers, request.path, request.method)
     obj, code2 = drs_operations.get_object(id_)
