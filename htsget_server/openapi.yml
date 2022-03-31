@@ -33,6 +33,7 @@ paths:
                 Gets an htsget ticket containing URLs that will enable the
                 transfer of a requested alignment file
             parameters:
+                - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/readsFormatParam'
                 - $ref: '#/components/parameters/classParam'
@@ -98,6 +99,7 @@ paths:
                initial request. Rather, the ticket endpoint `/reads/{id}` will
                yield `URLs` to the `/reads/data/{id}` endpoint.
            parameters:
+               - $ref: '#/components/parameters/authHeaderParam'
                - $ref: '#/components/parameters/idPathParam'
                - $ref: '#/components/parameters/readsFormatParam'
                - $ref: '#/components/parameters/classParam'
@@ -153,6 +155,7 @@ paths:
                 Gets an htsget ticket containing URLs that will enable the
                 transfer of a requested variant file
             parameters:
+                - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/variantsFormatParam'
                 - $ref: '#/components/parameters/classParam'
@@ -191,6 +194,7 @@ paths:
                 initial request. Rather, the ticket endpoint `/variants/{id}`
                 will yields `URLs` to the `/variants/data/{id}` endpoint.
             parameters:
+                - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/variantsFormatParam'
                 - $ref: '#/components/parameters/classParam'
@@ -640,6 +644,12 @@ components:
             description: Placeholder, currently does not do anything
             schema:
                 $ref: '#/components/schemas/ReadsFields'
+        authHeaderParam:
+            in: header
+            name: Authorization
+            schema:
+                type: string
+                description: A string of the format 'Bearer <token>'
         htsgetBlockClassHeaderParam:
             in: header
             name: HtsgetBlockClass

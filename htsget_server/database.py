@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-from sqlalchemy import Column, Integer, String, MetaData, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, MetaData, ForeignKey, Table, create_engine
 import configparser
 import json
 from pathlib import Path
@@ -9,11 +9,38 @@ config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
 DB_PATH = config['paths']['DBPath']
 
-engine = create_engine(DB_PATH)
+engine = create_engine(DB_PATH, echo=True)
 
 ObjectDBBase = declarative_base()
 
 
+## CanDIG datasets entities
+dataset_association = Table(
+    'dataset_association', ObjectDBBase.metadata,
+    Column('dataset_id', ForeignKey('dataset.id'), primary_key=True),
+    Column('drs_object_id', ForeignKey('drs_object.id'), primary_key=True)
+)
+
+
+class Dataset(ObjectDBBase):
+    __tablename__ = 'dataset'
+    id = Column(String, primary_key=True)
+    associated_drs = relationship("DrsObject",
+        secondary=dataset_association,
+        back_populates="associated_datasets"
+    )
+    def __repr__(self):
+        result = {
+            'id': self.id,
+            'drsobjects': []
+        }
+        for drs_assoc in self.associated_drs:
+            result['drsobjects'].append(drs_assoc.self_uri)
+
+        return json.dumps(result)
+
+
+## DRS database entities
 class DrsObject(ObjectDBBase):
     __tablename__ = 'drs_object'
     id = Column(String, primary_key=True)
@@ -29,6 +56,11 @@ class DrsObject(ObjectDBBase):
     description = Column(String, default='')
     aliases = Column(String, default='[]') # JSON array of strings of aliases
     contents = relationship("ContentsObject")
+    associated_datasets = relationship(
+        'Dataset',
+        secondary=dataset_association,
+        back_populates='associated_drs'
+    )
 
     def __repr__(self):
         result = {
@@ -42,12 +74,15 @@ class DrsObject(ObjectDBBase):
             'checksums': json.loads(self.checksums),
             'description': self.description,
             'mime_type': self.mime_type,
-            'aliases': json.loads(self.aliases)
+            'aliases': json.loads(self.aliases),
+            'datasets': []
         }
         if len(list(self.contents)) > 0:
             result['contents'] = json.loads(self.contents.__repr__())
         if len(list(self.access_methods)) > 0:
             result['access_methods'] = json.loads(self.access_methods.__repr__())
+        for drs_assoc in self.associated_datasets:
+            result['datasets'].append(drs_assoc.id)
         return json.dumps(result)
 
 
@@ -100,6 +135,7 @@ class ContentsObject(ObjectDBBase):
     
 ObjectDBBase.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
+
 
 """ Helper Functions"""
 def get_drs_object(object_id, expand=False):
@@ -203,6 +239,50 @@ def create_drs_object(obj):
 def delete_drs_object(obj_id):
     with Session() as session:
         new_object = session.query(DrsObject).filter_by(id=obj_id).one()
+        session.delete(new_object)
+        session.commit()
+        return json.loads(str(new_object))
+
+
+def get_dataset(dataset_id):
+    with Session() as session:
+        result = session.query(Dataset).filter_by(id=dataset_id).one_or_none()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def list_datasets():
+    with Session() as session:
+        result = session.query(Dataset).all()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def create_dataset(obj):
+    with Session() as session:
+        new_dataset = session.query(Dataset).filter_by(id=obj['id']).one_or_none()
+        if new_dataset is None:
+            new_dataset = Dataset()
+        new_dataset.id = obj['id']
+        for drs_uri in obj['drsobjects']:
+            new_drs = session.query(DrsObject).filter_by(self_uri=drs_uri).one_or_none()
+            if new_drs is not None:
+                new_dataset.associated_drs.append(new_drs)
+        session.add(new_dataset)
+        session.commit()
+        result = session.query(Dataset).filter_by(id=obj['id']).one_or_none()
+        if result is not None:
+            return json.loads(str(result))
+        return None
+
+
+def delete_dataset(dataset_id):
+    with Session() as session:
+        new_object = session.query(Dataset).filter_by(id=dataset_id).one()
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))

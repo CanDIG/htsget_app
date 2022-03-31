@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 import connexion
 import configparser
+import logging
 
 config = configparser.ConfigParser()
 config.read('./config.ini')
@@ -10,8 +11,8 @@ config.read('./config.ini')
 app = connexion.App(__name__, specification_dir='./')
 CORS(app.app)
 
-app.add_api('openapi.yml', pythonic_params=True)
-app.add_api('drs_openapi.yaml', pythonic_params=True)
+app.add_api('openapi.yml', pythonic_params=True, strict_validation=True)
+app.add_api('drs_openapi.yaml', pythonic_params=True, strict_validation=True)
 
 # Just leaving this here as a note: these are all of the pythonic params that
 # will get shadowed by pythonic_params:
@@ -23,4 +24,5 @@ def index():
     return 'INDEX'
 
 if __name__ == '__main__':
+    logging.basicConfig(filename='record.log', level=logging.DEBUG, format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
     app.run(port = config['DEFAULT']['Port'], debug=True)

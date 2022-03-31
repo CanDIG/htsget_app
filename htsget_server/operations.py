@@ -4,16 +4,20 @@ import configparser
 from pathlib import Path
 import tempfile
 import requests
-from flask import request, send_file
+from flask import request, send_file, Flask
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import urlparse
 import drs_operations
+import authz
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
 
 BASE_PATH = config['DEFAULT']['BasePath']
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
+
+app = Flask(__name__)
+
 
 # Endpoints
 def get_read_service_info():
@@ -39,6 +43,7 @@ def get_read_service_info():
         }
     }
 
+
 def get_variant_service_info():
     return {
         "id": "org.candig.htsget",
@@ -62,17 +67,49 @@ def get_variant_service_info():
         }
     }
 
+
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    return _get_urls("read", id_, reference_name, start, end, class_)
+    auth_code = _is_authed(id_, request)
+    if auth_code == 200:
+        return _get_urls("read", id_, reference_name, start, end, class_)
+    return None, auth_code
+
 
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    return _get_urls("variant", id_, reference_name, start, end, class_)
+    auth_code = _is_authed(id_, request)
+    if auth_code == 200:
+        return _get_urls("variant", id_, reference_name, start, end, class_)
+    return None, auth_code
+
 
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
-    return _get_data(id_, reference_name, start, end, class_, format_)
+    auth_code = _is_authed(id_, request)
+    if auth_code == 200:
+        return _get_data(id_, reference_name, start, end, class_, format_)
+    return None, auth_code
+
 
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
-    return _get_data(id_, reference_name, start, end, class_, format_)
+    auth_code = _is_authed(id_, request)
+    if auth_code == 200:
+        return _get_data(id_, reference_name, start, end, class_, format_)
+    return None, auth_code
+
+
+def _is_authed(id_, request):
+    if config["authz"]["CANDIG_AUTHORIZATION"] != "OPA":
+        print("WARNING: AUTHORIZATION IS DISABLED")
+        app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
+        return 200 # no auth
+    if "Authorization" in request.headers:
+        authed_datasets = authz.get_opa_res(request.headers, request.path, request.method)
+        obj, code2 = drs_operations.get_object(id_)
+        for dataset in obj["datasets"]:
+            if dataset in authed_datasets:
+                return 200
+    else:
+        return 401
+    return 403
 
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
@@ -186,6 +223,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
         os.remove(ntf.name)
         return response, 200
     return { "message": "no object matching id found" }, 404
+  
   
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
