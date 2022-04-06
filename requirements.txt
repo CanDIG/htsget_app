@@ -3,4 +3,4 @@ Flask-Cors==3.0.10
 minio==7.1.5
 pysam==0.18.0
 sqlalchemy==1.4.35
-connexion==2.11.1
+connexion==2.13.0
