@@ -36,39 +36,23 @@ def get_opa_res(headers, path, method):
     """
     Get allowed dataset result from OPA
     """
-    try:
-        response = requests.post(
-            config['authz']['CANDIG_OPA_URL'] + "/v1/data/permissions/datasets",
-            headers={"Authorization": f"Bearer {config['authz']['CANDIG_OPA_SECRET']}"},
-            json=get_request_body(headers, path, method)
-        )
-        response.raise_for_status()
-    except requests.exceptions.RequestException:
-        error_response = {
-            "error": "This request failed because we are unable to retrieve necessary info related to your account. Please contact your system administrator for assistance."
-        }
-        response = HttpResponseForbidden(json.dumps(error_response))
-        response["Content-Type"] = "application/json"
-        return ("error", response)
+    response = requests.post(
+        config['authz']['CANDIG_OPA_URL'] + "/v1/data/permissions/datasets",
+        headers={"Authorization": f"Bearer {config['authz']['CANDIG_OPA_SECRET']}"},
+        json=get_request_body(headers, path, method)
+    )
+    response.raise_for_status()
     allowed_datasets = response.json()["result"]
     return allowed_datasets
 
 
 def is_site_admin(headers):
-    try:
-        response = requests.post(
-            config['authz']['CANDIG_OPA_URL'] + "/v1/data/idp/trusted_researcher",
-            headers={"Authorization": f"Bearer {config['authz']['CANDIG_OPA_SECRET']}"},
-            json=get_request_body(headers, "", "")
-        )
-        response.raise_for_status()
-    except requests.exceptions.RequestException:
-        error_response = {
-            "error": "This request failed because we are unable to retrieve necessary info related to your account. Please contact your system administrator for assistance."
-        }
-        response = HttpResponseForbidden(json.dumps(error_response))
-        response["Content-Type"] = "application/json"
-        return ("error", response)
+    response = requests.post(
+        config['authz']['CANDIG_OPA_URL'] + "/v1/data/idp/trusted_researcher",
+        headers={"Authorization": f"Bearer {config['authz']['CANDIG_OPA_SECRET']}"},
+        json=get_request_body(headers, "", "")
+    )
+    response.raise_for_status()
     if response.json()['result'] == 'true':
         return True
     return False
