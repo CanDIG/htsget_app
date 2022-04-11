@@ -9,6 +9,7 @@ from pysam import VariantFile, AlignmentFile
 from urllib.parse import urlparse
 import drs_operations
 import authz
+import json
 
 config = configparser.ConfigParser()
 config.read(Path('./config.ini'))
@@ -104,9 +105,15 @@ def _is_authed(id_, request):
     if "Authorization" in request.headers:
         authed_datasets = authz.get_opa_res(request.headers, request.path, request.method)
         obj, code2 = drs_operations.get_object(id_)
-        for dataset in obj["datasets"]:
-            if dataset in authed_datasets:
-                return 200
+        if code2 == 200:
+            for dataset in obj["datasets"]:
+                if dataset in authed_datasets:
+                    return 200
+        else:
+            msg = json.dumps(obj, indent=4)
+            print(msg)
+            app.logger.warning(msg)
+            return code2
     else:
         return 401
     return 403
