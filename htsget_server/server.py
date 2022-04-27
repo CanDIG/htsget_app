@@ -3,21 +3,9 @@ from flask_cors import CORS
 import connexion
 import configparser
 import logging
-import certifi
-import os
 
 config = configparser.ConfigParser()
 config.read('./config.ini')
-
-# if there's a self-signed cert, add it:
-cert_path = os.path.join('/','run','secrets','cert.pem')
-if os.path.isfile(cert_path):
-    with open(cert_path, 'rb') as infile:
-        customca = infile.read()
-        cafile = certifi.where()
-        with open(cafile, 'ab') as outfile:
-            outfile.write(customca)
-    os.remove(cert_path)
 
 # Create the application instance
 app = connexion.App(__name__, specification_dir='./')
