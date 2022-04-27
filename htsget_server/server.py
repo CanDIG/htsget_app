@@ -12,11 +12,12 @@ config.read('./config.ini')
 # if there's a self-signed cert, add it:
 cert_path = os.path.join('/','run','secrets','cert.pem')
 if os.path.isfile(cert_path):
-    cafile = certifi.where()
     with open(cert_path, 'rb') as infile:
         customca = infile.read()
-    with open(cafile, 'ab') as outfile:
-        outfile.write(customca)
+        cafile = certifi.where()
+        with open(cafile, 'ab') as outfile:
+            outfile.write(customca)
+    os.remove(cert_path)
 
 # Create the application instance
 app = connexion.App(__name__, specification_dir='./')
