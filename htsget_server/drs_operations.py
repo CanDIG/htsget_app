@@ -1,16 +1,13 @@
 from minio import Minio
 import connexion
 import database
-import configparser
 from pathlib import Path
+from config import MINIO, LOCAL_FILE_PATH
 
-config = configparser.ConfigParser()
-config.read(Path('./config.ini'))
-MINIO_END_POINT = config['minio']['EndPoint']
-MINIO_ACCESS_KEY = config['minio']['AccessKey']
-MINIO_SECRET_KEY = config['minio']['SecretKey']
-MINIO_BUCKET_NAME = config['minio']['BucketName']
-LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
+MINIO_END_POINT = MINIO['EndPoint']
+MINIO_ACCESS_KEY = MINIO['AccessKey']
+MINIO_SECRET_KEY = MINIO['SecretKey']
+MINIO_BUCKET_NAME = MINIO['BucketName']
 
 # API endpoints
 def get_service_info():

@@ -1,13 +1,9 @@
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy import Column, Integer, String, MetaData, ForeignKey, Table, create_engine
-import configparser
 import json
-from pathlib import Path
 from datetime import datetime
+from config import DB_PATH
 
-config = configparser.ConfigParser()
-config.read(Path('./config.ini'))
-DB_PATH = config['paths']['DBPath']
 
 engine = create_engine(DB_PATH, echo=True)
 

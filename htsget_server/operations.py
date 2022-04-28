@@ -1,21 +1,14 @@
 import os
 import re
-import configparser
-from pathlib import Path
 import tempfile
 import requests
-from flask import request, send_file, Flask
+from flask import request, send_file
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import urlparse
 import drs_operations
 import authz
 import json
-
-config = configparser.ConfigParser()
-config.read(Path('./config.ini'))
-
-BASE_PATH = config['DEFAULT']['BasePath']
-CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
+from config import CHUNK_SIZE
 
 
 # Endpoints
@@ -105,7 +98,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
     """
-    url = f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}?referenceName={reference_name}&start={slice_start}&end={slice_end}"
+    url = f"http://{request.host}/htsget/v1/{file_type}s/data/{id}?referenceName={reference_name}&start={slice_start}&end={slice_end}"
     arr.append({'url': url, })
 
 
@@ -131,7 +124,7 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
             slice_start = slice_end
         _create_slice(urls, id, reference_name, slice_start, end, file_type)
     else:  # One slice only
-        url = f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}"
+        url = f"http://{request.host}/htsget/v1/{file_type}s/data/{id}"
         if reference_name and start and end:
             url += f"?referenceName={reference_name}&start={start}&end={end}"
         urls.append({"url": url})
@@ -236,7 +229,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     gen_obj = _get_genomic_obj(id)
     if gen_obj is not None:
         if _class == "header":
-            urls = [{"url": f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}?class=header",
+            urls = [{"url": f"http://{request.host}/htsget/v1/{file_type}s/data/{id}?class=header",
             "class": "header"}]
         else:
                 file_in = gen_obj["file"]
