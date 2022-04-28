@@ -37,8 +37,6 @@ ARG opa_secret
 ARG opa_url
 ARG candig_auth
 ARG minio_url
-ARG minio_access_key
-ARG minio_secret_key
 ARG minio_bucket_name
 RUN sed -i s@\<CANDIG_OPA_SECRET\>@${opa_secret}@ config.ini \
     && sed -i s@\<OPA_URL\>@${opa_url}@ config.ini \
