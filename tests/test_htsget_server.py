@@ -20,10 +20,12 @@ def test_post_objects(drs_objects):
     response = requests.request("GET", url)
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
-        response = requests.delete(url)
-        assert response.status_code == 200
+        response = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
+        if response.status_code == 200:
+          response = requests.request("DELETE", url, headers={"Test_Key": TEST_KEY})
+          assert response.status_code == 200
         url = f"{HOST}/ga4gh/drs/v1/objects"
-        response = requests.post(url, json=obj)
+        response = requests.request("POST", url, json=obj, headers={"Test_Key": TEST_KEY})
         print(f"POST {obj['name']}: {response.json()}")
         assert response.status_code == 200
 

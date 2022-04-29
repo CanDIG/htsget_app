@@ -3,11 +3,23 @@ import connexion
 import database
 from pathlib import Path
 from config import MINIO, LOCAL_FILE_PATH
+from flask import request
+import os
 
 MINIO_END_POINT = MINIO['EndPoint']
 MINIO_ACCESS_KEY = MINIO['AccessKey']
 MINIO_SECRET_KEY = MINIO['SecretKey']
 MINIO_BUCKET_NAME = MINIO['BucketName']
+client = Minio(
+    MINIO_END_POINT,
+    access_key=MINIO_ACCESS_KEY,
+    secret_key=MINIO_SECRET_KEY
+)
+test_client = Minio(
+    "play.min.io:9000",
+    access_key="Q3AM3UQ867SPQQA43P2F",
+    secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+)
 
 # API endpoints
 def get_service_info():
@@ -40,12 +52,9 @@ def list_objects():
 
 
 def get_access_url(object_id, access_id):
+    if request.headers.get("Test_Key") == os.environ.get("HTSGET_TEST_KEY"):
+        client = test_client
     try:
-        client = Minio(
-            MINIO_END_POINT,
-            access_key=MINIO_ACCESS_KEY,
-            secret_key=MINIO_SECRET_KEY
-        )
         result = client.stat_object(bucket_name=MINIO_BUCKET_NAME, object_name=access_id)
         url = client.presigned_get_object(bucket_name=MINIO_BUCKET_NAME, object_name=access_id)
     except Exception as e:
@@ -54,6 +63,8 @@ def get_access_url(object_id, access_id):
 
 
 def post_object():
+    if request.headers.get("Test_Key") == os.environ.get("HTSGET_TEST_KEY"):
+        client = test_client
     new_object = database.create_drs_object(connexion.request.json)
     if "access_methods" in new_object:
         for method in new_object['access_methods']:
@@ -62,11 +73,6 @@ def post_object():
                 (url_obj, status_code) = get_access_url(new_object['id'], method['access_id'])
                 if status_code != 200:
                     try:
-                        client = Minio(
-                            MINIO_END_POINT,
-                            access_key=MINIO_ACCESS_KEY,
-                            secret_key=MINIO_SECRET_KEY
-                        )
                         #create the minio bucket/object/etc
                         if 'NoSuchBucket' in url_obj['message']:
                             if 'region' in method:
