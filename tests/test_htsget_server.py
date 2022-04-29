@@ -17,11 +17,10 @@ def test_post_objects(drs_objects):
     # clean up old objects in db:
     url = f"{HOST}/ga4gh/drs/v1/objects"
     response = requests.get(url)
-    for obj in response.json():
+    for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
         response = requests.delete(url)
         assert response.status_code == 200
-    for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects"
         response = requests.post(url, json=obj)
         print(f"POST {obj['name']}: {response.json()}")
