@@ -54,6 +54,7 @@ def list_objects():
 def get_access_url(object_id, access_id):
     if request.headers.get("Test_Key") == os.environ.get("HTSGET_TEST_KEY"):
         client = test_client
+        MINIO_BUCKET_NAME="testhtsget"
     try:
         result = client.stat_object(bucket_name=MINIO_BUCKET_NAME, object_name=access_id)
         url = client.presigned_get_object(bucket_name=MINIO_BUCKET_NAME, object_name=access_id)
@@ -65,6 +66,7 @@ def get_access_url(object_id, access_id):
 def post_object():
     if request.headers.get("Test_Key") == os.environ.get("HTSGET_TEST_KEY"):
         client = test_client
+        MINIO_BUCKET_NAME="testhtsget"
     new_object = database.create_drs_object(connexion.request.json)
     if "access_methods" in new_object:
         for method in new_object['access_methods']:
