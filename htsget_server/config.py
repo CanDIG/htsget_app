@@ -13,7 +13,3 @@ MINIO = config['minio']
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 
 PORT = config['DEFAULT']['Port']
-
-TESTING = False
-if config['DEFAULT']['Testing'] == "True":
-    TESTING = True

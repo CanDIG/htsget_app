@@ -1,6 +1,6 @@
 import requests
 import json
-from config import TESTING, AUTHZ
+from config import AUTHZ
 from flask import Flask
 
 
@@ -8,12 +8,12 @@ app = Flask(__name__)
 
 
 def is_authed(id_, request):
-    if AUTHZ["CANDIG_AUTHORIZATION"] != "OPA" or TESTING:
+    if AUTHZ["CANDIG_AUTHORIZATION"] != "OPA":
         print("WARNING: AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
         return 200 # no auth
     if "Authorization" in request.headers:
-        authed_datasets = authz.get_opa_res(request.headers, request.path, request.method)
+        authed_datasets = get_opa_res(request.headers, request.path, request.method)
         obj, code2 = drs_operations.get_object(id_)
         if code2 == 200:
             for dataset in obj["datasets"]:
