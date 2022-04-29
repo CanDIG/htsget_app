@@ -2,6 +2,7 @@ import requests
 import json
 from config import AUTHZ
 from flask import Flask
+import drs_operations
 
 
 app = Flask(__name__)
