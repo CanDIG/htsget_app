@@ -9,6 +9,7 @@ sys.path.insert(0,os.path.abspath("htsget_server"))
 from config import PORT, LOCAL_FILE_PATH
 
 HOST = f"http://localhost:{PORT}"
+TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
 
 def test_post_objects(drs_objects):
     """
@@ -16,7 +17,7 @@ def test_post_objects(drs_objects):
     """
     # clean up old objects in db:
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    response = requests.get(url)
+    response = requests.request("GET", url)
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
         response = requests.delete(url)
@@ -57,9 +58,8 @@ def test_invalid_start_end(start, end):
     url_v = f"{HOST}/htsget/v1/variants/NA18537?referenceName=21&start={start}&end={end}"
     url_r = f"{HOST}/htsget/v1/reads/NA18537?referenceName=21&start={start}&end={end}"
 
-    res_v = requests.get(url_v)
-    print(res_v)
-    res_r = requests.get(url_r)
+    res_v = requests.request("GET", url_v, headers={"Test_Key": TEST_KEY})
+    res_r = requests.request("GET", url_r, headers={"Test_Key": TEST_KEY})
 
     if end < start:
         assert res_v.status_code == 400
@@ -80,8 +80,8 @@ def test_existent_file(id, expected_status):
     url_v = f"{HOST}/htsget/v1/variants/{id}?referenceName=21&start=10235878&end=45412368"
     url_r = f"{HOST}/htsget/v1/reads/{id}?referenceName=21&start=10235878&end=45412368"
 
-    res_v = requests.get(url_v)
-    res_r = requests.get(url_r)
+    res_v = requests.request("GET", url_v, headers={"Test_Key": TEST_KEY})
+    res_r = requests.request("GET", url_r, headers={"Test_Key": TEST_KEY})
     assert res_v.status_code == expected_status or res_r.status_code == expected_status
 
 
@@ -99,7 +99,7 @@ def test_pull_slices_data():
 @pytest.mark.parametrize('params, id_, file_extension, file_type', test_pull_slices_data())
 def test_pull_slices(params, id_, file_extension, file_type):
     url = f"{HOST}/htsget/v1/{file_type}s/{id_}"    
-    res = requests.get(url, params)
+    res = requests.request("GET", url, params=params, headers={"Test_Key": TEST_KEY})
     res = res.json()    
     urls = res['htsget']['urls']
 
@@ -108,7 +108,7 @@ def test_pull_slices(params, id_, file_extension, file_type):
     equal = True
     for i in range(len(urls)):
         url = urls[i]['url']
-        res = requests.get(url)
+        res = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
 
         f_slice_name = f"{id_}_{i}{file_extension}"
         f_slice_path = f"./{f_slice_name}"
@@ -140,7 +140,7 @@ def test_get_read_header():
     A header of a SAM file should contain at least one @SQ line
     """
     url = f"{HOST}/htsget/v1/reads/data/NA02102?class=header&format=SAM"
-    res = requests.get(url)
+    res = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
     for line in res.iter_lines():
         if "@SQ" in line.decode("utf-8"):
             assert True
