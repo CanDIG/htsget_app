@@ -15,6 +15,9 @@ def is_authed(id_, request):
         app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
         return 200 # no auth
     if request.headers.get("Test_Key") == os.environ.get("HTSGET_TEST_KEY"):
+        if os.environ.get("HTSGET_TEST_KEY") is None:
+            print("ERROR: A test request has been made, but HTSGET_TEST_KEY is not defined as an env var.")
+            return 403
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return 200 # no auth
