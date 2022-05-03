@@ -1,23 +1,14 @@
 import os
 import re
-import configparser
-from pathlib import Path
 import tempfile
 import requests
-from flask import request, send_file, Flask
+from flask import request, send_file
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import urlparse
 import drs_operations
 import authz
 import json
-
-config = configparser.ConfigParser()
-config.read(Path('./config.ini'))
-
-BASE_PATH = config['DEFAULT']['BasePath']
-CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
-
-app = Flask(__name__)
+from config import CHUNK_SIZE
 
 
 # Endpoints
@@ -70,53 +61,31 @@ def get_variant_service_info():
 
 
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    auth_code = _is_authed(id_, request)
+    auth_code = authz.is_authed(id_, request)
     if auth_code == 200:
         return _get_urls("read", id_, reference_name, start, end, class_)
     return None, auth_code
 
 
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    auth_code = _is_authed(id_, request)
+    auth_code = authz.is_authed(id_, request)
     if auth_code == 200:
         return _get_urls("variant", id_, reference_name, start, end, class_)
     return None, auth_code
 
 
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
-    auth_code = _is_authed(id_, request)
+    auth_code = authz.is_authed(id_, request)
     if auth_code == 200:
         return _get_data(id_, reference_name, start, end, class_, format_)
     return None, auth_code
 
 
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
-    auth_code = _is_authed(id_, request)
+    auth_code = authz.is_authed(id_, request)
     if auth_code == 200:
         return _get_data(id_, reference_name, start, end, class_, format_)
     return None, auth_code
-
-
-def _is_authed(id_, request):
-    if config["authz"]["CANDIG_AUTHORIZATION"] != "OPA":
-        print("WARNING: AUTHORIZATION IS DISABLED")
-        app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
-        return 200 # no auth
-    if "Authorization" in request.headers:
-        authed_datasets = authz.get_opa_res(request.headers, request.path, request.method)
-        obj, code2 = drs_operations.get_object(id_)
-        if code2 == 200:
-            for dataset in obj["datasets"]:
-                if dataset in authed_datasets:
-                    return 200
-        else:
-            msg = json.dumps(obj, indent=4)
-            print(msg)
-            app.logger.warning(msg)
-            return code2
-    else:
-        return 401
-    return 403
 
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
@@ -129,7 +98,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
     """
-    url = f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}?referenceName={reference_name}&start={slice_start}&end={slice_end}"
+    url = f"{request.url_root}/htsget/v1/{file_type}s/data/{id}?referenceName={reference_name}&start={slice_start}&end={slice_end}"
     arr.append({'url': url, })
 
 
@@ -155,7 +124,7 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
             slice_start = slice_end
         _create_slice(urls, id, reference_name, slice_start, end, file_type)
     else:  # One slice only
-        url = f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}"
+        url = f"{request.url_root}/htsget/v1/{file_type}s/data/{id}"
         if reference_name and start and end:
             url += f"?referenceName={reference_name}&start={start}&end={end}"
         urls.append({"url": url})
@@ -260,7 +229,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     gen_obj = _get_genomic_obj(id)
     if gen_obj is not None:
         if _class == "header":
-            urls = [{"url": f"http://{request.host}{BASE_PATH}/{file_type}s/data/{id}?class=header",
+            urls = [{"url": f"{request.url_root}/htsget/v1/{file_type}s/data/{id}?class=header",
             "class": "header"}]
         else:
                 file_in = gen_obj["file"]

@@ -36,12 +36,17 @@ WORKDIR /app/htsget_server
 ARG opa_secret
 ARG opa_url
 ARG candig_auth
+ARG minio_url
+ARG minio_bucket_name
 RUN sed -i s@\<CANDIG_OPA_SECRET\>@${opa_secret}@ config.ini \
     && sed -i s@\<OPA_URL\>@${opa_url}@ config.ini \
-    && sed -i s@\<CANDIG_AUTHORIZATION\>@${candig_auth}@ config.ini
+    && sed -i s@\<CANDIG_AUTHORIZATION\>@${candig_auth}@ config.ini \
+    && sed -i s@\<MINIO_URL\>@${minio_url}@ config.ini \
+    && sed -i s@\<MINIO_BUCKET_NAME\>@${minio_bucket_name}@ config.ini
 
+RUN touch initial_setup
 RUN python setup.py install && pip install --no-cache-dir -r requirements.txt
 
 RUN sqlite3 data/files.db -init data/files.sql
 
-ENTRYPOINT ["python3", "htsget_server/server.py"]
+ENTRYPOINT ["bash", "entrypoint.sh"]

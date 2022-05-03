@@ -1,11 +1,8 @@
 from flask import Flask
 from flask_cors import CORS
 import connexion
-import configparser
 import logging
-
-config = configparser.ConfigParser()
-config.read('./config.ini')
+from config import PORT
 
 # Create the application instance
 app = connexion.App(__name__, specification_dir='./')
@@ -25,4 +22,4 @@ def index():
 
 if __name__ == '__main__':
     logging.basicConfig(filename='record.log', level=logging.DEBUG, format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
-    app.run(port = config['DEFAULT']['Port'], debug=True)
+    app.run(port = PORT, debug=False)

@@ -1,16 +1,10 @@
 from minio import Minio
 import connexion
 import database
-import configparser
 from pathlib import Path
-
-config = configparser.ConfigParser()
-config.read(Path('./config.ini'))
-MINIO_END_POINT = config['minio']['EndPoint']
-MINIO_ACCESS_KEY = config['minio']['AccessKey']
-MINIO_SECRET_KEY = config['minio']['SecretKey']
-MINIO_BUCKET_NAME = config['minio']['BucketName']
-LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
+from config import LOCAL_FILE_PATH, get_minio_client
+from flask import request
+import os
 
 # API endpoints
 def get_service_info():
@@ -43,20 +37,17 @@ def list_objects():
 
 
 def get_access_url(object_id, access_id):
+    client, bucket = get_minio_client()
     try:
-        client = Minio(
-            MINIO_END_POINT,
-            access_key=MINIO_ACCESS_KEY,
-            secret_key=MINIO_SECRET_KEY
-        )
-        result = client.stat_object(bucket_name=MINIO_BUCKET_NAME, object_name=access_id)
-        url = client.presigned_get_object(bucket_name=MINIO_BUCKET_NAME, object_name=access_id)
+        result = client.stat_object(bucket_name=bucket, object_name=access_id)
+        url = client.presigned_get_object(bucket_name=bucket, object_name=access_id)
     except Exception as e:
         return {"message": str(e)}, 500
     return {"url": url}, 200
 
 
 def post_object():
+    client, bucket = get_minio_client()
     new_object = database.create_drs_object(connexion.request.json)
     if "access_methods" in new_object:
         for method in new_object['access_methods']:
@@ -65,20 +56,15 @@ def post_object():
                 (url_obj, status_code) = get_access_url(new_object['id'], method['access_id'])
                 if status_code != 200:
                     try:
-                        client = Minio(
-                            MINIO_END_POINT,
-                            access_key=MINIO_ACCESS_KEY,
-                            secret_key=MINIO_SECRET_KEY
-                        )
                         #create the minio bucket/object/etc
                         if 'NoSuchBucket' in url_obj['message']:
                             if 'region' in method:
-                                client.make_bucket(MINIO_BUCKET_NAME, location=method['region'])
+                                client.make_bucket(bucket, location=method['region'])
                             else:
-                                client.make_bucket(MINIO_BUCKET_NAME)
+                                client.make_bucket(bucket)
                         file = Path(LOCAL_FILE_PATH).joinpath(new_object['id'])
                         with Path.open(file, "rb") as fp:
-                            result = client.put_object(MINIO_BUCKET_NAME, new_object['id'], fp, file.stat().st_size)
+                            result = client.put_object(bucket, new_object['id'], fp, file.stat().st_size)
                     except Exception as e:
                         return {"message": str(e)}, 500
     return new_object, 200
