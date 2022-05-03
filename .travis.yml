@@ -15,4 +15,3 @@ script:
 
 env:
   - HTSGET_TEST_KEY=thisisatest USE_MINIO_SANDBOX=True
-  
