@@ -2,24 +2,9 @@ from minio import Minio
 import connexion
 import database
 from pathlib import Path
-from config import MINIO, LOCAL_FILE_PATH
+from config import LOCAL_FILE_PATH, get_minio_client
 from flask import request
 import os
-
-MINIO_END_POINT = MINIO['EndPoint']
-MINIO_ACCESS_KEY = MINIO['AccessKey']
-MINIO_SECRET_KEY = MINIO['SecretKey']
-MINIO_BUCKET_NAME = MINIO['BucketName']
-client = Minio(
-    MINIO_END_POINT,
-    access_key=MINIO_ACCESS_KEY,
-    secret_key=MINIO_SECRET_KEY
-)
-test_client = Minio(
-    "play.min.io:9000",
-    access_key="Q3AM3UQ867SPQQA43P2F",
-    secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-)
 
 # API endpoints
 def get_service_info():
@@ -52,21 +37,17 @@ def list_objects():
 
 
 def get_access_url(object_id, access_id):
-    if request.headers.get("Test_Key") == os.environ.get("HTSGET_TEST_KEY"):
-        client = test_client
-        MINIO_BUCKET_NAME="testhtsget"
+    client, bucket = get_minio_client()
     try:
-        result = client.stat_object(bucket_name=MINIO_BUCKET_NAME, object_name=access_id)
-        url = client.presigned_get_object(bucket_name=MINIO_BUCKET_NAME, object_name=access_id)
+        result = client.stat_object(bucket_name=bucket, object_name=access_id)
+        url = client.presigned_get_object(bucket_name=bucket, object_name=access_id)
     except Exception as e:
         return {"message": str(e)}, 500
     return {"url": url}, 200
 
 
 def post_object():
-    if request.headers.get("Test_Key") == os.environ.get("HTSGET_TEST_KEY"):
-        client = test_client
-        MINIO_BUCKET_NAME="testhtsget"
+    client, bucket = get_minio_client()
     new_object = database.create_drs_object(connexion.request.json)
     if "access_methods" in new_object:
         for method in new_object['access_methods']:
@@ -78,12 +59,12 @@ def post_object():
                         #create the minio bucket/object/etc
                         if 'NoSuchBucket' in url_obj['message']:
                             if 'region' in method:
-                                client.make_bucket(MINIO_BUCKET_NAME, location=method['region'])
+                                client.make_bucket(bucket, location=method['region'])
                             else:
-                                client.make_bucket(MINIO_BUCKET_NAME)
+                                client.make_bucket(bucket)
                         file = Path(LOCAL_FILE_PATH).joinpath(new_object['id'])
                         with Path.open(file, "rb") as fp:
-                            result = client.put_object(MINIO_BUCKET_NAME, new_object['id'], fp, file.stat().st_size)
+                            result = client.put_object(bucket, new_object['id'], fp, file.stat().st_size)
                     except Exception as e:
                         return {"message": str(e)}, 500
     return new_object, 200
