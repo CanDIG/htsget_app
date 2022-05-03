@@ -34,7 +34,7 @@ def get_minio_client():
             "play.min.io:9000",
             access_key="Q3AM3UQ867SPQQA43P2F",
             secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-        ), MINIO_BUCKET_NAME
+        ), "testhtsget"
     return Minio(
         MINIO_END_POINT,
         access_key=MINIO_ACCESS_KEY,
