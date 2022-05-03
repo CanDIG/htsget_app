@@ -21,6 +21,10 @@ CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 PORT = config['DEFAULT']['Port']
 
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
+if TEST_KEY is None:
+    TEST_KEY = "testtesttest"
+
+USE_MINIO_SANDBOX = False
 if os.environ.get("USE_MINIO_SANDBOX") == "True":
     USE_MINIO_SANDBOX = True
 
