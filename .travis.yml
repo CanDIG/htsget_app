@@ -14,6 +14,5 @@ script:
   - pytest tests/test_htsget_server.py
 
 env:
-  - HTSGET_TEST_KEY=thisisatest
-  - USE_MINIO_SANDBOX=True
+  - HTSGET_TEST_KEY=thisisatest USE_MINIO_SANDBOX=True
   
