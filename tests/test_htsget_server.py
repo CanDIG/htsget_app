@@ -57,8 +57,8 @@ def test_invalid_start_end(start, end):
     """
     Should return a 400 error if end is smaller than start
     """
-    url_v = f"{HOST}/v1/variants/NA18537?referenceName=21&start={start}&end={end}"
-    url_r = f"{HOST}/v1/reads/NA18537?referenceName=21&start={start}&end={end}"
+    url_v = f"{HOST}/htsget/v1/variants/NA18537?referenceName=21&start={start}&end={end}"
+    url_r = f"{HOST}/htsget/v1/reads/NA18537?referenceName=21&start={start}&end={end}"
 
     res_v = requests.request("GET", url_v, headers={"Test_Key": TEST_KEY})
     res_r = requests.request("GET", url_r, headers={"Test_Key": TEST_KEY})
@@ -79,8 +79,8 @@ def test_existent_file(id, expected_status):
     """
     Should fail with expected error if a file does not exist for given ID
     """
-    url_v = f"{HOST}/v1/variants/{id}?referenceName=21&start=10235878&end=45412368"
-    url_r = f"{HOST}/v1/reads/{id}?referenceName=21&start=10235878&end=45412368"
+    url_v = f"{HOST}/htsget/v1/variants/{id}?referenceName=21&start=10235878&end=45412368"
+    url_r = f"{HOST}/htsget/v1/reads/{id}?referenceName=21&start=10235878&end=45412368"
 
     res_v = requests.request("GET", url_v, headers={"Test_Key": TEST_KEY})
     res_r = requests.request("GET", url_r, headers={"Test_Key": TEST_KEY})
@@ -100,7 +100,7 @@ def test_pull_slices_data():
 
 @pytest.mark.parametrize('params, id_, file_extension, file_type', test_pull_slices_data())
 def test_pull_slices(params, id_, file_extension, file_type):
-    url = f"{HOST}/v1/{file_type}s/{id_}"    
+    url = f"{HOST}/htsget/v1/{file_type}s/{id_}"    
     res = requests.request("GET", url, params=params, headers={"Test_Key": TEST_KEY})
     res = res.json()    
     urls = res['htsget']['urls']
@@ -141,7 +141,7 @@ def test_get_read_header():
     """
     A header of a SAM file should contain at least one @SQ line
     """
-    url = f"{HOST}/v1/reads/data/NA02102?class=header&format=SAM"
+    url = f"{HOST}/htsget/v1/reads/data/NA02102?class=header&format=SAM"
     res = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
     for line in res.iter_lines():
         if "@SQ" in line.decode("utf-8"):

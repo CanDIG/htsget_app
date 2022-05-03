@@ -3,7 +3,7 @@ info:
     version: 1.0.0
     title: candig htsget
 servers:
-  - url: /v1
+  - url: /htsget/v1
 paths:
     /reads/service-info:
        get:
