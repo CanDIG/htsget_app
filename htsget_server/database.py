@@ -5,7 +5,7 @@ from datetime import datetime
 from config import DB_PATH
 
 
-engine = create_engine(DB_PATH, echo=True)
+engine = create_engine(DB_PATH, echo=False)
 
 ObjectDBBase = declarative_base()
 
