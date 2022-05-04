@@ -335,13 +335,12 @@ def _get_genomic_obj(object_id):
                     if url_pieces.scheme == "file":
                         if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
                             if index_match is not None:
-                                index_file = url_pieces.path[1:]
+                                index_file = url_pieces.path
                             elif read_match is not None:
-                                read_file = url_pieces.path[1:]
+                                read_file = url_pieces.path
                             elif variant_match is not None:
-                                variant_file = url_pieces.path[1:]
+                                variant_file = url_pieces.path
         if variant_file is not None:
-            print(index_file, variant_file)
             result = VariantFile(variant_file, index_filename=index_file)
         elif read_file is not None:
             result = AlignmentFile(read_file, index_filename=index_file)
