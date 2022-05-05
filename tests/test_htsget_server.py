@@ -10,6 +10,7 @@ from config import PORT, LOCAL_FILE_PATH
 
 HOST = f"http://localhost:{PORT}"
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
+CWD = os.getcwd()
 
 def test_post_objects(drs_objects):
     """
@@ -35,7 +36,7 @@ def test_post_update():
     "access_methods": [
       {
         "access_url": {
-          "url": "file:///./data/files/NA18537.vcf.gz.tbi"
+          "url": f"file://{CWD}/data/files/NA18537.vcf.gz.tbi"
         },
         "type": "file"
       }
@@ -157,7 +158,7 @@ def drs_objects():
       {
         "access_url": {
           "headers": [],
-          "url": "file:///./data/files/NA18537.vcf.gz.tbi"
+          "url": f"file://{CWD}/data/files/NA18537.vcf.gz.tbi"
         },
         "type": "file"
       }
@@ -179,7 +180,7 @@ def drs_objects():
       {
         "access_url": {
           "headers": [],
-          "url": "file:///./data/files/NA18537.vcf.gz"
+          "url": f"file://{CWD}/data/files/NA18537.vcf.gz"
         },
         "type": "file"
       }
@@ -316,7 +317,7 @@ def drs_objects():
       {
         "access_url": {
           "headers": [],
-          "url": "file:///./data/files/NA02102.bam"
+          "url": f"file://{CWD}/data/files/NA02102.bam"
         },
         "type": "file"
       }
