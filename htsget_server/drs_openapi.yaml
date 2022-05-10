@@ -26,13 +26,13 @@ paths:
               schema:
                 type: object
   /objects:
+    parameters:
+      - $ref: '#/components/parameters/BearerAuth'
     get:
       summary: List all DRS objects
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.list_objects
-      parameters:
-        - $ref: '#/components/parameters/BearerAuth'
       responses:
         200:
           description: The `DrsObject` was found successfully
@@ -50,8 +50,6 @@ paths:
     post:
         summary: Add a DrsObject to the db
         operationId: drs_operations.post_object
-        parameters:
-          - $ref: '#/components/parameters/BearerAuth'
         requestBody:
             $ref: '#/components/requestBodies/DrsObjectRequest'
         responses:
@@ -83,7 +81,6 @@ paths:
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.get_object
       parameters:
-        - $ref: '#/components/parameters/BearerAuth'
         - $ref: '#/components/parameters/Expand'
       responses:
         200:
@@ -125,11 +122,11 @@ paths:
       tags:
         - Objects
   /datasets:
+    parameters:
+      - $ref: '#/components/parameters/BearerAuth'
     get:
       description: List all datasets available
       operationId: drs_operations.list_datasets
-      parameters:
-        - $ref: '#/components/parameters/BearerAuth'
       responses:
         200:
           description: ok
@@ -143,8 +140,6 @@ paths:
     post:
       description: Create a dataset
       operationId: drs_operations.post_dataset
-      parameters:
-        - $ref: '#/components/parameters/BearerAuth'
       requestBody:
           $ref: '#/components/requestBodies/DatasetRequest'
       responses:
@@ -158,11 +153,10 @@ paths:
   /datasets/{dataset_id}:
     parameters:
       - $ref: "#/components/parameters/DatasetId"
+      - $ref: '#/components/parameters/BearerAuth'
     get:
       description: Describe a dataset
       operationId: drs_operations.get_dataset
-      parameters:
-        - $ref: '#/components/parameters/BearerAuth'
       responses:
         200:
           description: ok
