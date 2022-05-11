@@ -45,7 +45,7 @@ RUN sed -i s@\<CANDIG_OPA_SECRET\>@${opa_secret}@ config.ini \
     && sed -i s@\<MINIO_BUCKET_NAME\>@${minio_bucket_name}@ config.ini
 
 RUN touch initial_setup
-RUN python setup.py install && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 RUN sqlite3 data/files.db -init data/files.sql
 
