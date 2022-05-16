@@ -6,6 +6,9 @@ config = configparser.ConfigParser()
 config.read('./config.ini')
 
 AUTHZ = config['authz']
+CANDIG_OPA_SITE_ADMIN_KEY = os.environ.get("CANDIG_OPA_SITE_ADMIN_KEY")
+if CANDIG_OPA_SITE_ADMIN_KEY is None:
+    CANDIG_OPA_SITE_ADMIN_KEY = "site_admin"
 
 DB_PATH = config['paths']['DBPath']
 LOCAL_FILE_PATH = config['paths']['LocalFilesPath']

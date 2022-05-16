@@ -1,7 +1,7 @@
 import requests
 import json
 import os
-from config import AUTHZ, TEST_KEY
+from config import AUTHZ, TEST_KEY, CANDIG_OPA_SITE_ADMIN_KEY
 from flask import Flask
 import drs_operations
 
@@ -19,7 +19,8 @@ def is_authed(id_, request):
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return 200 # no auth
     if "Authorization" in request.headers:
-        authed_datasets = get_opa_res(request.headers, request.path, request.method)
+        token = get_auth_token(request.headers)
+        authed_datasets = get_opa_datasets(token, request.path, request.method)
         obj, code2 = drs_operations.get_object(id_)
         if code2 == 200:
             for dataset in obj["datasets"]:
@@ -35,7 +36,36 @@ def is_authed(id_, request):
     return 403
 
 
-def get_opa_token_from_request(headers):
+def is_site_admin(request):
+    """
+    Is the user associated with the token a site admin?
+    """
+    if AUTHZ["CANDIG_AUTHORIZATION"] != "OPA":
+        print("WARNING: AUTHORIZATION IS DISABLED")
+        app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
+        return True # no auth
+    if request.headers.get("Test_Key") == TEST_KEY:
+        print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        return True # no auth
+    if "Authorization" in request.headers:
+        token = get_auth_token(request.headers)
+        response = requests.post(
+            AUTHZ['CANDIG_OPA_URL'] + "/v1/data/idp/" + CANDIG_OPA_SITE_ADMIN_KEY,
+        headers={"Authorization": f"Bearer {AUTHZ['CANDIG_OPA_SECRET']}"},
+            json={
+                "input": {
+                        "token": token
+                    }
+                }
+            )
+        response.raise_for_status()
+        if 'result' in response.json():
+            return True
+    return False
+
+
+def get_auth_token(headers):
     """
     Extracts token from request's header Authorization
     """
@@ -45,42 +75,24 @@ def get_opa_token_from_request(headers):
     return token.split()[1]
 
 
-def get_request_body(headers, path, method):
+def get_opa_datasets(token, path, method):
     """
-    Returns request body required to query OPA
+    Get allowed dataset result from OPA
     """
-    return {
+    body = {
         "input": {
-            "token": get_opa_token_from_request(headers),
+            "token": token,
             "body": {
                 "path": path,
                 "method": method
             }
         }
     }
-
-
-def get_opa_res(headers, path, method):
-    """
-    Get allowed dataset result from OPA
-    """
     response = requests.post(
         AUTHZ['CANDIG_OPA_URL'] + "/v1/data/permissions/datasets",
         headers={"Authorization": f"Bearer {AUTHZ['CANDIG_OPA_SECRET']}"},
-        json=get_request_body(headers, path, method)
+        json=body
     )
     response.raise_for_status()
     allowed_datasets = response.json()["result"]
     return allowed_datasets
-
-
-def is_site_admin(headers):
-    response = requests.post(
-        AUTHZ['CANDIG_OPA_URL'] + "/v1/data/idp/trusted_researcher",
-        headers={"Authorization": f"Bearer {AUTHZ['CANDIG_OPA_SECRET']}"},
-        json=get_request_body(headers, "", "")
-    )
-    response.raise_for_status()
-    if response.json()['result'] == 'true':
-        return True
-    return False

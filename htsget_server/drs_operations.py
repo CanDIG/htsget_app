@@ -5,6 +5,7 @@ from pathlib import Path
 from config import LOCAL_FILE_PATH, get_minio_client
 from flask import request
 import os
+import authz
 
 # API endpoints
 def get_service_info():
@@ -47,6 +48,8 @@ def get_access_url(object_id, access_id):
 
 
 def post_object():
+    if not authz.is_site_admin(request):
+        return {"message": "User is not authorized to POST"}, 403
     client, bucket = get_minio_client()
     new_object = database.create_drs_object(connexion.request.json)
     if "access_methods" in new_object:
@@ -71,6 +74,8 @@ def post_object():
 
 
 def delete_object(object_id):
+    if not authz.is_site_admin(request):
+        return {"message": "User is not authorized to POST"}, 403
     try:
         new_object = database.delete_drs_object(object_id)
         return new_object, 200
@@ -84,6 +89,8 @@ def list_datasets():
     
 
 def post_dataset():
+    if not authz.is_site_admin(request):
+        return {"message": "User is not authorized to POST"}, 403
     new_dataset = database.create_dataset(connexion.request.json)
     return new_dataset, 200
     
@@ -96,6 +103,8 @@ def get_dataset(dataset_id):
 
 
 def delete_dataset(dataset_id):
+    if not authz.is_site_admin(request):
+        return {"message": "User is not authorized to POST"}, 403
     try:
         new_dataset = database.delete_dataset(dataset_id)
         return new_dataset, 200
