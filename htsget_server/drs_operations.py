@@ -2,10 +2,12 @@ from minio import Minio
 import connexion
 import database
 from pathlib import Path
-from config import LOCAL_FILE_PATH, get_minio_client
+from config import AUTHZ, VAULT_S3_TOKEN, LOCAL_FILE_PATH
 from flask import request
 import os
+import re
 import authz
+import requests
 
 # API endpoints
 def get_service_info():
@@ -38,38 +40,42 @@ def list_objects():
 
 
 def get_access_url(object_id, access_id):
-    client, bucket = get_minio_client()
-    try:
-        result = client.stat_object(bucket_name=bucket, object_name=access_id)
-        url = client.presigned_get_object(bucket_name=bucket, object_name=access_id)
-    except Exception as e:
-        return {"message": str(e)}, 500
-    return {"url": url}, 200
+    if access_id is None:
+        return Minio(
+            "play.min.io:9000",
+            access_key="Q3AM3UQ867SPQQA43P2F",
+            secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+        ), "testhtsget"
+    id_parse = re.match(r"(https*:\/\/)*(.+?)\/(.+?)\/(.+)$", access_id)
+    
+    if id_parse is not None:
+        response = requests.get(
+            AUTHZ['CANDIG_VAULT_URL'] + f"/v1/aws/{id_parse.group(2)}/{id_parse.group(3)}",
+            headers={"Authorization": f"Bearer {VAULT_S3_TOKEN}"}
+        )
+        if response.status_code == 200:
+            client = Minio(
+                id_parse.group(2),
+                access_key=response.json()["data"]["access"],
+                secret_key=response.json()["data"]["secret"]
+            )
+            bucket = id_parse.group(3)
+            try:
+                result = client.stat_object(bucket_name=bucket, object_name=id_parse.group(4))
+                url = client.presigned_get_object(bucket_name=bucket, object_name=id_parse.group(4))
+            except Exception as e:
+                return {"message": str(e)}, 500
+            return {"url": url}, 200
+        else:
+            return {"message": f"Vault error: {response.text}"}, response.status_code
+    else:
+        return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item"}, 400
 
 
 def post_object():
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to POST"}, 403
-    client, bucket = get_minio_client()
     new_object = database.create_drs_object(connexion.request.json)
-    if "access_methods" in new_object:
-        for method in new_object['access_methods']:
-            if 'access_id' in method and method['access_id'] != "":
-                # check to see if it's already there; otherwise, upload it
-                (url_obj, status_code) = get_access_url(new_object['id'], method['access_id'])
-                if status_code != 200:
-                    try:
-                        #create the minio bucket/object/etc
-                        if 'NoSuchBucket' in url_obj['message']:
-                            if 'region' in method:
-                                client.make_bucket(bucket, location=method['region'])
-                            else:
-                                client.make_bucket(bucket)
-                        file = Path(LOCAL_FILE_PATH).joinpath(new_object['id'])
-                        with Path.open(file, "rb") as fp:
-                            result = client.put_object(bucket, new_object['id'], fp, file.stat().st_size)
-                    except Exception as e:
-                        return {"message": str(e)}, 500
     return new_object, 200
 
 

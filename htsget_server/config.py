@@ -6,9 +6,7 @@ config = configparser.ConfigParser()
 config.read('./config.ini')
 
 AUTHZ = config['authz']
-CANDIG_OPA_SITE_ADMIN_KEY = os.environ.get("CANDIG_OPA_SITE_ADMIN_KEY")
-if CANDIG_OPA_SITE_ADMIN_KEY is None:
-    CANDIG_OPA_SITE_ADMIN_KEY = "site_admin"
+CANDIG_OPA_SITE_ADMIN_KEY = os.getenv("CANDIG_OPA_SITE_ADMIN_KEY", "site_admin")
 
 DB_PATH = config['paths']['DBPath']
 LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
@@ -23,23 +21,10 @@ CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 
 PORT = config['DEFAULT']['Port']
 
-TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
-if TEST_KEY is None:
-    TEST_KEY = "testtesttest"
+TEST_KEY = os.getenv("HTSGET_TEST_KEY", "testtesttest")
 
 USE_MINIO_SANDBOX = False
 if os.environ.get("USE_MINIO_SANDBOX") == "True":
     USE_MINIO_SANDBOX = True
 
-def get_minio_client():
-    if USE_MINIO_SANDBOX:
-        return Minio(
-            "play.min.io:9000",
-            access_key="Q3AM3UQ867SPQQA43P2F",
-            secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-        ), "testhtsget"
-    return Minio(
-        MINIO_END_POINT,
-        access_key=MINIO_ACCESS_KEY,
-        secret_key=MINIO_SECRET_KEY
-    ), MINIO_BUCKET_NAME
+VAULT_S3_TOKEN = os.getenv("VAULT_S3_TOKEN", "none")

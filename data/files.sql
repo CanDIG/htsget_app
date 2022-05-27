@@ -31,8 +31,8 @@ CREATE TABLE access_method (
         PRIMARY KEY (id), 
         FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
-INSERT INTO access_method VALUES(1,'NA18537.vcf.gz.tbi','file','','','file:///app/htsget_server/data/files/NA18537.vcf.gz.tbi','[]');
-INSERT INTO access_method VALUES(2,'NA18537.vcf.gz','file','','','file:///app/htsget_server/data/files/NA18537.vcf.gz','[]');
+INSERT INTO access_method VALUES(1,'NA18537.vcf.gz.tbi','s3','s3.amazonaws.com/daisietestbucket1/NA18537.vcf.gz.tbi','','','[]');
+INSERT INTO access_method VALUES(2,'NA18537.vcf.gz','s3','s3.amazonaws.com/daisietestbucket1/NA18537.vcf.gz','','','[]');
 INSERT INTO access_method VALUES(3,'NA20787.vcf.gz.tbi','s3','NA20787.vcf.gz.tbi','','','[]');
 INSERT INTO access_method VALUES(4,'NA20787.vcf.gz','s3','NA20787.vcf.gz','','','[]');
 CREATE TABLE content_object (
@@ -60,5 +60,5 @@ CREATE TABLE dataset_association (
 	FOREIGN KEY(dataset_id) REFERENCES dataset (id), 
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
-INSERT INTO dataset_association VALUES('controlled4','NA20787');
+INSERT INTO dataset_association VALUES('controlled4','NA18537');
 COMMIT;

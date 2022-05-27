@@ -1,9 +1,10 @@
 import requests
 import json
 import os
-from config import AUTHZ, TEST_KEY, CANDIG_OPA_SITE_ADMIN_KEY
+from config import AUTHZ, TEST_KEY, CANDIG_OPA_SITE_ADMIN_KEY, VAULT_S3_TOKEN
 from flask import Flask
 import drs_operations
+import re
 
 
 app = Flask(__name__)
