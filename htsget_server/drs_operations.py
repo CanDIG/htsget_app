@@ -1,8 +1,7 @@
 from minio import Minio
 import connexion
 import database
-from pathlib import Path
-from config import AUTHZ, VAULT_S3_TOKEN, LOCAL_FILE_PATH
+from config import AUTHZ, VAULT_S3_TOKEN
 from flask import request
 import os
 import re
@@ -40,34 +39,38 @@ def list_objects():
 
 
 def get_access_url(object_id, access_id):
-    if access_id is None:
-        return Minio(
-            "play.min.io:9000",
-            access_key="Q3AM3UQ867SPQQA43P2F",
-            secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-        ), "testhtsget"
     id_parse = re.match(r"(https*:\/\/)*(.+?)\/(.+?)\/(.+)$", access_id)
-    
     if id_parse is not None:
-        response = requests.get(
-            AUTHZ['CANDIG_VAULT_URL'] + f"/v1/aws/{id_parse.group(2)}/{id_parse.group(3)}",
-            headers={"Authorization": f"Bearer {VAULT_S3_TOKEN}"}
-        )
-        if response.status_code == 200:
+        endpoint = id_parse.group(2)
+        bucket = id_parse.group(3)
+        object_name = id_parse.group(4)
+        # play.min.io endpoint is the sandbox: 
+        if "play.min.io" in endpoint:
             client = Minio(
-                id_parse.group(2),
-                access_key=response.json()["data"]["access"],
-                secret_key=response.json()["data"]["secret"]
+                "play.min.io:9000",
+                access_key="Q3AM3UQ867SPQQA43P2F",
+                secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
             )
-            bucket = id_parse.group(3)
-            try:
-                result = client.stat_object(bucket_name=bucket, object_name=id_parse.group(4))
-                url = client.presigned_get_object(bucket_name=bucket, object_name=id_parse.group(4))
-            except Exception as e:
-                return {"message": str(e)}, 500
-            return {"url": url}, 200
+            bucket = "testhtsget"
         else:
-            return {"message": f"Vault error: {response.text}"}, response.status_code
+            response = requests.get(
+                AUTHZ['CANDIG_VAULT_URL'] + f"/v1/aws/{endpoint}/{bucket}",
+                headers={"Authorization": f"Bearer {VAULT_S3_TOKEN}"}
+            )
+            if response.status_code == 200:
+                client = Minio(
+                    endpoint,
+                    access_key=response.json()["data"]["access"],
+                    secret_key=response.json()["data"]["secret"]
+                )
+            else:
+                return {"message": f"Vault error: {response.text}"}, response.status_code
+        try:
+            result = client.stat_object(bucket_name=bucket, object_name=object_name)
+            url = client.presigned_get_object(bucket_name=bucket, object_name=object_name)
+        except Exception as e:
+            return {"message": str(e)}, 500
+        return {"url": url}, 200
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item"}, 400
 
