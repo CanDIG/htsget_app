@@ -204,7 +204,7 @@ def create_drs_object(obj):
             if 'region' in method:
                 new_method.region = method['region']
             if 'access_id' in method:
-                new_method.access_id = method['access_id']
+                new_method.access_id = method['access_id'].replace("/",";")
             if 'access_url' in method:
                 new_method.url = method['access_url']['url']
                 if 'headers' in method['access_url']:
