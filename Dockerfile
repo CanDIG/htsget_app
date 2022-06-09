@@ -33,13 +33,8 @@ COPY . /app/htsget_server
 WORKDIR /app/htsget_server
 
 # copy env vars into config.ini
-ARG opa_secret
-ARG opa_url
-ARG candig_auth
 ARG minio_url
 ARG minio_bucket_name
-ARG vault_url
-
 RUN touch initial_setup && pip install --no-cache-dir -r requirements.txt
 
 RUN sqlite3 data/files.db -init data/files.sql
