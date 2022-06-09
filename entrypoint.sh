@@ -13,15 +13,7 @@ if [[ -f "initial_setup" ]]; then
     sed -i s@\<OPA_URL\>@$OPA_URL@ config.ini
     sed -i s@\<VAULT_URL\>@$VAULT_URL@ config.ini
     sed -i s@\<CANDIG_AUTHORIZATION\>@$CANDIG_AUTH@ config.ini
-    sed -i s@\<MINIO_URL\>@$MINIO_URL@ config.ini
-    sed -i s@\<MINIO_BUCKET_NAME\>@$MINIO_BUCKET_NAME@ config.ini
-    
-    ACCESS=$(cat /run/secrets/access)
-    sed -i s@\<MINIO_ACCESS_KEY\>@$ACCESS@ config.ini
-    
-    SECRET=$(cat /run/secrets/secret)
-    sed -i s@\<MINIO_SECRET_KEY\>@$SECRET@ config.ini
-    
+        
     # set up crontab
     sed -i s@\<VAULT_S3_TOKEN\>@$VAULT_S3_TOKEN@ renew_token.sh
     crontab -l > cron_bkp
