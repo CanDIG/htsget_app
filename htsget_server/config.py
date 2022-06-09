@@ -11,12 +11,6 @@ CANDIG_OPA_SITE_ADMIN_KEY = os.getenv("CANDIG_OPA_SITE_ADMIN_KEY", "site_admin")
 DB_PATH = config['paths']['DBPath']
 LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
 
-MINIO = config['minio']
-MINIO_END_POINT = MINIO['EndPoint']
-MINIO_ACCESS_KEY = MINIO['AccessKey']
-MINIO_SECRET_KEY = MINIO['SecretKey']
-MINIO_BUCKET_NAME = MINIO['BucketName']
-
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 
 PORT = config['DEFAULT']['Port']

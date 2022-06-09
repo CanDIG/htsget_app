@@ -32,9 +32,6 @@ COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
 
-# copy env vars into config.ini
-ARG minio_url
-ARG minio_bucket_name
 RUN touch initial_setup && pip install --no-cache-dir -r requirements.txt
 
 RUN sqlite3 data/files.db -init data/files.sql
