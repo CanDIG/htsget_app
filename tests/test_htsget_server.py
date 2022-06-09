@@ -46,7 +46,7 @@ def test_post_update():
     "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
     "size": 100
   }
-    response = requests.post(url, json=obj)
+    response = requests.post(url, json=obj, headers={"Test_Key": TEST_KEY})
     assert response.json()["size"] == 100
 
 def invalid_start_end_data():
