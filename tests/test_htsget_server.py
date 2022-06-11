@@ -3,6 +3,8 @@ import sys
 import pytest
 import requests
 from pysam import AlignmentFile, VariantFile
+from minio import Minio
+from pathlib import Path
 
 # assumes that we are running pytest from the repo directory
 sys.path.insert(0,os.path.abspath("htsget_server"))
@@ -23,8 +25,30 @@ def test_post_objects(drs_objects):
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
         response = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
         if response.status_code == 200:
-          response = requests.request("DELETE", url, headers={"Test_Key": TEST_KEY})
-          assert response.status_code == 200
+            response = requests.request("DELETE", url, headers={"Test_Key": TEST_KEY})
+            assert response.status_code == 200
+        if "access_methods" in obj and obj["access_methods"][0]["type"] == "s3":
+            method = obj["access_methods"][0]
+            client = Minio(
+                "play.min.io:9000",
+                access_key="Q3AM3UQ867SPQQA43P2F",
+                secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+            )
+            bucket = "testhtsget"
+            try:
+                #create the minio bucket/object/etc
+                if not client.bucket_exists(bucket):
+                    if 'region' in method:
+                        client.make_bucket(bucket, location=method['region'])
+                    else:
+                        client.make_bucket(bucket)
+                file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
+                with Path.open(file, "rb") as fp:
+                    result = client.put_object(bucket, obj['id'], fp, file.stat().st_size)
+            except Exception as e:
+                print(str(e))
+                assert False
+                return {"message": str(e)}, 500
         url = f"{HOST}/ga4gh/drs/v1/objects"
         response = requests.request("POST", url, json=obj, headers={"Test_Key": TEST_KEY})
         print(f"POST {obj['name']}: {response.json()}")
@@ -156,11 +180,9 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/NA18537.vcf.gz.tbi"
-        },
-        "type": "file"
+        "access_id": "play.min.io:9000/testhtsget/NA18537.vcf.gz.tbi",
+        "type": "s3",
+        "region": "us-east-1"
       }
     ],
     "aliases": [],
@@ -178,11 +200,9 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/NA18537.vcf.gz"
-        },
-        "type": "file"
+        "access_id": "play.min.io:9000/testhtsget/NA18537.vcf.gz",
+        "type": "s3",
+        "region": "us-east-1"
       }
     ],
     "aliases": [],
@@ -229,7 +249,7 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "NA20787.vcf.gz.tbi",
+        "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz.tbi",
         "type": "s3"
       }
     ],
@@ -248,7 +268,7 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "NA20787.vcf.gz",
+        "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz",
         "type": "s3"
       }
     ],
@@ -296,7 +316,7 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "NA02102.bam.bai",
+        "access_id": "play.min.io:9000/testhtsget/NA02102.bam.bai",
         "type": "s3"
       }
     ],

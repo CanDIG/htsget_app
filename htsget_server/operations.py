@@ -170,7 +170,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     file_name = f"{id_}.{format_}"
 
     # get a file and index from drs, based on the id_
-    gen_obj = _get_genomic_obj(id_)
+    gen_obj = _get_genomic_obj(request, id_)
     if gen_obj is not None:
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
@@ -226,7 +226,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
-    gen_obj = _get_genomic_obj(id)
+    gen_obj = _get_genomic_obj(request, id)
     if gen_obj is not None:
         if _class == "header":
             urls = [{"url": f"{request.url_root}/htsget/v1/{file_type}s/data/{id}?class=header",
@@ -281,7 +281,7 @@ def _get_index(position, file_in):
 # We need to query DRS to get the bundling object, which should contain links to
 # two contents objects. We can instantiate them into temp files and pass those 
 # file handles back.
-def _get_genomic_obj(object_id):
+def _get_genomic_obj(request, object_id):
     index_file = None
     variant_file = None
     read_file = None

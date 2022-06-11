@@ -582,7 +582,7 @@ components:
             - s3
         access_id:
           type: string
-          description: The filename of the file
+          description: The location of the file, specified as endpoint/bucket/filename.
         region:
           type: string
           description: >-
