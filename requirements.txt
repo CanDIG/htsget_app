@@ -1,6 +1,6 @@
 Flask==2.1.2
 Flask-Cors==3.0.10
-minio==7.1.7
+minio==7.1.9
 pysam==0.19.0
 sqlalchemy==1.4.37
 connexion==2.13.0
