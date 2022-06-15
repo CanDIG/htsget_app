@@ -228,6 +228,8 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 
     gen_obj = _get_genomic_obj(request, id)
     if gen_obj is not None:
+        if "error" in gen_obj:
+            return gen_obj, 500
         if _class == "header":
             urls = [{"url": f"{request.url_root}/htsget/v1/{file_type}s/data/{id}?class=header",
             "class": "header"}]
