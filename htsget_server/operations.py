@@ -172,6 +172,8 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     # get a file and index from drs, based on the id_
     gen_obj = _get_genomic_obj(request, id_)
     if gen_obj is not None:
+        if "error" in gen_obj:
+            return gen_obj, 500
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
                                  mode='wb', delete=False)
