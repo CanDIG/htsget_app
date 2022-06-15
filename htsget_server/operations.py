@@ -318,17 +318,20 @@ def _get_genomic_obj(request, object_id):
                 if "access_id" in method and method["access_id"] != "":
                     # we need to go to the access endpoint to get the url and file
                     (url, status_code) = drs_operations.get_access_url(sub_obj["name"], method["access_id"])
-                    f_path = os.path.join(tempdir, sub_obj["name"])
-                    with open(f_path, mode='wb') as f:
-                        with requests.get(url["url"], stream=True) as r:
-                            with r.raw as content:
-                                f.write(content.data)
-                    if index_match is not None:
-                        index_file = f_path
-                    elif read_match is not None:
-                        read_file = f_path
-                    elif variant_match is not None:
-                        variant_file = f_path
+                    if status_code < 300:
+                        f_path = os.path.join(tempdir, sub_obj["name"])
+                        with open(f_path, mode='wb') as f:
+                            with requests.get(url["url"], stream=True) as r:
+                                with r.raw as content:
+                                    f.write(content.data)
+                        if index_match is not None:
+                            index_file = f_path
+                        elif read_match is not None:
+                            read_file = f_path
+                        elif variant_match is not None:
+                            variant_file = f_path
+                    else:
+                        return {"error": url}
                 else:
                     # the access_url has all the info we need
                     url_pieces = urlparse(method["access_url"]["url"])
