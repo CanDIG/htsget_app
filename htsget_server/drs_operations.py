@@ -54,7 +54,7 @@ def get_access_url(object_id, access_id):
             bucket = "testhtsget"
         else:
             response = requests.get(
-                AUTHZ['CANDIG_VAULT_URL'] + f"/v1/aws/{endpoint}/{bucket}",
+                AUTHZ['CANDIG_VAULT_URL'] + f"/v1/aws/{endpoint}-{bucket}",
                 headers={"Authorization": f"Bearer {VAULT_S3_TOKEN}"}
             )
             if response.status_code == 200:
