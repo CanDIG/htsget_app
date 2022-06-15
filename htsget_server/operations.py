@@ -172,6 +172,8 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     # get a file and index from drs, based on the id_
     gen_obj = _get_genomic_obj(request, id_)
     if gen_obj is not None:
+        if "error" in gen_obj:
+            return gen_obj, 500
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
                                  mode='wb', delete=False)
@@ -228,6 +230,8 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 
     gen_obj = _get_genomic_obj(request, id)
     if gen_obj is not None:
+        if "error" in gen_obj:
+            return gen_obj, 500
         if _class == "header":
             urls = [{"url": f"{request.url_root}/htsget/v1/{file_type}s/data/{id}?class=header",
             "class": "header"}]
@@ -318,17 +322,20 @@ def _get_genomic_obj(request, object_id):
                 if "access_id" in method and method["access_id"] != "":
                     # we need to go to the access endpoint to get the url and file
                     (url, status_code) = drs_operations.get_access_url(sub_obj["name"], method["access_id"])
-                    f_path = os.path.join(tempdir, sub_obj["name"])
-                    with open(f_path, mode='wb') as f:
-                        with requests.get(url["url"], stream=True) as r:
-                            with r.raw as content:
-                                f.write(content.data)
-                    if index_match is not None:
-                        index_file = f_path
-                    elif read_match is not None:
-                        read_file = f_path
-                    elif variant_match is not None:
-                        variant_file = f_path
+                    if status_code < 300:
+                        f_path = os.path.join(tempdir, sub_obj["name"])
+                        with open(f_path, mode='wb') as f:
+                            with requests.get(url["url"], stream=True) as r:
+                                with r.raw as content:
+                                    f.write(content.data)
+                        if index_match is not None:
+                            index_file = f_path
+                        elif read_match is not None:
+                            read_file = f_path
+                        elif variant_match is not None:
+                            variant_file = f_path
+                    else:
+                        return {"error": url}
                 else:
                     # the access_url has all the info we need
                     url_pieces = urlparse(method["access_url"]["url"])

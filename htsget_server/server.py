@@ -22,4 +22,4 @@ def index():
 
 if __name__ == '__main__':
     logging.basicConfig(filename='record.log', level=logging.DEBUG, format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
-    app.run(port = PORT, debug=False)
+    app.run(port = PORT, debug=True)

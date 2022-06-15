@@ -24,4 +24,5 @@ if [[ -f "initial_setup" ]]; then
     rm initial_setup
 fi
 
+bash /app/htsget_server/renew_token.sh
 python3 htsget_server/server.py $@
