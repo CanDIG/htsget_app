@@ -17,7 +17,7 @@ if [[ -f "initial_setup" ]]; then
     # set up crontab
     sed -i s@\<VAULT_S3_TOKEN\>@$VAULT_S3_TOKEN@ renew_token.sh
     crontab -l > cron_bkp
-    echo "0 */3 * * * bash /app/htsget_server/renew_token.sh" >> cron_bkp
+    echo "0 * * * * bash /app/htsget_server/renew_token.sh" >> cron_bkp
     crontab cron_bkp
     rm cron_bkp
     
@@ -26,5 +26,4 @@ if [[ -f "initial_setup" ]]; then
 fi
 
 crond
-bash /app/htsget_server/renew_token.sh
 python3 htsget_server/server.py $@ 
