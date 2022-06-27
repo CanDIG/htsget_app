@@ -34,6 +34,10 @@ def get_service_info():
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def get_object(object_id, expand=False):
+    app.logger.warning(f"looking for object {object_id}")
+    access_url_parse = re.match(r"(.+?)/access_url/(.+)", escape(object_id))
+    if access_url_parse is not None:
+        return get_access_url(access_url_parse.group(1), access_url_parse.group(2))
     new_object = database.get_drs_object(escape(object_id), expand)
     if new_object is None:
         return {"message": "No matching object found"}, 404
@@ -44,8 +48,9 @@ def list_objects():
     return database.list_drs_objects(), 200
 
 
-@app.route('/ga4gh/drs/v1/objects/<path:object_id>/access_url/<path:access_id>')
+@app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
 def get_access_url(object_id, access_id):
+    app.logger.warning(f"looking for url {access_id}")
     id_parse = re.match(r"(https*:\/\/)*(.+?)\/(.+?)\/(.+)$", escape(access_id))
     if id_parse is not None:
         endpoint = id_parse.group(2)
