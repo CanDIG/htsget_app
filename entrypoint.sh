@@ -21,8 +21,8 @@ if [[ -f "initial_setup" ]]; then
     crontab cron_bkp
     rm cron_bkp
     
-    sqlite3 /app/htsget_server/data/files.db -init $DB_PATH
-    
+    sqlite3 /app/htsget_server/data/files.db -init ${DB_PATH:-/app/htsget_server/data/files.sql}
+
     rm initial_setup
 fi
 
