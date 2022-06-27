@@ -64,7 +64,7 @@ def get_variant_service_info():
     }
 
 
-@app.route('/path/<path:id_>')
+@app.route('/reads/<path:id_>')
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
         auth_code = authz.is_authed(escape(id_), request)
@@ -75,7 +75,7 @@ def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, 
     return None, auth_code
 
 
-@app.route('/path/<path:id_>')
+@app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
         auth_code = authz.is_authed(escape(id_), request)
@@ -86,7 +86,7 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
     return None, auth_code
 
 
-@app.route('/path/<path:id_>')
+@app.route('/variants/data/<path:id_>')
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
     if id_ is not None:
         auth_code = authz.is_authed(escape(id_), request)
@@ -97,7 +97,7 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
     return None, auth_code
 
 
-@app.route('/path/<path:id_>')
+@app.route('/reads/data/<path:id_>')
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
     if id_ is not None:
         auth_code = authz.is_authed(escape(id_), request)

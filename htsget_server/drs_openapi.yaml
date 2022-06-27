@@ -198,6 +198,7 @@ components:
       description: '`DrsObject` identifier'
       schema:
         type: string
+        format: path
     Expand:
       in: query
       name: expand
@@ -221,6 +222,7 @@ components:
       description: An `access_id` from the `access_methods` list of a `DrsObject`
       schema:
         type: string
+        format: path
   securitySchemes:
     BasicAuth:
       type: http
