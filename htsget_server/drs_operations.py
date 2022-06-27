@@ -43,7 +43,7 @@ def list_objects():
 
 @app.route('/path/<path:object_id>')
 def get_access_url(object_id, access_id):
-    id_parse = re.match(r"(https*:\/\/)*(.+?)[;\/](.+?)[;\/](.+)$", access_id)
+    id_parse = re.match(r"(https*:\/\/)*(.+?)\/(.+?)\/(.+)$", access_id)
     if id_parse is not None:
         endpoint = id_parse.group(2)
         bucket = id_parse.group(3)
