@@ -34,6 +34,4 @@ WORKDIR /app/htsget_server
 
 RUN touch initial_setup && pip install --no-cache-dir -r requirements.txt
 
-RUN sqlite3 data/files.db -init data/files.sql
-
 ENTRYPOINT ["bash", "entrypoint.sh"]

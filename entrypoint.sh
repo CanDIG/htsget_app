@@ -21,8 +21,10 @@ if [[ -f "initial_setup" ]]; then
     crontab cron_bkp
     rm cron_bkp
     
+    sqlite3 /app/htsget_server/data/files.db -init $DB_PATH
+    
     rm initial_setup
 fi
 
 bash /app/htsget_server/renew_token.sh
-python3 htsget_server/server.py $@
+python3 htsget_server/server.py $@ 
