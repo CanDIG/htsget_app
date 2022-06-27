@@ -7,6 +7,8 @@ import os
 import re
 import authz
 import requests
+from markupsafe import escape
+
 
 # API endpoints
 def get_service_info():
@@ -27,8 +29,9 @@ def get_service_info():
     }
 
 
+@app.route('/path/<path:object_id>')
 def get_object(object_id, expand=False):
-    new_object = database.get_drs_object(object_id, expand)
+    new_object = database.get_drs_object(escape(object_id), expand)
     if new_object is None:
         return {"message": "No matching object found"}, 404
     return new_object, 200
@@ -38,6 +41,7 @@ def list_objects():
     return database.list_drs_objects(), 200
 
 
+@app.route('/path/<path:object_id>')
 def get_access_url(object_id, access_id):
     id_parse = re.match(r"(https*:\/\/)*(.+?)[;\/](.+?)[;\/](.+)$", access_id)
     if id_parse is not None:
@@ -82,11 +86,12 @@ def post_object():
     return new_object, 200
 
 
+@app.route('/path/<path:object_id>')
 def delete_object(object_id):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to POST"}, 403
     try:
-        new_object = database.delete_drs_object(object_id)
+        new_object = database.delete_drs_object(escape(object_id))
         return new_object, 200
     except Exception as e:
         return {"message": str(e)}, 500
