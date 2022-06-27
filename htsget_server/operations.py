@@ -2,7 +2,7 @@ import os
 import re
 import tempfile
 import requests
-from flask import request, send_file
+from flask import request, send_file, Flask
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import urlparse
 import drs_operations
@@ -10,6 +10,9 @@ import authz
 import json
 from config import CHUNK_SIZE
 from markupsafe import escape
+
+
+app = Flask(__name__)
 
 
 # Endpoints

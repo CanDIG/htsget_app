@@ -26,5 +26,5 @@ if os.environ.get("USE_MINIO_SANDBOX") == "True":
 VAULT_S3_TOKEN = os.getenv("VAULT_S3_TOKEN", "none")
 
 DEBUG_MODE = False
-if os.getenv("DEBUG_MODE", 1) > 0:
+if os.getenv("DEBUG_MODE", "1") == "1":
     DEBUG_MODE = True

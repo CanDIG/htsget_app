@@ -2,12 +2,15 @@ from minio import Minio
 import connexion
 import database
 from config import AUTHZ, VAULT_S3_TOKEN
-from flask import request
+from flask import request, Flask
 import os
 import re
 import authz
 import requests
 from markupsafe import escape
+
+
+app = Flask(__name__)
 
 
 # API endpoints
