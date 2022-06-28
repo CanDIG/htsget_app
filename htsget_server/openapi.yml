@@ -557,6 +557,7 @@ components:
             required: true
             schema:
                 type: string
+                format: path
         readsFormatParam:
             in: query
             name: format

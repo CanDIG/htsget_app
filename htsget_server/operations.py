@@ -2,13 +2,17 @@ import os
 import re
 import tempfile
 import requests
-from flask import request, send_file
+from flask import request, send_file, Flask
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import urlparse
 import drs_operations
 import authz
 import json
 from config import CHUNK_SIZE
+from markupsafe import escape
+
+
+app = Flask(__name__)
 
 
 # Endpoints
@@ -60,31 +64,47 @@ def get_variant_service_info():
     }
 
 
+@app.route('/reads/<path:id_>')
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    auth_code = authz.is_authed(id_, request)
-    if auth_code == 200:
-        return _get_urls("read", id_, reference_name, start, end, class_)
+    if id_ is not None:
+        auth_code = authz.is_authed(escape(id_), request)
+        if auth_code == 200:
+            return _get_urls("read", escape(id_), reference_name, start, end, class_)
+    else:
+        return None, 404
     return None, auth_code
 
 
+@app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
-    auth_code = authz.is_authed(id_, request)
-    if auth_code == 200:
-        return _get_urls("variant", id_, reference_name, start, end, class_)
+    if id_ is not None:
+        auth_code = authz.is_authed(escape(id_), request)
+        if auth_code == 200:
+            return _get_urls("variant", escape(id_), reference_name, start, end, class_)
+    else:
+        return None, 404
     return None, auth_code
 
 
+@app.route('/variants/data/<path:id_>')
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
-    auth_code = authz.is_authed(id_, request)
-    if auth_code == 200:
-        return _get_data(id_, reference_name, start, end, class_, format_)
+    if id_ is not None:
+        auth_code = authz.is_authed(escape(id_), request)
+        if auth_code == 200:
+            return _get_data(escape(id_), reference_name, start, end, class_, format_)
+    else:
+        return None, 404
     return None, auth_code
 
 
+@app.route('/reads/data/<path:id_>')
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
-    auth_code = authz.is_authed(id_, request)
-    if auth_code == 200:
-        return _get_data(id_, reference_name, start, end, class_, format_)
+    if id_ is not None:
+        auth_code = authz.is_authed(escape(id_), request)
+        if auth_code == 200:
+            return _get_data(escape(id_), reference_name, start, end, class_, format_)
+    else:
+        return None, 404
     return None, auth_code
 
 
