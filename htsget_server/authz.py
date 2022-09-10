@@ -53,7 +53,10 @@ def is_site_admin(request):
         token = get_auth_token(request.headers)
         response = requests.post(
             AUTHZ['CANDIG_OPA_URL'] + "/v1/data/idp/" + CANDIG_OPA_SITE_ADMIN_KEY,
-        headers={"Authorization": f"Bearer {AUTHZ['CANDIG_OPA_SECRET']}"},
+            headers={
+                "X-Opa": f"{AUTHZ['CANDIG_OPA_SECRET']}",
+                "Authorization": f"Bearer {token}"
+            },
             json={
                 "input": {
                         "token": token
@@ -91,7 +94,10 @@ def get_opa_datasets(token, path, method):
     }
     response = requests.post(
         AUTHZ['CANDIG_OPA_URL'] + "/v1/data/permissions/datasets",
-        headers={"Authorization": f"Bearer {AUTHZ['CANDIG_OPA_SECRET']}"},
+        headers={
+            "X-Opa": f"{AUTHZ['CANDIG_OPA_SECRET']}",
+            "Authorization": f"Bearer {token}"
+        },
         json=body
     )
     response.raise_for_status()
