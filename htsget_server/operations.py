@@ -341,7 +341,7 @@ def _get_genomic_obj(request, object_id):
             for method in sub_obj["access_methods"]:
                 if "access_id" in method and method["access_id"] != "":
                     # we need to go to the access endpoint to get the url and file
-                    (url, status_code) = drs_operations.get_access_url(sub_obj["name"], method["access_id"])
+                    (url, status_code) = drs_operations.get_access_url(None, method["access_id"])
                     if status_code < 300:
                         f_path = os.path.join(tempdir, sub_obj["name"])
                         with open(f_path, mode='wb') as f:

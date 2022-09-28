@@ -55,8 +55,6 @@ def get_access_url(object_id, access_id):
         auth_code = authz.is_authed(escape(object_id), request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
-    else:
-        return {"message": f"No object specified"}, 404
     id_parse = re.match(r"(https*:\/\/)*(.+?)\/(.+?)\/(.+)$", escape(access_id))
     if id_parse is not None:
         endpoint = id_parse.group(2)
@@ -72,7 +70,7 @@ def get_access_url(object_id, access_id):
             bucket = "testhtsget"
         else:
             response = requests.get(
-                f"AUTHZ['CANDIG_VAULT_URL']/v1/aws/{endpoint}-{bucket}",
+                f"{AUTHZ['CANDIG_VAULT_URL']}/v1/aws/{endpoint}-{bucket}",
                 headers={"Authorization": f"Bearer {VAULT_S3_TOKEN}"}
             )
             if response.status_code == 200:
