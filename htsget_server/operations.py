@@ -193,7 +193,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     gen_obj = _get_genomic_obj(request, id_)
     if gen_obj is not None:
         if "error" in gen_obj:
-            return gen_obj, 500
+            return gen_obj['error'], gen_obj['status_code']
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
                                  mode='wb', delete=False)
@@ -251,7 +251,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     gen_obj = _get_genomic_obj(request, id)
     if gen_obj is not None:
         if "error" in gen_obj:
-            return gen_obj, 500
+            return gen_obj['error'], gen_obj['status_code']
         if _class == "header":
             urls = [{"url": f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}?class=header",
             "class": "header"}]
@@ -355,7 +355,7 @@ def _get_genomic_obj(request, object_id):
                         elif variant_match is not None:
                             variant_file = f_path
                     else:
-                        return {"error": url}
+                        return {"error": url, "status_code": status_code}
                 else:
                     # the access_url has all the info we need
                     url_pieces = urlparse(method["access_url"]["url"])
