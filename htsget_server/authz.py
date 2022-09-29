@@ -1,5 +1,5 @@
 import json
-from config import AUTHZ, TEST_KEY
+from config import AUTHZ, TEST_KEY, VAULT_S3_TOKEN
 from flask import Flask
 import drs_operations
 import authx.auth
@@ -53,3 +53,8 @@ def is_site_admin(request):
     if "Authorization" in request.headers:
         return authx.auth.is_site_admin(request, AUTHZ['CANDIG_OPA_URL'], AUTHZ['CANDIG_OPA_SECRET'])
     return False
+
+
+
+def get_aws_credential(request, endpoint, bucket):
+    return authx.auth.get_aws_credential(request, endpoint, bucket, VAULT_S3_TOKEN)

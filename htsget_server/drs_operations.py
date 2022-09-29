@@ -69,18 +69,15 @@ def get_access_url(object_id, access_id):
             )
             bucket = "testhtsget"
         else:
-            response = requests.get(
-                f"{AUTHZ['CANDIG_VAULT_URL']}/v1/aws/{endpoint}-{bucket}",
-                headers={"Authorization": f"Bearer {VAULT_S3_TOKEN}"}
-            )
-            if response.status_code == 200:
+            response, status_code = authz.get_aws_credential(request, endpoint, bucket)
+            if status_code == 200:
                 client = Minio(
                     endpoint,
-                    access_key=response.json()["data"]["access"],
-                    secret_key=response.json()["data"]["secret"]
+                    access_key=response["access"],
+                    secret_key=response["secret"]
                 )
             else:
-                return {"message": f"Vault error: {response.text}"}, response.status_code
+                return response, status_code
         try:
             result = client.stat_object(bucket_name=bucket, object_name=object_name)
             url = client.presigned_get_object(bucket_name=bucket, object_name=object_name)
