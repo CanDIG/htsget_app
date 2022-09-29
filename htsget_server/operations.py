@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import drs_operations
 import authz
 import json
-from config import CHUNK_SIZE
+from config import CHUNK_SIZE, HTSGET_URL
 from markupsafe import escape
 
 
@@ -118,7 +118,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
     """
-    url = f"{request.url_root}/htsget/v1/{file_type}s/data/{id}?referenceName={reference_name}&start={slice_start}&end={slice_end}"
+    url = f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}?referenceName={reference_name}&start={slice_start}&end={slice_end}"
     arr.append({'url': url, })
 
 
@@ -144,7 +144,7 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
             slice_start = slice_end
         _create_slice(urls, id, reference_name, slice_start, end, file_type)
     else:  # One slice only
-        url = f"{request.url_root}/htsget/v1/{file_type}s/data/{id}"
+        url = f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
         if reference_name and start and end:
             url += f"?referenceName={reference_name}&start={start}&end={end}"
         urls.append({"url": url})
@@ -253,7 +253,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
         if "error" in gen_obj:
             return gen_obj, 500
         if _class == "header":
-            urls = [{"url": f"{request.url_root}/htsget/v1/{file_type}s/data/{id}?class=header",
+            urls = [{"url": f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}?class=header",
             "class": "header"}]
         else:
                 file_in = gen_obj["file"]
