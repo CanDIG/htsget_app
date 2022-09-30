@@ -8,10 +8,6 @@ info:
     url: 'https://raw.githubusercontent.com/ga4gh/data-repository-service-schemas/master/LICENSE'
 servers:
   - url: /ga4gh/drs/v1
-security:
-  - {}
-  - BasicAuth: []
-  - BearerAuth: []
 paths:
   /service-info:
     get:
@@ -26,12 +22,12 @@ paths:
               schema:
                 type: object
   /objects:
-    parameters:
-      - $ref: '#/components/parameters/BearerAuth'
     get:
       summary: List all DRS objects
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+      security:
+        - BearerAuth: []
       operationId: drs_operations.list_objects
       responses:
         200:
@@ -50,6 +46,8 @@ paths:
     post:
         summary: Add a DrsObject to the db
         operationId: drs_operations.post_object
+        security:
+          - BearerAuth: []
         requestBody:
             $ref: '#/components/requestBodies/DrsObjectRequest'
         responses:
@@ -62,12 +60,13 @@ paths:
   /objects/{object_id}:
     parameters:
         - $ref: '#/components/parameters/ObjectId'
-        - $ref: '#/components/parameters/BearerAuth'
     delete:
       summary: Delete a DrsObject.
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.delete_object
+      security:
+        - BearerAuth: []
       responses:
           200:
             description: The `DrsObject` was found successfully
@@ -80,6 +79,8 @@ paths:
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.get_object
+      security:
+        - BearerAuth: []
       parameters:
         - $ref: '#/components/parameters/Expand'
       responses:
@@ -99,8 +100,9 @@ paths:
       description: >-
         Returns a URL that can be used to fetch the bytes of a `DrsObject`.
       operationId: drs_operations.get_access_url
+      security:
+        - BearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/BearerAuth'
         - $ref: '#/components/parameters/ObjectId'
         - $ref: '#/components/parameters/AccessId'
       responses:
@@ -122,11 +124,11 @@ paths:
       tags:
         - Objects
   /datasets:
-    parameters:
-      - $ref: '#/components/parameters/BearerAuth'
     get:
       description: List all datasets available
       operationId: drs_operations.list_datasets
+      security:
+        - BearerAuth: []
       responses:
         200:
           description: ok
@@ -140,6 +142,8 @@ paths:
     post:
       description: Create a dataset
       operationId: drs_operations.post_dataset
+      security:
+        - BearerAuth: []
       requestBody:
           $ref: '#/components/requestBodies/DatasetRequest'
       responses:
@@ -153,10 +157,11 @@ paths:
   /datasets/{dataset_id}:
     parameters:
       - $ref: "#/components/parameters/DatasetId"
-      - $ref: '#/components/parameters/BearerAuth'
     get:
       description: Describe a dataset
       operationId: drs_operations.get_dataset
+      security:
+        - BearerAuth: []
       responses:
         200:
           description: ok
@@ -169,6 +174,8 @@ paths:
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.delete_dataset
+      security:
+        - BearerAuth: []
       responses:
           200:
             description: The dataset was deleted successfully
@@ -178,12 +185,6 @@ paths:
                   type: object
 components:
   parameters:
-    BearerAuth:
-      in: header
-      name: Authorization
-      schema:
-        type: string
-        description: A string of the format 'Bearer <token>'
     DatasetId:
       in: path
       name: dataset_id
@@ -224,12 +225,6 @@ components:
         type: string
         format: path
   securitySchemes:
-    BasicAuth:
-      type: http
-      scheme: basic
-      description: |
-        A valid authorization token must be passed in the 'Authorization' header,
-        e.g. "Basic ${token_string}"
     BearerAuth:
       type: http
       scheme: bearer

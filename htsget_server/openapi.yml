@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-    version: 1.0.0
+    version: 1.1.0
     title: candig htsget
 servers:
   - url: /htsget/v1
@@ -25,6 +25,8 @@ paths:
 
     /reads/{id}:
         get:
+            security:
+                - BearerAuth: []
             tags:
                 - Reads
             summary: Get alignment (reads) file download ticket
@@ -33,7 +35,6 @@ paths:
                 Gets an htsget ticket containing URLs that will enable the
                 transfer of a requested alignment file
             parameters:
-                - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/readsFormatParam'
                 - $ref: '#/components/parameters/classParam'
@@ -85,47 +86,48 @@ paths:
 #                    $ref: '#/components/responses/5xxServerError'
 
     /reads/data/{id}:
-       get:
-           tags:
-               - Reads
-               - Streaming
-           summary: Stream alignment file part
-           operationId: "operations.get_reads_data"
-           description: |
-               Stream a single file part of a requested alignment file. Streams
-               requested region(s), fields, and tags.
-
-               NOTE: This endpoint, while public, should not be requested as an
-               initial request. Rather, the ticket endpoint `/reads/{id}` will
-               yield `URLs` to the `/reads/data/{id}` endpoint.
-           parameters:
-               - $ref: '#/components/parameters/authHeaderParam'
-               - $ref: '#/components/parameters/idPathParam'
-               - $ref: '#/components/parameters/readsFormatParam'
-               - $ref: '#/components/parameters/classParam'
-               - $ref: '#/components/parameters/referenceNameParam'
-               - $ref: '#/components/parameters/startParam'
-               - $ref: '#/components/parameters/endParam'
+        get:
+            tags:
+                - Reads
+                - Streaming
+            summary: Stream alignment file part
+            operationId: "operations.get_reads_data"
+            security:
+                - BearerAuth: []
+            description: |
+                Stream a single file part of a requested alignment file. Streams
+                requested region(s), fields, and tags.
+ 
+                NOTE: This endpoint, while public, should not be requested as an
+                initial request. Rather, the ticket endpoint `/reads/{id}` will
+                yield `URLs` to the `/reads/data/{id}` endpoint.
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+                - $ref: '#/components/parameters/readsFormatParam'
+                - $ref: '#/components/parameters/classParam'
+                - $ref: '#/components/parameters/referenceNameParam'
+                - $ref: '#/components/parameters/startParam'
+                - $ref: '#/components/parameters/endParam'
 #               - $ref: '#/components/parameters/readsFieldsParam'
 #               - $ref: '#/components/parameters/readsTagsParam'
 #               - $ref: '#/components/parameters/readsNoTagsParam'
 #               - $ref: '#/components/parameters/htsgetBlockClassHeaderParam'
 #               - $ref: '#/components/parameters/htsgetCurrentBlockHeaderParam'
 #               - $ref: '#/components/parameters/htsgetTotalBlocksHeaderParam'
-           responses:
-               200:
-                   description: Successfully streamed file part of large genomic alignment file
-                   content:
-                       application/octet-stream:
-                           schema:
-                               type: string
-                               format: binary
-               400:
-                   $ref: '#/components/responses/400BadRequestError'
-               404:
-                   $ref: '#/components/responses/404NotFoundError'
-               5XX:
-                   $ref: '#/components/responses/5xxServerError'
+            responses:
+                200:
+                    description: Successfully streamed file part of large genomic alignment file
+                    content:
+                        application/octet-stream:
+                            schema:
+                                type: string
+                                format: binary
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
 
     /variants/service-info:
        get:
@@ -151,11 +153,12 @@ paths:
                 - Variants
             summary: Get variant file download ticket
             operationId: "operations.get_variants"
+            security:
+                - BearerAuth: []
             description: |
                 Gets an htsget ticket containing URLs that will enable the
                 transfer of a requested variant file
             parameters:
-                - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/variantsFormatParam'
                 - $ref: '#/components/parameters/classParam'
@@ -171,7 +174,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: object
+                                $ref: '#/components/schemas/HtsgetVariantsTicket'
                 400:
                     $ref: '#/components/responses/400BadRequestError'
                 404:
@@ -186,6 +189,8 @@ paths:
                 - Streaming
             summary: Stream variant file part
             operationId: "operations.get_variants_data"
+            security:
+                - BearerAuth: []
             description: |
                 Stream a single file part of a requested variant file. Streams
                 requested region(s).
@@ -194,7 +199,6 @@ paths:
                 initial request. Rather, the ticket endpoint `/variants/{id}`
                 will yields `URLs` to the `/variants/data/{id}` endpoint.
             parameters:
-                - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/variantsFormatParam'
                 - $ref: '#/components/parameters/classParam'
@@ -268,8 +272,12 @@ tags:
       description: |
         Large byte transfers of genomic files
 components:
+    securitySchemes:
+      BearerAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT
     schemas:
-
         # LOW-LEVEL, REUSABLE SCHEMAS
         ReadsFormats:
             type: string
@@ -645,12 +653,6 @@ components:
             description: Placeholder, currently does not do anything
             schema:
                 $ref: '#/components/schemas/ReadsFields'
-        authHeaderParam:
-            in: header
-            name: Authorization
-            schema:
-                type: string
-                description: A string of the format 'Bearer <token>'
         htsgetBlockClassHeaderParam:
             in: header
             name: HtsgetBlockClass
