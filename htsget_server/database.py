@@ -10,6 +10,124 @@ engine = create_engine(DB_PATH, echo=False)
 ObjectDBBase = declarative_base()
 
 
+## Variant search entities
+
+## relationships
+# each contig is in many variantfiles and each variantfile contains many contigs
+contig_variantfile_association = Table(
+    'contig_variantfile_association', ObjectDBBase.metadata,
+    Column('contig_id', ForeignKey('contig.id'), primary_key=True),
+    Column('variantfile_id', ForeignKey('variantfile.id'), primary_key=True)
+)
+
+
+# each header is in many variantfiles and each variantfile contains many headers
+header_variantfile_association = Table(
+    'header_variantfile_association', ObjectDBBase.metadata,
+    Column('header_id', ForeignKey('header.id'), primary_key=True),
+    Column('variantfile_id', ForeignKey('variantfile.id'), primary_key=True)
+)
+
+
+class Alias(ObjectDBBase):
+    __tablename__ = 'alias'
+    id = Column(String, primary_key=True)
+
+    # an alias maps to one contig
+    contig_id = Column(String, ForeignKey('contig.id'))
+    contig = relationship(
+        "Contig",
+        back_populates="aliases",
+        uselist=False
+    )
+
+
+class Contig(ObjectDBBase):
+    __tablename__ = 'contig'
+    id = Column(String, primary_key=True)
+
+    # a contig can have many aliases
+    aliases = relationship(
+        "Alias",
+        back_populates="contig"
+    )
+    
+    # a contig can be part of many variantfiles
+    associated_variantfiles = relationship("VariantFile",
+        secondary=contig_variantfile_association,
+        back_populates="associated_contigs"
+    )
+
+
+class VariantFile(ObjectDBBase):
+    __tablename__ = 'variantfile'
+    id = Column(Integer, primary_key=True)
+
+    # a variantfile maps to a drs object
+    drs_object_id = Column(Integer, ForeignKey('drs_object.id'))
+    drs_object = relationship(
+        "DrsObject",
+        back_populates="variantfile",
+        uselist=False
+    )
+    
+    # a variantfile can contain many contigs
+    associated_contigs = relationship("Contig",
+        secondary=contig_variantfile_association,
+        back_populates="associated_variantfiles"
+    )
+    
+    # a variantfile can contain many headers
+    associated_headers = relationship("Header",
+        secondary=header_variantfile_association,
+        back_populates="associated_variantfiles"
+    )
+    
+    # a variantfile can contain several samples
+    samples = relationship(
+        "Sample",
+        back_populates="variantfile"
+    )
+
+
+class Position(ObjectDBBase):
+    __tablename__ = 'position'
+    id = Column(Integer, primary_key=True)
+    
+    # a position is part of a single contig
+    contig_id = Column(String, ForeignKey('contig.id'))
+    contig = relationship(
+        "Contig",
+        back_populates="position",
+        uselist=False
+    )
+
+
+class Sample(ObjectDBBase):
+    __tablename__ = 'sample'
+    id = Column(String, primary_key=True)
+    
+    # a sample is in a single variantfile
+    variantfile_id = Column(String, ForeignKey('variantfile.id'))
+    variantfile = relationship(
+        "VariantFile",
+        back_populates="sample",
+        uselist=False
+    )
+
+
+class Header(ObjectDBBase):
+    __tablename__ = 'header'
+    id = Column(Integer, primary_key=True)
+    text = Column(String, primary_key=True)
+    
+    # a header is in many variantfiles
+    associated_variantfiles = relationship("Variant",
+        secondary=header_variantfile_association,
+        back_populates="associated_variantfiles"
+    )
+
+
 ## CanDIG datasets entities
 dataset_association = Table(
     'dataset_association', ObjectDBBase.metadata,
@@ -282,3 +400,6 @@ def delete_dataset(dataset_id):
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))
+
+
+## def get_variantfile

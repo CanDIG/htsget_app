@@ -61,4 +61,51 @@ CREATE TABLE dataset_association (
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 INSERT INTO dataset_association VALUES('controlled4','NA18537');
+CREATE TABLE contig (
+        id VARCHAR NOT NULL, 
+        PRIMARY KEY (id)
+);
+CREATE TABLE alias (
+	id VARCHAR NOT NULL, 
+	contig_id VARCHAR, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(contig_id) REFERENCES contig (id)
+);
+CREATE TABLE variantfile (
+	id INTEGER NOT NULL, 
+	drs_object_id INTEGER, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
+);
+CREATE TABLE position (
+	id INTEGER NOT NULL, 
+	contig_id VARCHAR, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(contig_id) REFERENCES contig (id)
+);
+CREATE TABLE header (
+	id INTEGER NOT NULL, 
+	text VARCHAR NOT NULL, 
+	PRIMARY KEY (id, text)
+);
+CREATE TABLE contig_variantfile_association (
+	contig_id VARCHAR NOT NULL, 
+	variantfile_id INTEGER NOT NULL, 
+	PRIMARY KEY (contig_id, variantfile_id), 
+	FOREIGN KEY(contig_id) REFERENCES contig (id), 
+	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
+);
+CREATE TABLE header_variantfile_association (
+	header_id INTEGER NOT NULL, 
+	variantfile_id INTEGER NOT NULL, 
+	PRIMARY KEY (header_id, variantfile_id), 
+	FOREIGN KEY(header_id) REFERENCES header (id), 
+	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
+);
+CREATE TABLE sample (
+	id VARCHAR NOT NULL, 
+	variantfile_id VARCHAR, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
+);
 COMMIT;
