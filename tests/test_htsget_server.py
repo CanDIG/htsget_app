@@ -13,6 +13,7 @@ from config import PORT, LOCAL_FILE_PATH
 HOST = f"http://localhost:{PORT}"
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
 CWD = os.getcwd()
+headers={"Test_Key": TEST_KEY, "Authorization": "Bearer testtest"}
 
 def test_post_objects(drs_objects):
     """
@@ -20,12 +21,12 @@ def test_post_objects(drs_objects):
     """
     # clean up old objects in db:
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    response = requests.request("GET", url)
+    response = requests.request("GET", url, headers=headers)
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
-        response = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
+        response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
-            response = requests.request("DELETE", url, headers={"Test_Key": TEST_KEY})
+            response = requests.request("DELETE", url, headers=headers)
             assert response.status_code == 200
         if "access_methods" in obj and obj["access_methods"][0]["type"] == "s3":
             method = obj["access_methods"][0]
@@ -50,7 +51,7 @@ def test_post_objects(drs_objects):
                 assert False
                 return {"message": str(e)}, 500
         url = f"{HOST}/ga4gh/drs/v1/objects"
-        response = requests.request("POST", url, json=obj, headers={"Test_Key": TEST_KEY})
+        response = requests.request("POST", url, json=obj, headers=headers)
         print(f"POST {obj['name']}: {response.json()}")
         assert response.status_code == 200
 
@@ -70,7 +71,7 @@ def test_post_update():
     "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
     "size": 100
   }
-    response = requests.post(url, json=obj, headers={"Test_Key": TEST_KEY})
+    response = requests.post(url, json=obj, headers=headers)
     assert response.json()["size"] == 100
 
 def invalid_start_end_data():
@@ -85,8 +86,8 @@ def test_invalid_start_end(start, end):
     url_v = f"{HOST}/htsget/v1/variants/NA18537?referenceName=21&start={start}&end={end}"
     url_r = f"{HOST}/htsget/v1/reads/NA18537?referenceName=21&start={start}&end={end}"
 
-    res_v = requests.request("GET", url_v, headers={"Test_Key": TEST_KEY})
-    res_r = requests.request("GET", url_r, headers={"Test_Key": TEST_KEY})
+    res_v = requests.request("GET", url_v, headers=headers)
+    res_r = requests.request("GET", url_r, headers=headers)
 
     if end < start:
         assert res_v.status_code == 400
@@ -107,8 +108,8 @@ def test_existent_file(id, expected_status):
     url_v = f"{HOST}/htsget/v1/variants/{id}?referenceName=21&start=10235878&end=45412368"
     url_r = f"{HOST}/htsget/v1/reads/{id}?referenceName=21&start=10235878&end=45412368"
 
-    res_v = requests.request("GET", url_v, headers={"Test_Key": TEST_KEY})
-    res_r = requests.request("GET", url_r, headers={"Test_Key": TEST_KEY})
+    res_v = requests.request("GET", url_v, headers=headers)
+    res_r = requests.request("GET", url_r, headers=headers)
     assert res_v.status_code == expected_status or res_r.status_code == expected_status
 
 
@@ -126,7 +127,7 @@ def test_pull_slices_data():
 @pytest.mark.parametrize('params, id_, file_extension, file_type', test_pull_slices_data())
 def test_pull_slices(params, id_, file_extension, file_type):
     url = f"{HOST}/htsget/v1/{file_type}s/{id_}"    
-    res = requests.request("GET", url, params=params, headers={"Test_Key": TEST_KEY})
+    res = requests.request("GET", url, params=params, headers=headers)
     res = res.json()    
     urls = res['htsget']['urls']
 
@@ -135,7 +136,7 @@ def test_pull_slices(params, id_, file_extension, file_type):
     equal = True
     for i in range(len(urls)):
         url = urls[i]['url']
-        res = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
+        res = requests.request("GET", url, headers=headers)
 
         f_slice_name = f"{id_}_{i}{file_extension}"
         f_slice_path = f"./{f_slice_name}"
@@ -167,7 +168,7 @@ def test_get_read_header():
     A header of a SAM file should contain at least one @SQ line
     """
     url = f"{HOST}/htsget/v1/reads/data/NA02102?class=header&format=SAM"
-    res = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
+    res = requests.request("GET", url, headers=headers)
     for line in res.iter_lines():
         if "@SQ" in line.decode("utf-8"):
             assert True
