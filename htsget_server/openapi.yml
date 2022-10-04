@@ -182,6 +182,32 @@ paths:
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
 
+    /variants/{id}/index:
+        get:
+            tags:
+                - Variants
+            summary: Index variant file for search
+            operationId: "operations.index_variants"
+            security:
+                - BearerAuth: []
+            description: |
+                Index a variant file for searching
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+            responses:
+                200:
+                    description: Successfully indexed variant file
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+
     /variants/data/{id}:
         get:
             tags:

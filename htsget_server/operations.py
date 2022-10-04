@@ -6,6 +6,7 @@ from flask import request, send_file, Flask
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import urlparse
 import drs_operations
+import database
 import authz
 import json
 from config import CHUNK_SIZE, HTSGET_URL
@@ -92,6 +93,25 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
         auth_code = authz.is_authed(escape(id_), request)
         if auth_code == 200:
             return _get_data(escape(id_), reference_name, start, end, class_, format_)
+    else:
+        return None, 404
+    return None, auth_code
+
+
+@app.route('/variants/<path:id_>/index')
+def index_variants(id_=None):
+    if not authz.is_site_admin(request):
+        return {"message": "User is not authorized to index variants"}, 403
+    if id_ is not None:
+        # look for existing variantfile
+        varfile = database.get_variant_file(_id)
+        if varfile is not None:
+            return varfile, 200
+        # if none, look for a genomic drs object and create a variantfile from that
+        gen_obj = _get_genomic_obj(request, id_)
+        if gen_obj is None:
+            return {"message": f"No variant with id {id_} exists"}, 404
+        varfile = database.create_variantfile({"id": gen_obj["id"]})
     else:
         return None, 404
     return None, auth_code

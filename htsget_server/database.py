@@ -402,4 +402,87 @@ def delete_dataset(dataset_id):
         return json.loads(str(new_object))
 
 
-## def get_variantfile
+def get_variantfile(variantfile_id):
+    with Session() as session:
+        result = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def create_variantfile(obj):
+    with Session() as session:
+        new_variantfile = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
+        if new_variantfile is None:
+            new_variantfile = VariantFile()
+        new_variantfile.id = obj['id']
+        new_drs = session.query(DrsObject).filter_by(self_uri=obj['id']).one_or_none()
+        if new_drs is not None:
+            new_variantfile.drs_object_id = new_drs.id
+        session.add(new_variantfile)
+        session.commit()
+        result = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
+        if result is not None:
+            return json.loads(str(result))
+        return None
+
+
+def delete_variantfile(variantfile_id):
+    with Session() as session:
+        new_object = session.query(VariantFile).filter_by(id=variantfile_id).one()
+        session.delete(new_object)
+        session.commit()
+        return json.loads(str(new_object))
+
+
+def list_variantfiles():
+    with Session() as session:
+        result = session.query(VariantFile).all()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def get_sample(sample_id):
+    with Session() as session:
+        result = session.query(Sample).filter_by(id=sample_id).one_or_none()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def create_sample(obj):
+    with Session() as session:
+        new_sample = session.query(Sample).filter_by(id=obj['id']).one_or_none()
+        if new_sample is None:
+            new_sample = Sample()
+        new_sample.id = obj['id']
+        new_variantfile = session.query(VariantFile).filter_by(self_uri=obj['variantfile_id']).one_or_none()
+        if new_variantfile is not None:
+            new_sample.variantfile_id = new_variantfile.id
+        session.add(new_sample)
+        session.commit()
+        result = session.query(Sample).filter_by(id=obj['id']).one_or_none()
+        if result is not None:
+            return json.loads(str(result))
+        return None
+
+
+def delete_sample(sample_id):
+    with Session() as session:
+        new_object = session.query(Sample).filter_by(id=sample_id).one()
+        session.delete(new_object)
+        session.commit()
+        return json.loads(str(new_object))
+
+
+def list_samples():
+    with Session() as session:
+        result = session.query(Sample).all()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
