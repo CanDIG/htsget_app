@@ -6,3 +6,4 @@ sqlalchemy==1.4.37
 connexion==2.13.0
 MarkupSafe==2.1.1
 candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@main
+pytest==7.0.1
