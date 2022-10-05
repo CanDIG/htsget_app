@@ -185,8 +185,6 @@ paths:
                 - Variants
             summary: Index variant file for search
             operationId: "operations.index_variants"
-            security:
-                - BearerAuth: []
             description: |
                 Index a variant file for searching
             parameters:
