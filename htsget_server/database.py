@@ -57,6 +57,12 @@ class Contig(ObjectDBBase):
         secondary=contig_variantfile_association,
         back_populates="associated_contigs"
     )
+    
+    # a contig can have many positions
+    positions = relationship(
+        "Position",
+        back_populates="contig"
+    )
 
 
 class VariantFile(ObjectDBBase):
@@ -98,7 +104,7 @@ class Position(ObjectDBBase):
     contig_id = Column(String, ForeignKey('contig.id'))
     contig = relationship(
         "Contig",
-        back_populates="position",
+        back_populates="positions",
         uselist=False
     )
 
@@ -111,7 +117,7 @@ class Sample(ObjectDBBase):
     variantfile_id = Column(String, ForeignKey('variantfile.id'))
     variantfile = relationship(
         "VariantFile",
-        back_populates="sample",
+        back_populates="samples",
         uselist=False
     )
 
@@ -122,9 +128,9 @@ class Header(ObjectDBBase):
     text = Column(String, primary_key=True)
     
     # a header is in many variantfiles
-    associated_variantfiles = relationship("Variant",
+    associated_variantfiles = relationship("VariantFile",
         secondary=header_variantfile_association,
-        back_populates="associated_variantfiles"
+        back_populates="associated_headers"
     )
 
 
@@ -175,6 +181,7 @@ class DrsObject(ObjectDBBase):
         secondary=dataset_association,
         back_populates='associated_drs'
     )
+    variantfile = relationship("VariantFile", back_populates="drs_object")
 
     def __repr__(self):
         result = {
