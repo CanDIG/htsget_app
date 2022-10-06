@@ -5,7 +5,6 @@ python:
 cache: pip
 install:
   - pip install -r requirements.txt
-  - pip install -r requirements_dev.txt
 
 script:
   - python htsget_server/server.py &
