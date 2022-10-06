@@ -175,6 +175,14 @@ def test_get_read_header():
             return
     assert False
 
+
+def test_index_variantfile():
+    url = f"{HOST}/htsget/v1/variants/NA18537/index"
+    
+    response = requests.get(url, headers=headers)
+    assert response.json()["id"] == 'NA18537'
+
+
 @pytest.fixture
 def drs_objects():
     return [

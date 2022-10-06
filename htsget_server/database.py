@@ -5,7 +5,7 @@ from datetime import datetime
 from config import DB_PATH
 
 
-engine = create_engine(DB_PATH, echo=False)
+engine = create_engine(DB_PATH, echo=True)
 
 ObjectDBBase = declarative_base()
 
@@ -67,10 +67,10 @@ class Contig(ObjectDBBase):
 
 class VariantFile(ObjectDBBase):
     __tablename__ = 'variantfile'
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
 
     # a variantfile maps to a drs object
-    drs_object_id = Column(Integer, ForeignKey('drs_object.id'))
+    drs_object_id = Column(String, ForeignKey('drs_object.id'))
     drs_object = relationship(
         "DrsObject",
         back_populates="variantfile",
@@ -94,6 +94,20 @@ class VariantFile(ObjectDBBase):
         "Sample",
         back_populates="variantfile"
     )
+    def __repr__(self):
+        result = {
+            'id': self.id,
+            'drsobject': self.drs_object_id,
+            'contigs': [],
+            'headers': []
+        }
+        for contig_assoc in self.associated_contigs:
+            result['contigs'].append(contig_assoc.id)
+        for header_assoc in self.associated_headers:
+            result['headers'].append(header_assoc.text)
+
+        return json.dumps(result)
+
 
 
 class Position(ObjectDBBase):
@@ -107,6 +121,12 @@ class Position(ObjectDBBase):
         back_populates="positions",
         uselist=False
     )
+    def __repr__(self):
+        result = {
+            'id': self.id,
+            'contig_id': self.contig_id
+        }
+        return json.dumps(result)
 
 
 class Sample(ObjectDBBase):
@@ -120,6 +140,12 @@ class Sample(ObjectDBBase):
         back_populates="samples",
         uselist=False
     )
+    def __repr__(self):
+        result = {
+            'id': self.id,
+            'variantfile_id': self.variantfile_id
+        }
+        return json.dumps(result)
 
 
 class Header(ObjectDBBase):
@@ -132,6 +158,15 @@ class Header(ObjectDBBase):
         secondary=header_variantfile_association,
         back_populates="associated_headers"
     )
+    def __repr__(self):
+        result = {
+            'id': self.id,
+            'text': self.text,
+            'variantfiles': []
+        }
+        for varfile_assoc in self.associated_variantfiles:
+            result['variantfiles'].append(varfile_assoc.id)
+        return json.dumps(result)
 
 
 ## CanDIG datasets entities
@@ -424,9 +459,11 @@ def create_variantfile(obj):
         if new_variantfile is None:
             new_variantfile = VariantFile()
         new_variantfile.id = obj['id']
-        new_drs = session.query(DrsObject).filter_by(self_uri=obj['id']).one_or_none()
+        new_drs = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_drs is not None:
             new_variantfile.drs_object_id = new_drs.id
+        else:
+            raise Exception(f"Cannot create variantfile {obj['id']}: no corresponding DRS object")
         session.add(new_variantfile)
         session.commit()
         result = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()

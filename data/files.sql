@@ -144,8 +144,8 @@ INSERT INTO alias VALUES('ChrY','chrY');
 INSERT INTO alias VALUES('x','chrX');
 INSERT INTO alias VALUES('y','chrY');
 CREATE TABLE variantfile (
-	id INTEGER NOT NULL, 
-	drs_object_id INTEGER, 
+	id VARCHAR NOT NULL, 
+	drs_object_id VARCHAR, 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
@@ -162,14 +162,14 @@ CREATE TABLE header (
 );
 CREATE TABLE contig_variantfile_association (
 	contig_id VARCHAR NOT NULL, 
-	variantfile_id INTEGER NOT NULL, 
+	variantfile_id VARCHAR NOT NULL, 
 	PRIMARY KEY (contig_id, variantfile_id), 
 	FOREIGN KEY(contig_id) REFERENCES contig (id), 
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 CREATE TABLE header_variantfile_association (
 	header_id INTEGER NOT NULL, 
-	variantfile_id INTEGER NOT NULL, 
+	variantfile_id VARCHAR NOT NULL, 
 	PRIMARY KEY (header_id, variantfile_id), 
 	FOREIGN KEY(header_id) REFERENCES header (id), 
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)

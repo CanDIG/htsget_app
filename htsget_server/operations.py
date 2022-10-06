@@ -104,17 +104,17 @@ def index_variants(id_=None):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
         # look for existing variantfile
-        varfile = database.get_variant_file(_id)
-        if varfile is not None:
-            return varfile, 200
+        # varfile = database.get_variantfile(id_)
+        # if varfile is not None:
+        #     return varfile, 200
         # if none, look for a genomic drs object and create a variantfile from that
         gen_obj = _get_genomic_obj(request, id_)
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
-        varfile = database.create_variantfile({"id": gen_obj["id"]})
+        varfile = database.create_variantfile({"id": id_})
     else:
         return None, 404
-    return None, auth_code
+    return None, 200
 
 
 @app.route('/reads/data/<path:id_>')
