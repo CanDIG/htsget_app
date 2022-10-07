@@ -121,8 +121,12 @@ def index_variants(id_=None):
             if database.create_sample({'id': sample, 'variantfile_id': id_}) is None:
                 return {"message": f"Could not add sample {sample} to variantfile {id_}"}, 500
         for record in gen_obj['file'].fetch():
-            if database.create_position({'id': record.pos, 'contig_id': record.contig}) is None:
-                return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
+            normalized_contig_id = database.normalize_contig(record.contig)
+            if normalized_contig_id is not None:
+                if database.create_position({'id': record.pos, 'normalized_contig_id': normalized_contig_id}) is None:
+                    return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
+            else:
+                return {"message": f"Contig {record.contig} is not a valid alias for a contig"}, 500
         return varfile, 200
     else:
         return None, 404

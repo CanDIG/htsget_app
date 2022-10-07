@@ -582,39 +582,44 @@ def get_position(position_id, contig_id):
 
 
 def create_position(obj):
-    # obj = {'id', 'contig_id'}
+    # obj = {'id', 'normalized_contig_id'}
     with Session() as session:
         position_id = obj['id']
-        contig_id = obj['contig_id']
-        alias = session.query(Alias).filter_by(id=contig_id).one_or_none()
-        if alias is not None:
-            contig_id = alias.contig_id
-        else:
-            return None
+        contig_id = obj['normalized_contig_id']
         new_position = session.query(Position).filter_by(id=position_id, contig_id=contig_id).one_or_none()
         if new_position is None:
             new_position = Position()
-        new_position.id = obj['id']
-        session.add(new_position)
-        session.commit()
+            new_position.id = position_id
+            new_position.contig_id = contig_id
+            session.add(new_position)
+            session.commit()
         result = session.query(Position).filter_by(id=position_id, contig_id=contig_id).one_or_none()
         if result is not None:
             return json.loads(str(result))
         return None
 
 
-def delete_sample(sample_id):
+def delete_position(position_id, normalized_contig_id):
     with Session() as session:
-        new_object = session.query(Sample).filter_by(id=sample_id).one()
+        new_object = session.query(Position).filter_by(id=position_id, contig_id=normalized_contig_id).one()
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))
 
 
-def list_samples():
+def list_positions():
     with Session() as session:
-        result = session.query(Sample).all()
+        result = session.query(Position).all()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
         return None
+
+
+def normalize_contig(contig_id):
+    with Session() as session:
+        alias = session.query(Alias).filter_by(id=contig_id).one_or_none()
+        if alias is not None:
+            contig_id = alias.contig_id
+        else:
+            return None
