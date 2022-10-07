@@ -151,7 +151,7 @@ class Sample(ObjectDBBase):
 class Header(ObjectDBBase):
     __tablename__ = 'header'
     id = Column(Integer, primary_key=True)
-    text = Column(String, primary_key=True)
+    text = Column(String)
     
     # a header is in many variantfiles
     associated_variantfiles = relationship("VariantFile",
@@ -499,17 +499,105 @@ def get_sample(sample_id):
 
 
 def create_sample(obj):
+    # obj = {'id', 'variantfile_id'}
     with Session() as session:
         new_sample = session.query(Sample).filter_by(id=obj['id']).one_or_none()
         if new_sample is None:
             new_sample = Sample()
         new_sample.id = obj['id']
-        new_variantfile = session.query(VariantFile).filter_by(self_uri=obj['variantfile_id']).one_or_none()
+        new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
         if new_variantfile is not None:
             new_sample.variantfile_id = new_variantfile.id
         session.add(new_sample)
         session.commit()
         result = session.query(Sample).filter_by(id=obj['id']).one_or_none()
+        if result is not None:
+            return json.loads(str(result))
+        return None
+
+
+def delete_sample(sample_id):
+    with Session() as session:
+        new_object = session.query(Sample).filter_by(id=sample_id).one()
+        session.delete(new_object)
+        session.commit()
+        return json.loads(str(new_object))
+
+
+def list_samples():
+    with Session() as session:
+        result = session.query(Sample).all()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def get_header(text):
+    with Session() as session:
+        result = session.query(Header).filter_by(text=text).one_or_none()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def add_header_for_variantfile(obj):
+    # obj = {'text', 'variantfile_id'}
+    headertext = obj['text'].strip()
+    with Session() as session:
+        if headertext == '' or headertext.startswith("#CHROM"):
+            return {}
+        new_header = session.query(Header).filter_by(text=headertext).one_or_none()
+        if new_header is None:
+            new_header = Header()
+            new_header.text = headertext
+        new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
+        if new_variantfile is not None:
+            new_header.associated_variantfiles.append(new_variantfile)
+        session.add(new_header)
+        session.commit()
+        result = session.query(Header).filter_by(text=headertext).one_or_none()
+        if result is not None:
+            return json.loads(str(result))
+        return None
+
+
+def delete_header(text):
+    with Session() as session:
+        new_object = session.query(Header).filter_by(text=text).one()
+        session.delete(new_object)
+        session.commit()
+        return json.loads(str(new_object))
+
+
+def get_position(position_id, contig_id):
+    with Session() as session:
+        alias = session.query(Alias).filter_by(id=contig_id).one_or_none()
+        result = session.query(Position).filter_by(id=position_id, contig_id=alias.contig_id).one_or_none()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def create_position(obj):
+    # obj = {'id', 'contig_id'}
+    with Session() as session:
+        position_id = obj['id']
+        contig_id = obj['contig_id']
+        alias = session.query(Alias).filter_by(id=contig_id).one_or_none()
+        if alias is not None:
+            contig_id = alias.contig_id
+        else:
+            return None
+        new_position = session.query(Position).filter_by(id=position_id, contig_id=contig_id).one_or_none()
+        if new_position is None:
+            new_position = Position()
+        new_position.id = obj['id']
+        session.add(new_position)
+        session.commit()
+        result = session.query(Position).filter_by(id=position_id, contig_id=contig_id).one_or_none()
         if result is not None:
             return json.loads(str(result))
         return None

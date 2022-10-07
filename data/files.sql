@@ -156,9 +156,8 @@ CREATE TABLE position (
 	FOREIGN KEY(contig_id) REFERENCES contig (id)
 );
 CREATE TABLE header (
-	id INTEGER NOT NULL, 
-	text VARCHAR NOT NULL, 
-	PRIMARY KEY (id, text)
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        text VARCHAR NOT NULL
 );
 CREATE TABLE contig_variantfile_association (
 	contig_id VARCHAR NOT NULL, 

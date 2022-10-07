@@ -112,6 +112,18 @@ def index_variants(id_=None):
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
         varfile = database.create_variantfile({"id": id_})
+        headers = str(gen_obj['file'].header).split('\n')
+        for header in headers:
+            if database.add_header_for_variantfile({'text': header, 'variantfile_id': id_}) is None:
+                return {"message": f"Could not add header {header} to variantfile {id_}"}, 500
+        samples = list(gen_obj['file'].header.samples)
+        for sample in samples:
+            if database.create_sample({'id': sample, 'variantfile_id': id_}) is None:
+                return {"message": f"Could not add sample {sample} to variantfile {id_}"}, 500
+        for record in gen_obj['file'].fetch():
+            if database.create_position({'id': record.pos, 'contig_id': record.contig}) is None:
+                return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
+        return varfile, 200
     else:
         return None, 404
     return None, 200
