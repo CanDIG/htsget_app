@@ -11,6 +11,7 @@ import authz
 import json
 from config import CHUNK_SIZE, HTSGET_URL
 from markupsafe import escape
+import connexion
 
 
 app = Flask(__name__)
@@ -99,19 +100,18 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 
 
 @app.route('/variants/<path:id_>/index')
-def index_variants(id_=None):
+def index_variants(id_=None, force=False):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
         # look for existing variantfile
-        # varfile = database.get_variantfile(id_)
-        # if varfile is not None:
-        #     return varfile, 200
+        varfile = database.create_variantfile({"id": id_})
         # if none, look for a genomic drs object and create a variantfile from that
+        if varfile is not None and not force:
+            return varfile, 200
         gen_obj = _get_genomic_obj(request, id_)
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
-        varfile = database.create_variantfile({"id": id_})
         headers = str(gen_obj['file'].header).split('\n')
         for header in headers:
             if database.add_header_for_variantfile({'text': header, 'variantfile_id': id_}) is None:
@@ -120,17 +120,37 @@ def index_variants(id_=None):
         for sample in samples:
             if database.create_sample({'id': sample, 'variantfile_id': id_}) is None:
                 return {"message": f"Could not add sample {sample} to variantfile {id_}"}, 500
+        contigs = {}
+        for contig in list(gen_obj['file'].header.contigs):
+            normalized_contig_id = database.normalize_contig(contig)
+            contigs[contig] = normalized_contig_id
         for record in gen_obj['file'].fetch():
-            normalized_contig_id = database.normalize_contig(record.contig)
+            normalized_contig_id = contigs[record.contig]
             if normalized_contig_id is not None:
-                if database.create_position({'id': record.pos, 'normalized_contig_id': normalized_contig_id}) is None:
+                res = database.create_position({'variantfile_id': id_, 'position_id': record.pos, 'normalized_contig_id': normalized_contig_id})
+                if res is None:
                     return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
+                else:
+                    varfile['pos'] = res
             else:
                 return {"message": f"Contig {record.contig} is not a valid alias for a contig"}, 500
         return varfile, 200
     else:
         return None, 404
     return None, 200
+
+
+@app.route('/variants/search')
+def search_variants():
+    result = database.search(connexion.request.json)
+    for drs_obj_id in result['drs_objs']:
+        htsget_obj, code = _get_urls("variant", drs_obj_id)
+        htsget_obj['id'] = drs_obj_id
+        result['htsget'].append(htsget_obj)
+    result.pop('drs_objs')
+# need to filter out items from datasets that user is not authenticated for
+    auth_code = 200
+    return result, auth_code
 
 
 @app.route('/reads/data/<path:id_>')

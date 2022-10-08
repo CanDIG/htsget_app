@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-    version: 1.0.0
+    version: 1.1.0
     title: candig htsget
 servers:
   - url: /htsget/v1
@@ -171,7 +171,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: object
+                                $ref: '#/components/schemas/HtsgetVariantsTicket'
                 400:
                     $ref: '#/components/responses/400BadRequestError'
                 404:
@@ -189,9 +189,34 @@ paths:
                 Index a variant file for searching
             parameters:
                 - $ref: '#/components/parameters/idPathParam'
+                - $ref: '#/components/parameters/forceParam'
             responses:
                 200:
                     description: Successfully indexed variant file
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+
+    /variants/search:
+        post:
+            tags:
+                - Variants
+            summary: Search variants
+            operationId: "operations.search_variants"
+            description: |
+                Search variant files
+            requestBody:
+                $ref: '#/components/requestBodies/SearchRequestBody'
+            responses:
+                200:
+                    description: Search results
                     content:
                         application/json:
                             schema:
@@ -353,7 +378,9 @@ components:
             description: A listing of genomic intervals
             items:
                 $ref: '#/components/schemas/Region'
-
+        HeaderText:
+            type: string
+            description: Case-sensitive phrase to search for in vcf headers
         # SERVICE-INFO SCHEMAS
         ServiceInfo:
             '$ref': https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/v1.0.0/service-info.yaml#/components/schemas/Service
@@ -431,6 +458,16 @@ components:
                     $ref: '#/components/schemas/ReadsNoTags'
                 regions:
                     $ref: '#/components/schemas/Regions'
+        SearchRequestBody:
+            type: object
+            description: Body for requesting a search
+            properties:
+                regions:
+                    $ref: '#/components/schemas/Regions'
+                headers:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/HeaderText'
 
         # HTSGET TICKET SCHEMAS
         HtsgetBlockClass:
@@ -502,6 +539,9 @@ components:
                             description: An array of URLs and headers that, when requested, will transfer individual file parts of a requested genomic file
                             items:
                                 $ref: '#/components/schemas/HtsgetUrl'
+                        id:
+                          type: string
+                          description: ID of the htsget object
                     required:
                         - format
                         - urls
@@ -582,6 +622,13 @@ components:
             schema:
                 type: string
                 format: path
+        forceParam:
+            in: query
+            name: force
+            description: force indexing
+            required: false
+            schema:
+                type: boolean
         readsFormatParam:
             in: query
             name: format
@@ -708,6 +755,13 @@ components:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ReadsRequestBody'
+        SearchRequestBody:
+            description: Specify desired regions or header text to search
+            required: false
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/SearchRequestBody'
     responses:
         400BadRequestError:
             description: The request was not processed, as the request parameters did not adhere to the specification

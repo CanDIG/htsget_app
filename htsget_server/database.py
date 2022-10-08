@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-from sqlalchemy import Column, Integer, String, MetaData, ForeignKey, Table, create_engine
+from sqlalchemy import Column, Integer, String, MetaData, ForeignKey, Table, create_engine, select
 import json
 from datetime import datetime
 from config import DB_PATH
@@ -582,20 +582,28 @@ def get_position(position_id, contig_id):
 
 
 def create_position(obj):
-    # obj = {'id', 'normalized_contig_id'}
+    # obj = {'variantfile_id', 'position_id', 'normalized_contig_id'}
     with Session() as session:
-        position_id = obj['id']
+        position_id = obj['position_id']
         contig_id = obj['normalized_contig_id']
+        variantfile_id = obj['variantfile_id']
         new_position = session.query(Position).filter_by(id=position_id, contig_id=contig_id).one_or_none()
         if new_position is None:
             new_position = Position()
             new_position.id = position_id
             new_position.contig_id = contig_id
             session.add(new_position)
-            session.commit()
-        result = session.query(Position).filter_by(id=position_id, contig_id=contig_id).one_or_none()
+        new_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
+        if new_contig is not None:
+            new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
+            if new_variantfile is not None:
+                new_contig.associated_variantfiles.append(new_variantfile)
+            session.add(new_contig)
+        session.commit()
+        selection = select(Contig.id, VariantFile.id).join(Contig.associated_variantfiles).where(Contig.id == contig_id, VariantFile.id == variantfile_id)
+        result = session.execute(selection).one_or_none()
         if result is not None:
-            return json.loads(str(result))
+            return str(result)
         return None
 
 
@@ -618,8 +626,41 @@ def list_positions():
 
 def normalize_contig(contig_id):
     with Session() as session:
+        contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
+        if contig is not None:
+            return contig.id
         alias = session.query(Alias).filter_by(id=contig_id).one_or_none()
         if alias is not None:
-            contig_id = alias.contig_id
+            return alias.contig_id
         else:
             return None
+
+
+def search(obj):
+    with Session() as session:
+        # query for variantfiles that match regions and header text
+        # then query for samples that are in the returned variantfiles
+        variantfiles = session.query(VariantFile)
+        if 'headers' in obj:
+            for header in obj['headers']:
+                variantfiles = variantfiles.filter(Header.text.like(f"%{header}%"))
+        if 'regions' in obj:
+            for region in obj['regions']:
+                normalized_contig = normalize_contig(region['referenceName'])
+                variantfiles = variantfiles.filter(Position.contig_id == normalized_contig)
+                if 'start' in region and 'end' in region:
+                    variantfiles = variantfiles.filter(Position.id >= region['start'], Position.id < region['end'])
+        rows = variantfiles.distinct().all()
+        result = {
+            'samples': [],
+            'drs_objs': [],
+            'htsget': []
+        }
+        for row in rows:
+            for sample in row.samples:
+                if sample.id not in result['samples']:
+                    result['samples'].append(sample.id)
+            if row.drs_object_id not in result['drs_objs']:
+                result['drs_objs'].append(row.drs_object_id)
+        return result
+    return None
