@@ -62,8 +62,8 @@ CREATE TABLE dataset_association (
 );
 INSERT INTO dataset_association VALUES('controlled4','NA18537');
 CREATE TABLE contig (
-        id VARCHAR NOT NULL, 
-        PRIMARY KEY (id)
+	id VARCHAR NOT NULL, 
+	PRIMARY KEY (id)
 );
 INSERT INTO contig VALUES('chr1');
 INSERT INTO contig VALUES('chr2');
@@ -146,18 +146,19 @@ INSERT INTO alias VALUES('y','chrY');
 CREATE TABLE variantfile (
 	id VARCHAR NOT NULL, 
 	drs_object_id VARCHAR, 
+	indexed INTEGER,
 	PRIMARY KEY (id), 
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
-CREATE TABLE position (
-	id INTEGER NOT NULL, 
+CREATE TABLE pos_bucket (
+	id INTEGER PRIMARY KEY AUTOINCREMENT, 
+	pos_bucket_id INTEGER NOT NULL, 
 	contig_id VARCHAR, 
-	PRIMARY KEY (id), 
 	FOREIGN KEY(contig_id) REFERENCES contig (id)
 );
 CREATE TABLE header (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        text VARCHAR NOT NULL
+	id INTEGER PRIMARY KEY AUTOINCREMENT, 
+	text VARCHAR NOT NULL
 );
 CREATE TABLE contig_variantfile_association (
 	contig_id VARCHAR NOT NULL, 

@@ -104,11 +104,10 @@ def index_variants(id_=None, force=False):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
-        # look for existing variantfile
         varfile = database.create_variantfile({"id": id_})
-        # if none, look for a genomic drs object and create a variantfile from that
-        if varfile is not None and not force:
-            return varfile, 200
+        if varfile is not None:
+            if varfile['indexed'] == 'true' and not force:
+                return varfile, 200
         gen_obj = _get_genomic_obj(request, id_)
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
@@ -124,12 +123,15 @@ def index_variants(id_=None, force=False):
         for contig in list(gen_obj['file'].header.contigs):
             normalized_contig_id = database.normalize_contig(contig)
             contigs[contig] = normalized_contig_id
+        curr_pos_bucket = 0
         for record in gen_obj['file'].fetch():
             normalized_contig_id = contigs[record.contig]
             if normalized_contig_id is not None:
-                res = database.create_position({'variantfile_id': id_, 'position_id': record.pos, 'normalized_contig_id': normalized_contig_id})
-                if res is None:
-                    return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
+                if int(record.pos/10) > curr_pos_bucket:
+                    curr_pos_bucket = int(record.pos/10)
+                    res = database.create_position({'variantfile_id': id_, 'position_id': record.pos, 'normalized_contig_id': normalized_contig_id})
+                    if res is None:
+                        return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
                 else:
                     varfile['pos'] = res
             else:

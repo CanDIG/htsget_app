@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
-from sqlalchemy import Column, Integer, String, MetaData, ForeignKey, Table, create_engine, select
+from sqlalchemy import Column, Integer, String, Boolean, MetaData, ForeignKey, Table, create_engine, select
 import json
 from datetime import datetime
 from config import DB_PATH
@@ -17,6 +17,14 @@ ObjectDBBase = declarative_base()
 contig_variantfile_association = Table(
     'contig_variantfile_association', ObjectDBBase.metadata,
     Column('contig_id', ForeignKey('contig.id'), primary_key=True),
+    Column('variantfile_id', ForeignKey('variantfile.id'), primary_key=True)
+)
+
+
+# each pos_bucket is in many variantfiles and each variantfile contains many pos_buckets
+pos_bucket_variantfile_association = Table(
+    'pos_bucket_variantfile_association', ObjectDBBase.metadata,
+    Column('pos_bucket_id', ForeignKey('pos_bucket.id'), primary_key=True),
     Column('variantfile_id', ForeignKey('variantfile.id'), primary_key=True)
 )
 
@@ -59,8 +67,8 @@ class Contig(ObjectDBBase):
     )
     
     # a contig can have many positions
-    positions = relationship(
-        "Position",
+    pos_buckets = relationship(
+        "PositionBucket",
         back_populates="contig"
     )
 
@@ -68,6 +76,7 @@ class Contig(ObjectDBBase):
 class VariantFile(ObjectDBBase):
     __tablename__ = 'variantfile'
     id = Column(String, primary_key=True)
+    indexed = Column(Boolean)
 
     # a variantfile maps to a drs object
     drs_object_id = Column(String, ForeignKey('drs_object.id'))
@@ -80,6 +89,12 @@ class VariantFile(ObjectDBBase):
     # a variantfile can contain many contigs
     associated_contigs = relationship("Contig",
         secondary=contig_variantfile_association,
+        back_populates="associated_variantfiles"
+    )
+    
+    # a variantfile can contain many pos_buckets
+    associated_pos_buckets = relationship("PositionBucket",
+        secondary=pos_bucket_variantfile_association,
         back_populates="associated_variantfiles"
     )
     
@@ -98,6 +113,7 @@ class VariantFile(ObjectDBBase):
         result = {
             'id': self.id,
             'drsobject': self.drs_object_id,
+            'indexed': self.indexed,
             'contigs': [],
             'headers': []
         }
@@ -110,22 +126,32 @@ class VariantFile(ObjectDBBase):
 
 
 
-class Position(ObjectDBBase):
-    __tablename__ = 'position'
+class PositionBucket(ObjectDBBase):
+    __tablename__ = 'pos_bucket'
     id = Column(Integer, primary_key=True)
+    pos_bucket_id = Column(Integer) # each bucket contains 10 bp of positions
     
-    # a position is part of a single contig
+    # a pos_bucket is part of a single contig
     contig_id = Column(String, ForeignKey('contig.id'))
     contig = relationship(
         "Contig",
-        back_populates="positions",
+        back_populates="pos_buckets",
         uselist=False
+    )
+    # a pos_bucket occurs in many variantfiles
+    associated_variantfiles = relationship("VariantFile",
+        secondary=pos_bucket_variantfile_association,
+        back_populates="associated_pos_buckets"
     )
     def __repr__(self):
         result = {
             'id': self.id,
-            'contig_id': self.contig_id
+            'contig_id': self.contig_id,
+            'variantfiles': []
         }
+        for varfile_assoc in self.associated_variantfiles:
+            result['variantfiles'].append(varfile_assoc.id)
+
         return json.dumps(result)
 
 
@@ -458,6 +484,7 @@ def create_variantfile(obj):
         new_variantfile = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
         if new_variantfile is None:
             new_variantfile = VariantFile()
+            new_variantfile.indexed = False
         new_variantfile.id = obj['id']
         new_drs = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_drs is not None:
@@ -554,13 +581,16 @@ def add_header_for_variantfile(obj):
             new_header.text = headertext
         new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
         if new_variantfile is not None:
+            new_variantfile.indexed = 1
+            session.add(new_variantfile)
             new_header.associated_variantfiles.append(new_variantfile)
         session.add(new_header)
         session.commit()
-        result = session.query(Header).filter_by(text=headertext).one_or_none()
-        if result is not None:
-            return json.loads(str(result))
-        return None
+        return json.loads(str(new_header))
+        # result = session.query(Header).filter_by(text=headertext).one_or_none()
+        # if result is not None:
+        #     return json.loads(str(result))
+    return None
 
 
 def delete_header(text):
@@ -571,53 +601,62 @@ def delete_header(text):
         return json.loads(str(new_object))
 
 
-def get_position(position_id, contig_id):
+# for efficiency, positions are bucketed into 10 bp sets: pos_bucket_id == base pair position/10, rounded down
+def create_position(obj):
+    # obj = {'variantfile_id', 'position_id', 'normalized_contig_id'}
+    obj['pos_bucket_id'] = int(obj['position_id']/10)
+    return create_pos_bucket(obj)
+
+def create_pos_bucket(obj):
+    # obj = {'variantfile_id', 'pos_bucket_id', 'normalized_contig_id'}
+    with Session() as session:
+        pos_bucket_id = obj['pos_bucket_id']
+        contig_id = obj['normalized_contig_id']
+        variantfile_id = obj['variantfile_id']
+        new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
+        if new_variantfile is None:
+            return None
+        new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
+        if new_pos_bucket is None:
+            new_pos_bucket = PositionBucket()
+            new_pos_bucket.pos_bucket_id = pos_bucket_id
+            new_pos_bucket.contig_id = contig_id
+            new_pos_bucket.associated_variantfiles.append(new_variantfile)
+            session.add(new_pos_bucket)
+        new_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
+        if new_contig is not None:
+            new_contig.associated_variantfiles.append(new_variantfile)
+            session.add(new_contig)
+        session.commit()
+        return json.loads(str(new_pos_bucket))
+        # selection = select(Contig.id, VariantFile.id).join(Contig.associated_variantfiles).where(Contig.id == contig_id, VariantFile.id == variantfile_id)
+        # result = session.execute(selection).one_or_none()
+        # if result is not None:
+        #     return str(result)
+        return None
+
+
+def delete_pos_bucket(pos_bucket_id, normalized_contig_id):
+    with Session() as session:
+        new_object = session.query(PositionBucket).filter_by(id=pos_bucket_id, contig_id=normalized_contig_id).one()
+        session.delete(new_object)
+        session.commit()
+        return json.loads(str(new_object))
+
+
+def get_pos_bucket(pos_bucket_id, contig_id):
     with Session() as session:
         alias = session.query(Alias).filter_by(id=contig_id).one_or_none()
-        result = session.query(Position).filter_by(id=position_id, contig_id=alias.contig_id).one_or_none()
+        result = session.query(PositionBucket).filter_by(id=pos_bucket_id, contig_id=alias.contig_id).one_or_none()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
         return None
 
 
-def create_position(obj):
-    # obj = {'variantfile_id', 'position_id', 'normalized_contig_id'}
+def list_pos_buckets():
     with Session() as session:
-        position_id = obj['position_id']
-        contig_id = obj['normalized_contig_id']
-        variantfile_id = obj['variantfile_id']
-        new_position = session.query(Position).filter_by(id=position_id, contig_id=contig_id).one_or_none()
-        if new_position is None:
-            new_position = Position()
-            new_position.id = position_id
-            new_position.contig_id = contig_id
-            session.add(new_position)
-        new_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
-        if new_contig is not None:
-            new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
-            if new_variantfile is not None:
-                new_contig.associated_variantfiles.append(new_variantfile)
-            session.add(new_contig)
-        session.commit()
-        selection = select(Contig.id, VariantFile.id).join(Contig.associated_variantfiles).where(Contig.id == contig_id, VariantFile.id == variantfile_id)
-        result = session.execute(selection).one_or_none()
-        if result is not None:
-            return str(result)
-        return None
-
-
-def delete_position(position_id, normalized_contig_id):
-    with Session() as session:
-        new_object = session.query(Position).filter_by(id=position_id, contig_id=normalized_contig_id).one()
-        session.delete(new_object)
-        session.commit()
-        return json.loads(str(new_object))
-
-
-def list_positions():
-    with Session() as session:
-        result = session.query(Position).all()
+        result = session.query(PositionBucket).all()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
@@ -647,9 +686,9 @@ def search(obj):
         if 'regions' in obj:
             for region in obj['regions']:
                 normalized_contig = normalize_contig(region['referenceName'])
-                variantfiles = variantfiles.filter(Position.contig_id == normalized_contig)
+                variantfiles = variantfiles.filter(PositionBucket.contig_id == normalized_contig)
                 if 'start' in region and 'end' in region:
-                    variantfiles = variantfiles.filter(Position.id >= region['start'], Position.id < region['end'])
+                    variantfiles = variantfiles.filter(PositionBucket.id >= region['start'], PositionBucket.id < region['end'])
         rows = variantfiles.distinct().all()
         result = {
             'samples': [],
