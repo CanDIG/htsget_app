@@ -106,7 +106,7 @@ def index_variants(id_=None, force=False):
     if id_ is not None:
         varfile = database.create_variantfile({"id": id_})
         if varfile is not None:
-            if varfile['indexed'] == 'true' and not force:
+            if varfile['indexed'] == 1 and not force:
                 return varfile, 200
         gen_obj = _get_genomic_obj(request, id_)
         if gen_obj is None:
