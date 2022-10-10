@@ -689,30 +689,30 @@ def normalize_contig(contig_id):
 
 
 def search(obj):
+    # obj = {'regions', 'headers'}
     with Session() as session:
-        # query for variantfiles that match regions and header text
-        # then query for samples that are in the returned variantfiles
-        variantfiles = session.query(VariantFile)
-        if 'headers' in obj:
-            for header in obj['headers']:
-                variantfiles = variantfiles.filter(Header.text.like(f"%{header}%"))
-        if 'regions' in obj:
-            for region in obj['regions']:
-                normalized_contig = normalize_contig(region['referenceName'])
-                variantfiles = variantfiles.filter(PositionBucket.contig_id == normalized_contig)
-                if 'start' in region and 'end' in region:
-                    variantfiles = variantfiles.filter(PositionBucket.id >= region['start'], PositionBucket.id < region['end'])
-        rows = variantfiles.distinct().all()
-        result = {
-            'samples': [],
-            'drs_objs': [],
-            'htsget': []
-        }
-        for row in rows:
-            for sample in row.samples:
-                if sample.id not in result['samples']:
-                    result['samples'].append(sample.id)
-            if row.drs_object_id not in result['drs_objs']:
-                result['drs_objs'].append(row.drs_object_id)
+        q = select(Sample.id).select_from(PositionBucket).join(Header.associated_variantfiles)
+        for header in obj['headers']:
+            q = q.where(Header.text.like(f"%{header}%"))
+        for region in obj['regions']:
+            contig_id = normalize_contig(region['referenceName'])
+            q = q.where(PositionBucket.pos_bucket_id > region['start'])
+            q = q.where(PositionBucket.pos_bucket_id > region['end'])
+            q = q.where(PositionBucket.contig_id == contig_id)
+        q = q.distinct()
+        result = {"rows": []}
+        for row in session.execute(q):
+            result['rows'].append(str(row._mapping.items()))
+        # result = {
+        #     'samples': [],
+        #     'drs_objs': [],
+        #     'htsget': []
+        # }
+        # for row in rows:
+        #     for sample in row.samples:
+        #         if sample.id not in result['samples']:
+        #             result['samples'].append(sample.id)
+        #     if row.drs_object_id not in result['drs_objs']:
+        #         result['drs_objs'].append(row.drs_object_id)
         return result
     return None

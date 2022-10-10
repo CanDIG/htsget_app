@@ -145,6 +145,7 @@ def index_variants(id_=None, force=False):
 @app.route('/variants/search')
 def search_variants():
     result = database.search(connexion.request.json)
+    return result, 500
     for drs_obj_id in result['drs_objs']:
         htsget_obj, code = _get_urls("variant", drs_obj_id)
         htsget_obj['id'] = drs_obj_id
