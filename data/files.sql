@@ -174,6 +174,13 @@ CREATE TABLE header_variantfile_association (
 	FOREIGN KEY(header_id) REFERENCES header (id), 
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
+CREATE TABLE pos_bucket_variantfile_association (
+	pos_bucket_id INTEGER NOT NULL, 
+	variantfile_id VARCHAR NOT NULL, 
+	PRIMARY KEY (pos_bucket_id, variantfile_id), 
+	FOREIGN KEY(pos_bucket_id) REFERENCES pos_bucket (id), 
+	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
+);
 CREATE TABLE sample (
 	id VARCHAR NOT NULL, 
 	variantfile_id VARCHAR, 

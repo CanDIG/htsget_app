@@ -642,8 +642,8 @@ def create_pos_bucket(obj):
                 new_pos_bucket = PositionBucket()
                 new_pos_bucket.pos_bucket_id = pos_bucket_id
                 new_pos_bucket.contig_id = contig_id
-                new_pos_bucket.associated_variantfiles.append(new_variantfile)
-                session.add(new_pos_bucket)
+            new_pos_bucket.associated_variantfiles.append(new_variantfile)
+            session.add(new_pos_bucket)
         session.commit()
         return json.loads(str(new_pos_bucket))
         return None
