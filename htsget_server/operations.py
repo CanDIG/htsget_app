@@ -112,9 +112,7 @@ def index_variants(id_=None, force=False):
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
         headers = str(gen_obj['file'].header).split('\n')
-        for header in headers:
-            if database.add_header_for_variantfile({'text': header, 'variantfile_id': id_}) is None:
-                return {"message": f"Could not add header {header} to variantfile {id_}"}, 500
+        database.add_header_for_variantfile({'texts': headers, 'variantfile_id': id_})
         samples = list(gen_obj['file'].header.samples)
         for sample in samples:
             if database.create_sample({'id': sample, 'variantfile_id': id_}) is None:
@@ -124,18 +122,20 @@ def index_variants(id_=None, force=False):
             normalized_contig_id = database.normalize_contig(contig)
             contigs[contig] = normalized_contig_id
         curr_pos_bucket = 0
+        
+        positions = []
         for record in gen_obj['file'].fetch():
-            normalized_contig_id = contigs[record.contig]
-            if normalized_contig_id is not None:
-                if int(record.pos/10) > curr_pos_bucket:
-                    curr_pos_bucket = int(record.pos/10)
-                    res = database.create_position({'variantfile_id': id_, 'position_id': record.pos, 'normalized_contig_id': normalized_contig_id})
-                    if res is None:
-                        return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
-                else:
-                    varfile['pos'] = res
+            positions.append(record.pos)
+
+        normalized_contig_id = contigs[record.contig]
+        if normalized_contig_id is not None:
+            res = database.create_position({'variantfile_id': id_, 'positions': positions, 'normalized_contig_id': normalized_contig_id})
+            if res is None:
+                return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
             else:
-                return {"message": f"Contig {record.contig} is not a valid alias for a contig"}, 500
+                varfile['pos'] = res
+        else:
+            return {"message": f"Contig {record.contig} is not a valid alias for a contig"}, 500
         return varfile, 200
     else:
         return None, 404

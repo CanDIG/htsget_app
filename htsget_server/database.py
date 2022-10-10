@@ -2,7 +2,7 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy import Column, Integer, String, Boolean, MetaData, ForeignKey, Table, create_engine, select
 import json
 from datetime import datetime
-from config import DB_PATH
+from config import DB_PATH, BUCKET_SIZE
 
 
 engine = create_engine(DB_PATH, echo=True)
@@ -570,26 +570,27 @@ def get_header(text):
 
 
 def add_header_for_variantfile(obj):
-    # obj = {'text', 'variantfile_id'}
-    headertext = obj['text'].strip()
+    # obj = {'text' or 'texts', 'variantfile_id'}
+    headertexts = []
+    if 'text' in obj:
+        headertexts.append(obj['text'].strip())
+    elif 'texts' in obj:
+        headertexts = map(lambda x: x.strip(), obj['texts'])
     with Session() as session:
-        if headertext == '' or headertext.startswith("#CHROM"):
-            return {}
-        new_header = session.query(Header).filter_by(text=headertext).one_or_none()
-        if new_header is None:
-            new_header = Header()
-            new_header.text = headertext
         new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
         if new_variantfile is not None:
             new_variantfile.indexed = 1
             session.add(new_variantfile)
+        for headertext in headertexts:
+            if headertext == '' or headertext.startswith("#CHROM"):
+                continue
+            new_header = session.query(Header).filter_by(text=headertext).one_or_none()
+            if new_header is None:
+                new_header = Header()
+                new_header.text = headertext
             new_header.associated_variantfiles.append(new_variantfile)
-        session.add(new_header)
+            session.add(new_header)
         session.commit()
-        return json.loads(str(new_header))
-        # result = session.query(Header).filter_by(text=headertext).one_or_none()
-        # if result is not None:
-        #     return json.loads(str(result))
     return None
 
 
@@ -602,37 +603,49 @@ def delete_header(text):
 
 
 # for efficiency, positions are bucketed into 10 bp sets: pos_bucket_id == base pair position/10, rounded down
+def get_bucket_for_position(pos):
+    return int(pos/BUCKET_SIZE) * BUCKET_SIZE
+
 def create_position(obj):
-    # obj = {'variantfile_id', 'position_id', 'normalized_contig_id'}
-    obj['pos_bucket_id'] = int(obj['position_id']/10)
+    # obj = {'variantfile_id', 'position_id' or 'positions', 'normalized_contig_id'}
+    if 'position_id' in obj:
+        obj['pos_bucket_ids'] = [get_bucket_for_position(obj['position_id'])]
+        obj.pop('position_id')
+    elif 'positions' in obj and len(obj['positions']) > 0:
+        pos_bucket_ids = []
+        last_bucket = None
+        for pos in obj['positions']:
+            curr_bucket = get_bucket_for_position(pos)
+            if last_bucket is None or curr_bucket > last_bucket:
+                pos_bucket_ids.append(curr_bucket)
+                last_bucket = curr_bucket
+        obj['pos_bucket_ids'] = pos_bucket_ids
+        obj.pop('positions')
     return create_pos_bucket(obj)
 
 def create_pos_bucket(obj):
-    # obj = {'variantfile_id', 'pos_bucket_id', 'normalized_contig_id'}
+    # obj = {'variantfile_id', 'pos_bucket_ids', 'normalized_contig_id'}
     with Session() as session:
-        pos_bucket_id = obj['pos_bucket_id']
+        pos_bucket_ids = obj['pos_bucket_ids']
         contig_id = obj['normalized_contig_id']
         variantfile_id = obj['variantfile_id']
         new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
         if new_variantfile is None:
             return None
-        new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
-        if new_pos_bucket is None:
-            new_pos_bucket = PositionBucket()
-            new_pos_bucket.pos_bucket_id = pos_bucket_id
-            new_pos_bucket.contig_id = contig_id
-            new_pos_bucket.associated_variantfiles.append(new_variantfile)
-            session.add(new_pos_bucket)
         new_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
         if new_contig is not None:
             new_contig.associated_variantfiles.append(new_variantfile)
             session.add(new_contig)
+        for pos_bucket_id in pos_bucket_ids:
+            new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
+            if new_pos_bucket is None:
+                new_pos_bucket = PositionBucket()
+                new_pos_bucket.pos_bucket_id = pos_bucket_id
+                new_pos_bucket.contig_id = contig_id
+                new_pos_bucket.associated_variantfiles.append(new_variantfile)
+                session.add(new_pos_bucket)
         session.commit()
         return json.loads(str(new_pos_bucket))
-        # selection = select(Contig.id, VariantFile.id).join(Contig.associated_variantfiles).where(Contig.id == contig_id, VariantFile.id == variantfile_id)
-        # result = session.execute(selection).one_or_none()
-        # if result is not None:
-        #     return str(result)
         return None
 
 

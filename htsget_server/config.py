@@ -16,6 +16,8 @@ LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
 
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 
+BUCKET_SIZE = int(config['DEFAULT']['BucketSize'])
+
 PORT = config['DEFAULT']['Port']
 
 TEST_KEY = os.getenv("HTSGET_TEST_KEY", "testtesttest")
