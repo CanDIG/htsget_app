@@ -27,6 +27,7 @@ def test_post_objects(drs_objects):
         response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
             response = requests.request("DELETE", url, headers=headers)
+            print(f"DELETE {obj['name']}: {response.text}")
             assert response.status_code == 200
         if "access_methods" in obj and obj["access_methods"][0]["type"] == "s3":
             method = obj["access_methods"][0]

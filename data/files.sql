@@ -31,10 +31,10 @@ CREATE TABLE access_method (
         PRIMARY KEY (id), 
         FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
-INSERT INTO access_method VALUES(1,'NA18537.vcf.gz.tbi','s3','s3.amazonaws.com/daisietestbucket1/NA18537.vcf.gz.tbi','','','[]');
-INSERT INTO access_method VALUES(2,'NA18537.vcf.gz','s3','s3.amazonaws.com/daisietestbucket1/NA18537.vcf.gz','','','[]');
-INSERT INTO access_method VALUES(3,'NA20787.vcf.gz.tbi','s3','s3.amazonaws.com/daisietestbucket1/NA20787.vcf.gz.tbi','','','[]');
-INSERT INTO access_method VALUES(4,'NA20787.vcf.gz','s3','s3.amazonaws.com/daisietestbucket1/NA20787.vcf.gz','','','[]');
+INSERT INTO access_method VALUES(1,'NA18537.vcf.gz.tbi','s3','s3.amazonaws.com/daisietestbucket1/test/NA18537.vcf.gz.tbi','','','[]');
+INSERT INTO access_method VALUES(2,'NA18537.vcf.gz','s3','s3.amazonaws.com/daisietestbucket1/test/NA18537.vcf.gz','','','[]');
+INSERT INTO access_method VALUES(3,'NA20787.vcf.gz.tbi','s3','s3.amazonaws.com/daisietestbucket1/test/NA20787.vcf.gz.tbi','','','[]');
+INSERT INTO access_method VALUES(4,'NA20787.vcf.gz','s3','s3.amazonaws.com/daisietestbucket1/test/NA20787.vcf.gz','','','[]');
 CREATE TABLE content_object (
         id INTEGER NOT NULL, 
         drs_object_id INTEGER, 
