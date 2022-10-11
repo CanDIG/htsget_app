@@ -156,6 +156,9 @@ def search_variants():
     return result, auth_code
 
 
+# https://rest.ensembl.org/map/human/GRCh37/X:1000000..1000100:1/GRCh38?content-type=application/json
+# https://rest.ensembl.org/xrefs/symbol/homo_sapiens/BRCA2?content-type=application/json
+
 @app.route('/reads/data/<path:id_>')
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
     if id_ is not None:

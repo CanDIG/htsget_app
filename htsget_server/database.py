@@ -1,4 +1,4 @@
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, aliased
 from sqlalchemy import Column, Integer, String, Boolean, MetaData, ForeignKey, Table, create_engine, select
 import json
 from datetime import datetime
@@ -691,23 +691,34 @@ def normalize_contig(contig_id):
 def search(obj):
     # obj = {'regions', 'headers'}
     with Session() as session:
-        q = select(Sample.id).select_from(PositionBucket).join(Header.associated_variantfiles)
-        for header in obj['headers']:
-            q = q.where(Header.text.like(f"%{header}%"))
-        for region in obj['regions']:
-            contig_id = normalize_contig(region['referenceName'])
-            q = q.where(PositionBucket.pos_bucket_id > region['start'])
-            q = q.where(PositionBucket.pos_bucket_id > region['end'])
-            q = q.where(PositionBucket.contig_id == contig_id)
+        vfile = aliased(VariantFile)
+        q = select(vfile.drs_object_id).select_from(PositionBucket).join(vfile.associated_pos_buckets).join(vfile.associated_headers)
+        if 'headers' in obj:
+            for header in obj['headers']:
+                q = q.where(Header.text.like(f"%{header}%"))
+        if 'regions' in obj:
+            for region in obj['regions']:
+                if 'referenceName' in region:
+                    contig_id = normalize_contig(region['referenceName'])
+                    q = q.where(PositionBucket.contig_id == contig_id)
+                else:
+                    return {"error": "no referenceName specified"}
+                if 'start' in region:
+                    q = q.where(PositionBucket.pos_bucket_id >= region['start'])
+                if 'end' in region:
+                    q = q.where(PositionBucket.pos_bucket_id < region['end'])
         q = q.distinct()
-        result = {"rows": []}
+        result = {
+            'samples': [],
+            'drs_object_ids': []
+        }
         for row in session.execute(q):
-            result['rows'].append(str(row._mapping.items()))
-        # result = {
-        #     'samples': [],
-        #     'drs_objs': [],
-        #     'htsget': []
-        # }
+            result['drs_object_ids'].append(str(row._mapping['drs_object_id']))
+
+        q = select(Sample.id).where(Sample.variantfile_id.in_(result['drs_object_ids'])).distinct()
+        for row in session.execute(q):
+            result['samples'].append(str(row._mapping['id']))
+        
         # for row in rows:
         #     for sample in row.samples:
         #         if sample.id not in result['samples']:
