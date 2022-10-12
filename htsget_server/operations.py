@@ -77,6 +77,17 @@ def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, 
     return None, auth_code
 
 
+@app.route('/reads/data/<path:id_>')
+def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
+    if id_ is not None:
+        auth_code = authz.is_authed(escape(id_), request)
+        if auth_code == 200:
+            return _get_data(escape(id_), reference_name, start, end, class_, format_)
+    else:
+        return None, 404
+    return None, auth_code
+
+
 @app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
@@ -135,11 +146,11 @@ def index_variants(id_=None, force=False):
             else:
                 varfile['pos'] = res
         else:
-            return {"message": f"Contig {record.contig} is not a valid alias for a contig"}, 500
+            app.logger.warning(f"referenceName {record.contig} in {id_} does not correspond to a known chromosome.")
+            continue
         return varfile, 200
     else:
         return None, 404
-    return None, 200
 
 
 @app.route('/variants/search')
@@ -158,17 +169,6 @@ def search_variants():
 
 # https://rest.ensembl.org/map/human/GRCh37/X:1000000..1000100:1/GRCh38?content-type=application/json
 # https://rest.ensembl.org/xrefs/symbol/homo_sapiens/BRCA2?content-type=application/json
-
-@app.route('/reads/data/<path:id_>')
-def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
-    if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), request)
-        if auth_code == 200:
-            return _get_data(escape(id_), reference_name, start, end, class_, format_)
-    else:
-        return None, 404
-    return None, auth_code
-
 
 def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     """
