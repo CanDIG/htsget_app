@@ -310,10 +310,10 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
-    gen_obj = _get_genomic_obj(request, id)
-    if gen_obj is not None:
-        if "error" in gen_obj:
-            return gen_obj['error'], gen_obj['status_code']
+    drs_obj = _describe_drs_object(id)
+    if drs_obj is not None:
+        if "error" in drs_obj:
+            return drs_obj['error'], drs_obj['status_code']
         if _class == "header":
             urls = [{"url": f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}?class=header",
             "class": "header"}]
@@ -435,3 +435,40 @@ def _get_genomic_obj(object_id):
             result = AlignmentFile(read_file, index_filename=index_file)
 
     return { "file": result, "file_format": file_format }
+
+
+# describe an htsget DRS object, but don't open it
+def _describe_drs_object(object_id):
+    (drs_obj, status_code) = drs_operations.get_object(object_id)
+    if status_code != 200:
+        return None
+    result = {
+        "name": object_id
+    }
+    # drs_obj should have two contents objects
+    if "contents" in drs_obj:
+        for contents in drs_obj["contents"]:
+            # get each drs object (should be the genomic file and its index)
+            print(contents)    
+            # if sub_obj.name matches an index file regex, it's an index file
+            index_match = re.fullmatch('.+\.(..i)$', contents["name"])
+    
+            # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
+            read_match = re.fullmatch('.+\.(.+?am)$', contents["name"])
+    
+            # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
+            variant_match = re.fullmatch('.+\.(.cf)(\.gz)*$', contents["name"])
+    
+            if read_match is not None:
+                result['format'] = read_match.group(1).upper()
+                result['type'] = "read"
+                result['main'] = contents['name']
+            elif variant_match is not None:
+                result['format'] = variant_match.group(1).upper()
+                result['type'] = "variant"
+                result['main'] = contents['name']
+            elif index_match is not None:
+                result['index'] = contents['name']
+    if 'type' not in result:
+        return {"error": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
+    return result
