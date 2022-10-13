@@ -156,13 +156,18 @@ def index_variants(id_=None, force=False):
 @app.route('/variants/search')
 def search_variants():
     result = database.search(connexion.request.json)
-    return result, 500
-    for drs_obj_id in result['drs_objs']:
-        htsget_obj, code = _get_urls("variant", drs_obj_id)
-        htsget_obj['id'] = drs_obj_id
-        result['htsget'].append(htsget_obj)
-    result.pop('drs_objs')
-# need to filter out items from datasets that user is not authenticated for
+    for drs_obj_id in result['drs_object_ids']:
+        auth_code = authz.is_authed(drs_obj_id, connexion.request)
+        if auth_code == 200:
+            if 'htsget' not in result:
+                result['htsget'] = []
+            if 'samples' not in result:
+                result['samples'] = []
+            htsget_obj, code = _get_urls("variant", drs_obj_id)
+            htsget_obj['id'] = drs_obj_id
+            result['htsget'].append(htsget_obj)
+            result['samples'].append(database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]}))
+    result.pop('drs_object_ids')
     auth_code = 200
     return result, auth_code
 

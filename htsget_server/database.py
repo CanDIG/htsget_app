@@ -560,6 +560,16 @@ def list_samples():
         return None
 
 
+def get_samples_in_drs_objects(obj):
+    # obj = {'drs_object_ids'}
+    with Session() as session:
+        result = []
+        q = select(Sample.id).where(Sample.variantfile_id.in_(obj['drs_object_ids'])).distinct()
+        for row in session.execute(q):
+            result.append(str(row._mapping['id']))
+        return result
+
+
 def get_header(text):
     with Session() as session:
         result = session.query(Header).filter_by(text=text).one_or_none()
@@ -719,21 +729,9 @@ def search(obj):
                     q = q.where(PositionBucket.pos_bucket_id < region['end'])
         q = q.distinct()
         result = {
-            'samples': [],
             'drs_object_ids': []
         }
         for row in session.execute(q):
             result['drs_object_ids'].append(str(row._mapping['drs_object_id']))
-
-        q = select(Sample.id).where(Sample.variantfile_id.in_(result['drs_object_ids'])).distinct()
-        for row in session.execute(q):
-            result['samples'].append(str(row._mapping['id']))
-        
-        # for row in rows:
-        #     for sample in row.samples:
-        #         if sample.id not in result['samples']:
-        #             result['samples'].append(sample.id)
-        #     if row.drs_object_id not in result['drs_objs']:
-        #         result['drs_objs'].append(row.drs_object_id)
         return result
     return None
