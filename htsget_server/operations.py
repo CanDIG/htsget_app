@@ -119,7 +119,7 @@ def index_variants(id_=None, force=False):
         if varfile is not None:
             if varfile['indexed'] == 1 and not force:
                 return varfile, 200
-        gen_obj = _get_genomic_obj(request, id_)
+        gen_obj = _get_genomic_obj(id_)
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
         headers = str(gen_obj['file'].header).split('\n')
@@ -252,7 +252,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     file_name = f"{id_}.{format_}"
 
     # get a file and index from drs, based on the id_
-    gen_obj = _get_genomic_obj(request, id_)
+    gen_obj = _get_genomic_obj(id_)
     if gen_obj is not None:
         if "error" in gen_obj:
             return gen_obj['error'], gen_obj['status_code']
@@ -318,16 +318,16 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
             urls = [{"url": f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}?class=header",
             "class": "header"}]
         else:
-                file_in = gen_obj["file"]
-                if start is None:
-                    start = _get_index("start", file_in)
-                if end is None:
-                    end = _get_index("end", file_in)
+            file_in = drs_obj["main"]
+            if start is None:
+                start = 0
+            if end is None:
+                end = -1
 
-                urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end, file_type)
+            urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end, file_type)
         response = {
             'htsget': {
-                'format': gen_obj["file_format"],
+                'format': drs_obj["format"],
                 'urls': urls
             }
         }
@@ -367,7 +367,7 @@ def _get_index(position, file_in):
 # We need to query DRS to get the bundling object, which should contain links to
 # two contents objects. We can instantiate them into temp files and pass those 
 # file handles back.
-def _get_genomic_obj(request, object_id):
+def _get_genomic_obj(object_id):
     index_file = None
     variant_file = None
     read_file = None
