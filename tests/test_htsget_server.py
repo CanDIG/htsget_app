@@ -177,12 +177,55 @@ def test_get_read_header():
     assert False
 
 
-def test_index_variantfile():
-    url = f"{HOST}/htsget/v1/variants/NA18537/index"
-    
-    response = requests.get(url, headers=headers)
-    assert response.json()["id"] == 'NA18537'
+def test_index_variants():
+    return [('NA18537'), ('NA20787'), ('sample.compressed')]
 
+@pytest.mark.parametrize('sample', test_index_variants())
+def test_index_variantfile(sample):
+    url = f"{HOST}/htsget/v1/variants/{sample}/index"
+    params = None
+    #params = {'force': True}
+    response = requests.get(url, params=params, headers=headers)
+    print(response.text)
+    assert response.json()["id"] == sample
+
+def test_search_variants():
+    return [
+        {
+            'headers': [
+                'bcftools_viewVersion=1.4.1+htslib-1.4.1'
+            ],
+            'regions': [
+                {
+                    'referenceName': 'chr21',
+                    'start': 48110083,
+                    'end': 48120000
+                }
+            ]
+        }, {
+            'regions': [
+                {
+                    'referenceName': '20'
+                }
+            ]
+        }, {
+            'regions': [
+                {
+                    'referenceName': 'chr21',
+                    'start': 48117000,
+                    'end': 48120634
+                }
+            ]
+        }
+    ]
+    
+@pytest.mark.parametrize('body', test_search_variants())
+def test_search_variantfile(body):
+    url = f"{HOST}/htsget/v1/variants/search"
+    
+    response = requests.post(url, json=body, headers=headers)
+    print(response.text)
+    assert response.json()["htsget"] is not None
 
 @pytest.fixture
 def drs_objects():
