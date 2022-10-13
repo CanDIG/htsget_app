@@ -135,19 +135,19 @@ def index_variants(id_=None, force=False):
         curr_pos_bucket = 0
         
         positions = []
+        normalized_contigs = []
         for record in gen_obj['file'].fetch():
-            positions.append(record.pos)
-
-        normalized_contig_id = contigs[record.contig]
-        if normalized_contig_id is not None:
-            res = database.create_position({'variantfile_id': id_, 'positions': positions, 'normalized_contig_id': normalized_contig_id})
-            if res is None:
-                return {"message": f"Could not add position {record.contig}:{record.pos} to variantfile {id_}"}, 500
+            normalized_contig_id = contigs[record.contig]
+            if normalized_contig_id is not None:
+                positions.append(record.pos)
+                normalized_contigs.append(normalized_contig_id)
             else:
-                varfile['pos'] = res
+                app.logger.warning(f"referenceName {record.contig} in {id_} does not correspond to a known chromosome.")
+        res = database.create_position({'variantfile_id': id_, 'positions': positions, 'normalized_contigs': normalized_contigs})
+        if res is None:
+            return {"message": f"Could not add positions {record.contig}:{record.pos} to variantfile {id_}"}, 500
         else:
-            app.logger.warning(f"referenceName {record.contig} in {id_} does not correspond to a known chromosome.")
-            continue
+            varfile['pos'] = res
         return varfile, 200
     else:
         return None, 404

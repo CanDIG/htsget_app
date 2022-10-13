@@ -607,11 +607,15 @@ def get_bucket_for_position(pos):
     return int(pos/BUCKET_SIZE) * BUCKET_SIZE
 
 def create_position(obj):
-    # obj = {'variantfile_id', 'position_id' or 'positions', 'normalized_contig_id'}
-    if 'position_id' in obj:
+    # obj = {'variantfile_id', 'position_id' or 'positions', 'normalized_contig_id' or 'normalized_contigs'}
+    if 'position_id' in obj and 'normalized_contig_id' in obj:
         obj['pos_bucket_ids'] = [get_bucket_for_position(obj['position_id'])]
         obj.pop('position_id')
-    elif 'positions' in obj and len(obj['positions']) > 0:
+        obj['normalized_contigs'] = [obj['normalized_contig_id']]
+        obj.pop('normalized_contig_id')
+    elif 'positions' in obj and 'normalized_contigs' in obj:
+        if len(obj['positions']) != len(obj['normalized_contigs']):
+            return None
         pos_bucket_ids = []
         last_bucket = None
         for pos in obj['positions']:
@@ -621,22 +625,28 @@ def create_position(obj):
                 last_bucket = curr_bucket
         obj['pos_bucket_ids'] = pos_bucket_ids
         obj.pop('positions')
+    else:
+        return None
     return create_pos_bucket(obj)
 
 def create_pos_bucket(obj):
-    # obj = {'variantfile_id', 'pos_bucket_ids', 'normalized_contig_id'}
+    # obj = {'variantfile_id', 'pos_bucket_ids', 'normalized_contigs'}
     with Session() as session:
         pos_bucket_ids = obj['pos_bucket_ids']
-        contig_id = obj['normalized_contig_id']
+        contig_ids = obj['normalized_contigs']
         variantfile_id = obj['variantfile_id']
         new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
         if new_variantfile is None:
             return None
-        new_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
-        if new_contig is not None:
-            new_contig.associated_variantfiles.append(new_variantfile)
-            session.add(new_contig)
-        for pos_bucket_id in pos_bucket_ids:
+        curr_contig = None
+        for i in range(len(pos_bucket_ids)):
+            pos_bucket_id = pos_bucket_ids[i]
+            contig_id = contig_ids[i]
+            if curr_contig is None or curr_contig.id != contig_id:
+                curr_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
+                if curr_contig is not None:
+                    curr_contig.associated_variantfiles.append(new_variantfile)
+                    session.add(curr_contig)
             new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
             if new_pos_bucket is None:
                 new_pos_bucket = PositionBucket()
