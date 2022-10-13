@@ -259,6 +259,75 @@ def drs_objects():
   {
     "access_methods": [
       {
+        "access_id": "play.min.io:9000/testhtsget/sample.compressed.vcf.gz.tbi",
+        "type": "s3",
+        "region": "us-east-1"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "sample.compressed.vcf.gz.tbi",
+    "mime_type": "application/octet-stream",
+    "name": "sample.compressed.vcf.gz.tbi",
+    "self_uri": "drs://localhost/sample.compressed.vcf.gz.tbi",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_id": "play.min.io:9000/testhtsget/sample.compressed.vcf.gz",
+        "type": "s3",
+        "region": "us-east-1"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "sample.compressed.vcf.gz",
+    "mime_type": "application/octet-stream",
+    "name": "sample.compressed.vcf.gz",
+    "self_uri": "drs://localhost/sample.compressed.vcf.gz",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
+      {
+        "drs_uri": [
+          "drs://localhost/sample.compressed.vcf.gz"
+        ],
+        "name": "sample.compressed.vcf.gz",
+        "id": "variant"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/sample.compressed.vcf.gz.tbi"
+        ],
+        "name": "sample.compressed.vcf.gz.tbi",
+        "id": "index"
+      }
+    ],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "sample.compressed",
+    "mime_type": "application/octet-stream",
+    "name": "sample.compressed",
+    "self_uri": "drs://localhost/sample.compressed",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
         "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz.tbi",
         "type": "s3"
       }
