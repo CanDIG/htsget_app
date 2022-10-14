@@ -365,55 +365,41 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 # two contents objects. We can instantiate them into temp files and pass those 
 # file handles back.
 def _get_genomic_obj(object_id):
-    index_file = None
-    variant_file = None
-    read_file = None
     result = None
-
+    drs_obj = _describe_drs_object(object_id)
     with tempfile.TemporaryDirectory() as tempdir:
-        drs_obj = _describe_drs_object(object_id)
-        for content_type in ['main', 'index']:
-            sub_obj_id = drs_obj[content_type]
-            (sub_obj, status_code) = drs_operations.get_object(sub_obj_id)
-            # get access_methods for this sub_obj
-            for method in sub_obj["access_methods"]:
-                if "access_id" in method and method["access_id"] != "":
-                    # we need to go to the access endpoint to get the url and file
-                    (url, status_code) = drs_operations.get_access_url(None, method["access_id"])
-                    if status_code < 300:
-                        f_path = os.path.join(tempdir, sub_obj["name"])
-                        with open(f_path, mode='wb') as f:
-                            with requests.get(url["url"], stream=True) as r:
-                                with r.raw as content:
-                                    f.write(content.data)
-                        if content_type == 'index':
-                            index_file = f_path
-                        elif content_type == 'main':
-                            if drs_obj['type'] == 'read':
-                                read_file = f_path
-                            else:
-                                variant_file = f_path
-                    else:
-                        return {"error": url, "status_code": status_code}
-                else:
-                    # the access_url has all the info we need
-                    url_pieces = urlparse(method["access_url"]["url"])
-                    if url_pieces.scheme == "file":
-                        if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
-                            if content_type == 'index':
-                                index_file = url_pieces.path
-                            elif content_type == 'main':
-                                if drs_obj['type'] == 'read':
-                                    read_file = url_pieces.path
-                                else:
-                                    variant_file = url_pieces.path
-        if variant_file is not None:
-            result = VariantFile(variant_file, index_filename=index_file)
-        elif read_file is not None:
-            result = AlignmentFile(read_file, index_filename=index_file)
-
+        index_file = _get_local_file(drs_obj['index'], tempdir)
+        main_file = _get_local_file(drs_obj['main'], tempdir)
+        if drs_obj['type'] == 'read':
+            result = AlignmentFile(main_file, index_filename=index_file)
+        else:
+            result = VariantFile(main_file, index_filename=index_file)
     return { "file": result, "file_format": drs_obj['format'] }
 
+
+def _get_local_file(drs_file_obj_id, dir):
+    (drs_file_obj, status_code) = drs_operations.get_object(drs_file_obj_id)
+    # get access_methods for this drs_file_obj
+    for method in drs_file_obj["access_methods"]:
+        if "access_id" in method and method["access_id"] != "":
+            # we need to go to the access endpoint to get the url and file
+            (url, status_code) = drs_operations.get_access_url(None, method["access_id"])
+            if status_code < 300:
+                f_path = os.path.join(dir, drs_file_obj["name"])
+                with open(f_path, mode='wb') as f:
+                    with requests.get(url["url"], stream=True) as r:
+                        with r.raw as content:
+                            f.write(content.data)
+                return f_path
+            else:
+                return None
+        else:
+            # the access_url has all the info we need
+            url_pieces = urlparse(method["access_url"]["url"])
+            if url_pieces.scheme == "file":
+                if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
+                    return url_pieces.path
+    return None
 
 # describe an htsget DRS object, but don't open it
 def _describe_drs_object(object_id):

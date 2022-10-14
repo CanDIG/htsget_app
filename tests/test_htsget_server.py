@@ -149,6 +149,7 @@ def test_pull_slices(params, id_, file_extension, file_type):
     for i in range(len(urls)):
         url = urls[i]['url']
         res = requests.request("GET", url, headers=headers)
+        print(res.text)
 
         f_slice_name = f"{id_}_{i}{file_extension}"
         f_slice_path = f"./{f_slice_name}"
