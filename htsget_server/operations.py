@@ -4,7 +4,7 @@ import tempfile
 import requests
 from flask import request, send_file, Flask
 from pysam import VariantFile, AlignmentFile
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode
 import drs_operations
 import database
 import authz
@@ -204,7 +204,17 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
     """
-    url = f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}?referenceName={reference_name}&start={slice_start}&end={slice_end}"
+    params = {}
+    if reference_name is not None:
+        params['reference_name'] = reference_name
+    if slice_start is not None:
+        params['start'] = slice_start
+    if slice_end is not None:
+        params['end'] = slice_end
+    encoded_params = urlencode(params)
+    url = f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
+    if len(params.keys()) > 0:
+        url += encoded_params
     arr.append({'url': url, })
 
 
@@ -230,11 +240,7 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
             slice_start = slice_end
         _create_slice(urls, id, reference_name, slice_start, end, file_type)
     else:  # One slice only
-        url = f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
-        if reference_name and start and end:
-            url += f"?referenceName={reference_name}&start={start}&end={end}"
-        urls.append({"url": url})
-
+        _create_slice(urls, id, reference_name, start, end, file_type)
     return urls
 
 
