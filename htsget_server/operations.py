@@ -130,9 +130,14 @@ def index_variants(id_=None, force=False):
                 return {"message": f"Could not add sample {sample} to variantfile {id_}"}, 500
         contigs = {}
         for contig in list(gen_obj['file'].header.contigs):
-            normalized_contig_id = database.normalize_contig(contig)
-            contigs[contig] = normalized_contig_id
-        curr_pos_bucket = 0
+            contigs[contig] = database.normalize_contig(contig)
+        
+        # find first normalized contig and set the chr_prefix:
+        for raw_contig in contigs.keys():
+            if contigs[raw_contig] is not None:
+                prefix = database.get_contig_prefix(raw_contig)
+                varfile = database.set_variantfile_prefix({"variantfile_id": id_, "chr_prefix": prefix})
+                break
         
         positions = []
         normalized_contigs = []

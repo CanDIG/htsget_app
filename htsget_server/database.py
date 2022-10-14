@@ -77,6 +77,7 @@ class VariantFile(ObjectDBBase):
     __tablename__ = 'variantfile'
     id = Column(String, primary_key=True)
     indexed = Column(Integer)
+    chr_prefix = Column(String)
 
     # a variantfile maps to a drs object
     drs_object_id = Column(String, ForeignKey('drs_object.id'))
@@ -114,6 +115,7 @@ class VariantFile(ObjectDBBase):
             'id': self.id,
             'drsobject': self.drs_object_id,
             'indexed': self.indexed,
+            'chr_prefix': self.chr_prefix
         }
 
         return json.dumps(result)
@@ -479,6 +481,7 @@ def create_variantfile(obj):
         if new_variantfile is None:
             new_variantfile = VariantFile()
             new_variantfile.indexed = 0
+            new_variantfile.chr_prefix = '0'
         new_variantfile.id = obj['id']
         new_drs = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_drs is not None:
@@ -502,6 +505,19 @@ def mark_variantfile_as_indexed(variantfile_id):
             session.commit()
 
 
+def set_variantfile_prefix(obj):
+    # obj = {'variantfile_id', 'chr_prefix'}
+    with Session() as session:
+        new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
+        if new_variantfile is None:
+            return None
+        new_variantfile.chr_prefix = obj['chr_prefix']
+        session.add(new_variantfile)
+        session.commit()
+        result = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
+        if result is not None:
+            return json.loads(str(result))
+    return None
 
 def delete_variantfile(variantfile_id):
     with Session() as session:
@@ -704,6 +720,21 @@ def normalize_contig(contig_id):
             return alias.contig_id
         else:
             return None
+
+
+def get_contig_prefix(contig_id):
+    normalized_contig = normalize_contig(contig_id)
+    suffix = normalized_contig.replace("chr", "")
+    prefix = contig_id.replace(suffix, "")
+    return prefix
+
+
+def get_contig_name_in_variantfile(obj):
+    # obj = { 'refname', 'variantfile_id' }
+    normalized = normalize_contig(obj['refname'])
+    suffix = normalized.replace("chr", "")
+    varfile = get_variantfile(obj['variantfile_id'])
+    return varfile.chr_prefix + suffix
 
 
 def search(obj):
