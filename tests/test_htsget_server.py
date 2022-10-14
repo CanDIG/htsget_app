@@ -131,8 +131,8 @@ def test_existent_file(id, expected_status):
 
 def test_pull_slices_data():
     return [
-        ({"referenceName": "21",
-          "start": 92033, "end": 32345678}, 'NA18537', ".vcf.gz", "variant")
+        ({"referenceName": "20",
+          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant")
     ]
 
 
