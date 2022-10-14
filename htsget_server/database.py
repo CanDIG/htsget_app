@@ -21,11 +21,17 @@ contig_variantfile_association = Table(
 )
 
 
+class PositionBucketVariantFileAssociation(ObjectDBBase):
+    __tablename__ = 'pos_bucket_variantfile_association'
+    pos_bucket_id = Column(Integer, ForeignKey('pos_bucket.id'), primary_key=True)
+    variantfile_id = Column(String, ForeignKey('variantfile.id'), primary_key=True)
+    bucket_count = Column(Integer, default=0)
 # each pos_bucket is in many variantfiles and each variantfile contains many pos_buckets
 pos_bucket_variantfile_association = Table(
     'pos_bucket_variantfile_association', ObjectDBBase.metadata,
     Column('pos_bucket_id', ForeignKey('pos_bucket.id'), primary_key=True),
-    Column('variantfile_id', ForeignKey('variantfile.id'), primary_key=True)
+    Column('variantfile_id', ForeignKey('variantfile.id'), primary_key=True),
+    Column('bucket_count'), extend_existing=True
 )
 
 
@@ -634,7 +640,10 @@ def get_bucket_for_position(pos):
     return int(pos/BUCKET_SIZE) * BUCKET_SIZE
 
 def create_position(obj):
-    # obj = {'variantfile_id', 'position_id' or 'positions', 'normalized_contig_id' or 'normalized_contigs'}
+    # obj = { 'variantfile_id',
+    #         'position_id' or 'positions',
+    #         'normalized_contig_id' or 'normalized_contigs'
+    #         }
     if 'position_id' in obj and 'normalized_contig_id' in obj:
         obj['pos_bucket_ids'] = [get_bucket_for_position(obj['position_id'])]
         obj.pop('position_id')
@@ -642,22 +651,37 @@ def create_position(obj):
         obj.pop('normalized_contig_id')
     if len(obj['positions']) != len(obj['normalized_contigs']):
         return None
-    pos_bucket_ids = []
-    last_bucket = None
-    for pos in obj['positions']:
-        curr_bucket = get_bucket_for_position(pos)
-        if last_bucket is None or curr_bucket > last_bucket:
+    old_normalized_contigs = obj.pop('normalized_contigs')
+    pos_bucket_ids = [get_bucket_for_position(obj['positions'].pop(0))]
+    normalized_contigs = [old_normalized_contigs.pop(0)]
+    bucket_counts = [1]
+    bucket = None
+    contig = None
+    for i in range(len(obj['positions'])):
+        curr_bucket = get_bucket_for_position(obj['positions'][i])
+        curr_contig = old_normalized_contigs[i]
+        if curr_contig != normalized_contigs[-1] or curr_bucket != pos_bucket_ids[-1]:
             pos_bucket_ids.append(curr_bucket)
-            last_bucket = curr_bucket
+            bucket_counts.append(1)
+            normalized_contigs.append(old_normalized_contigs[i])
+        else:
+            bucket_counts[-1] += 1
     obj['pos_bucket_ids'] = pos_bucket_ids
+    obj['bucket_counts'] = bucket_counts
+    obj['normalized_contigs'] = normalized_contigs
     obj.pop('positions')
     return create_pos_bucket(obj)
 
 def create_pos_bucket(obj):
-    # obj = {'variantfile_id', 'pos_bucket_ids', 'normalized_contigs'}
+    # obj = { 'variantfile_id',
+    #         'pos_bucket_ids',
+    #         'bucket_counts',
+    #         'normalized_contigs'
+    #       }
     with Session() as session:
         pos_bucket_ids = obj['pos_bucket_ids']
         contig_ids = obj['normalized_contigs']
+        bucket_counts = obj['bucket_counts']
         variantfile_id = obj['variantfile_id']
         new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
         if new_variantfile is None:
@@ -676,9 +700,17 @@ def create_pos_bucket(obj):
                 new_pos_bucket = PositionBucket()
                 new_pos_bucket.pos_bucket_id = pos_bucket_id
                 new_pos_bucket.contig_id = contig_id
-            new_pos_bucket.associated_variantfiles.append(new_variantfile)
-            session.add(new_pos_bucket)
-        session.commit()
+                session.add(new_pos_bucket)
+                session.commit()
+            association = session.query(PositionBucketVariantFileAssociation).filter_by(pos_bucket_id=new_pos_bucket.id, variantfile_id=variantfile_id).one_or_none()
+            if association is None:
+                association = PositionBucketVariantFileAssociation()
+                association.pos_bucket_id = new_pos_bucket.id
+                association.variantfile_id = variantfile_id
+                association.bucket_count = 0
+            association.bucket_count += bucket_counts[i]
+            session.add(association)
+            session.commit()
         return json.loads(str(new_pos_bucket))
         return None
 
