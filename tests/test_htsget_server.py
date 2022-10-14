@@ -53,7 +53,7 @@ def test_post_objects(drs_objects):
                 return {"message": str(e)}, 500
         url = f"{HOST}/ga4gh/drs/v1/objects"
         response = requests.request("POST", url, json=obj, headers=headers)
-        print(f"POST {obj['name']}: {response.json()}")
+        print(f"POST {obj['name']}: {response.text}")
         assert response.status_code == 200
 
 def test_post_update():
@@ -73,11 +73,12 @@ def test_post_update():
     "size": 100
   }
     response = requests.post(url, json=obj, headers=headers)
+    print(response.text)
     assert response.json()["size"] == 100
 
 
 def test_index_variants():
-    return [('NA18537'), ('NA20787'), ('sample.compressed')]
+    return [('sample.compressed'), ('NA18537'), ('NA20787')]
 
 
 @pytest.mark.parametrize('sample', test_index_variants())
@@ -182,6 +183,7 @@ def test_get_read_header():
     """
     url = f"{HOST}/htsget/v1/reads/data/NA02102?class=header&format=SAM"
     res = requests.request("GET", url, headers=headers)
+    print(res.text)
     for line in res.iter_lines():
         if "@SQ" in line.decode("utf-8"):
             assert True
