@@ -75,6 +75,21 @@ def test_post_update():
     response = requests.post(url, json=obj, headers=headers)
     assert response.json()["size"] == 100
 
+
+def test_index_variants():
+    return [('NA18537'), ('NA20787'), ('sample.compressed')]
+
+
+@pytest.mark.parametrize('sample', test_index_variants())
+def test_index_variantfile(sample):
+    url = f"{HOST}/htsget/v1/variants/{sample}/index"
+    params = None
+    #params = {'force': True}
+    response = requests.get(url, params=params, headers=headers)
+    print(response.text)
+    assert response.json()["id"] == sample
+
+
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]
 
@@ -177,18 +192,6 @@ def test_get_read_header():
     assert False
 
 
-def test_index_variants():
-    return [('NA18537'), ('NA20787'), ('sample.compressed')]
-
-@pytest.mark.parametrize('sample', test_index_variants())
-def test_index_variantfile(sample):
-    url = f"{HOST}/htsget/v1/variants/{sample}/index"
-    params = None
-    #params = {'force': True}
-    response = requests.get(url, params=params, headers=headers)
-    print(response.text)
-    assert response.json()["id"] == sample
-
 def test_search_variants():
     return [
         {
@@ -218,7 +221,8 @@ def test_search_variants():
             ]
         }
     ]
-    
+
+
 @pytest.mark.parametrize('body', test_search_variants())
 def test_search_variantfile(body):
     url = f"{HOST}/htsget/v1/variants/search"
