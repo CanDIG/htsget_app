@@ -799,15 +799,24 @@ def search(obj):
         q = q.distinct()
         result = {
             'drs_object_ids': [],
-            'variantcount': []
+            'variantcount': [],
+            'raw': []
         }
+        drs_obj_ids = []
+        pos_bucket_ids = []
         for row in session.execute(q):
-            bv = session.query(PositionBucketVariantFileAssociation).filter_by(pos_bucket_id=row._mapping['id'], variantfile_id=row._mapping['drs_object_id']).one_or_none()
-            if bv is not None:
+            drs_obj_ids.append(row._mapping['drs_object_id'])
+            pos_bucket_ids.append(row._mapping['id'])
+        
+        bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(pos_bucket_ids), PositionBucketVariantFileAssociation.variantfile_id.in_(drs_obj_ids)).order_by(PositionBucketVariantFileAssociation.variantfile_id).order_by(PositionBucketVariantFileAssociation.pos_bucket_id).all()
+        if bvs is not None:
+            for bv in bvs:
+                result['raw'].append(str(bv))
                 if len(result['drs_object_ids']) == 0:
                     result['drs_object_ids'].append(bv.variantfile_id)
                     result['variantcount'].append(bv.bucket_count)
-                if result['drs_object_ids'][-1] == bv.variantfile_id :
+                    continue
+                if result['drs_object_ids'][-1] == bv.variantfile_id:
                     result['variantcount'][-1] += bv.bucket_count
                 else:
                     result['drs_object_ids'].append(bv.variantfile_id)
