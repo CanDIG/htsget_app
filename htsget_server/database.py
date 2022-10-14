@@ -114,13 +114,7 @@ class VariantFile(ObjectDBBase):
             'id': self.id,
             'drsobject': self.drs_object_id,
             'indexed': self.indexed,
-            'contigs': [],
-            'headers': []
         }
-        for contig_assoc in self.associated_contigs:
-            result['contigs'].append(contig_assoc.id)
-        for header_assoc in self.associated_headers:
-            result['headers'].append(header_assoc.text)
 
         return json.dumps(result)
 
