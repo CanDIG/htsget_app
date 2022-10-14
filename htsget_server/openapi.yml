@@ -220,7 +220,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: object
+                                $ref: '#/components/schemas/SearchResultsTicket'
                 400:
                     $ref: '#/components/responses/400BadRequestError'
                 404:
@@ -570,6 +570,21 @@ components:
                                                     - properties:
                                                         FilePath:
                                                             example: "/data/variants/object00001.vcf"
+        SearchResultsTicket:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            htsget:
+                              $ref: '#/components/schemas/HtsgetTicket'
+                            samples:
+                              type: array
+                              items:
+                                  type: string
+                                  description: Samples included in this Htsget object
 
         # ERROR SCHEMAS
         Error:

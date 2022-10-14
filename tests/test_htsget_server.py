@@ -129,10 +129,6 @@ def test_existent_file(id, expected_status):
     assert res_v.status_code == expected_status or res_r.status_code == expected_status
 
 
-def test_file_without_start_end_data():
-    return [('NA18537', '21', '.vcf.gz', 'variant'), ('NA20787', '21', '.vcf.gz', 'variant')]
-
-
 def test_pull_slices_data():
     return [
         ({"referenceName": "21",
@@ -194,7 +190,7 @@ def test_get_read_header():
 
 def test_search_variants():
     return [
-        {
+        ({
             'headers': [
                 'bcftools_viewVersion=1.4.1+htslib-1.4.1'
             ],
@@ -205,13 +201,15 @@ def test_search_variants():
                     'end': 48120000
                 }
             ]
-        }, {
+        }, 2), 
+        ({
             'regions': [
                 {
                     'referenceName': '20'
                 }
             ]
-        }, {
+        }, 1),
+        ({
             'regions': [
                 {
                     'referenceName': 'chr21',
@@ -219,17 +217,17 @@ def test_search_variants():
                     'end': 48120634
                 }
             ]
-        }
+        }, 1)
     ]
 
 
-@pytest.mark.parametrize('body', test_search_variants())
-def test_search_variantfile(body):
+@pytest.mark.parametrize('body, count', test_search_variants())
+def test_search_variantfile(body, count):
     url = f"{HOST}/htsget/v1/variants/search"
     
     response = requests.post(url, json=body, headers=headers)
     print(response.text)
-    assert response.json()["htsget"] is not None
+    assert len(response.json()["results"]) == count
 
 @pytest.fixture
 def drs_objects():
