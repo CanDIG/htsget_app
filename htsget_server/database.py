@@ -624,20 +624,17 @@ def create_position(obj):
         obj.pop('position_id')
         obj['normalized_contigs'] = [obj['normalized_contig_id']]
         obj.pop('normalized_contig_id')
-    elif 'positions' in obj and 'normalized_contigs' in obj:
-        if len(obj['positions']) != len(obj['normalized_contigs']):
-            return None
-        pos_bucket_ids = []
-        last_bucket = None
-        for pos in obj['positions']:
-            curr_bucket = get_bucket_for_position(pos)
-            if last_bucket is None or curr_bucket > last_bucket:
-                pos_bucket_ids.append(curr_bucket)
-                last_bucket = curr_bucket
-        obj['pos_bucket_ids'] = pos_bucket_ids
-        obj.pop('positions')
-    else:
+    if len(obj['positions']) != len(obj['normalized_contigs']):
         return None
+    pos_bucket_ids = []
+    last_bucket = None
+    for pos in obj['positions']:
+        curr_bucket = get_bucket_for_position(pos)
+        if last_bucket is None or curr_bucket > last_bucket:
+            pos_bucket_ids.append(curr_bucket)
+            last_bucket = curr_bucket
+    obj['pos_bucket_ids'] = pos_bucket_ids
+    obj.pop('positions')
     return create_pos_bucket(obj)
 
 def create_pos_bucket(obj):
