@@ -732,9 +732,8 @@ def get_contig_prefix(contig_id):
 def get_contig_name_in_variantfile(obj):
     # obj = { 'refname', 'variantfile_id' }
     normalized = normalize_contig(obj['refname'])
-    suffix = normalized.replace("chr", "")
     varfile = get_variantfile(obj['variantfile_id'])
-    return varfile.chr_prefix + suffix
+    return varfile['chr_prefix'] + normalized
 
 
 def search(obj):

@@ -275,8 +275,9 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
         else:
             file_out = AlignmentFile(ntf, mode=write_mode, header=file_in.header)
         if class_ != "header":
+            ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': id_})
             try:
-                fetch = file_in.fetch(contig=reference_name, start=start, end=end)
+                fetch = file_in.fetch(contig=ref_name, start=start, end=end)
             except ValueError as e:
                 return {"error": str(e)}, 400
 
