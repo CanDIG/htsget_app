@@ -148,6 +148,7 @@ def index_variants(id_=None, force=False):
             return {"message": f"Could not add positions {record.contig}:{record.pos} to variantfile {id_}"}, 500
         else:
             varfile['pos'] = res
+            database.mark_variantfile_as_indexed(id_)
         return varfile, 200
     else:
         return None, 404

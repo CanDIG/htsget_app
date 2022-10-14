@@ -76,7 +76,7 @@ class Contig(ObjectDBBase):
 class VariantFile(ObjectDBBase):
     __tablename__ = 'variantfile'
     id = Column(String, primary_key=True)
-    indexed = Column(Boolean)
+    indexed = Column(Integer)
 
     # a variantfile maps to a drs object
     drs_object_id = Column(String, ForeignKey('drs_object.id'))
@@ -478,7 +478,7 @@ def create_variantfile(obj):
         new_variantfile = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
         if new_variantfile is None:
             new_variantfile = VariantFile()
-            new_variantfile.indexed = False
+            new_variantfile.indexed = 0
         new_variantfile.id = obj['id']
         new_drs = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_drs is not None:
@@ -490,7 +490,17 @@ def create_variantfile(obj):
         result = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
         if result is not None:
             return json.loads(str(result))
-        return None
+    return None
+
+
+def mark_variantfile_as_indexed(variantfile_id):
+    with Session() as session:
+        new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
+        if new_variantfile is not None:
+            new_variantfile.indexed = 1
+            session.add(new_variantfile)
+            session.commit()
+
 
 
 def delete_variantfile(variantfile_id):
@@ -582,9 +592,6 @@ def add_header_for_variantfile(obj):
         headertexts = map(lambda x: x.strip(), obj['texts'])
     with Session() as session:
         new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
-        if new_variantfile is not None:
-            new_variantfile.indexed = 1
-            session.add(new_variantfile)
         for headertext in headertexts:
             if headertext == '' or headertext.startswith("#CHROM"):
                 continue
