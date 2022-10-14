@@ -175,16 +175,18 @@ def search_variants():
             start = region['start']
         if 'end' in region:
             end = region['end']
-    result = database.search(req.json)
-    result['results'] = []
-    for drs_obj_id in result['drs_object_ids']:
+    searchresult = database.search(req.json)
+    result = {'results': []}
+    for i in range(len(searchresult['drs_object_ids'])):
+        drs_obj_id = searchresult['drs_object_ids'][i]
+        count = searchresult['variantcount'][i]
         auth_code = authz.is_authed(drs_obj_id, connexion.request)
         if auth_code == 200:
             htsget_obj, code = _get_urls("variant", drs_obj_id, reference_name=ref_name, start=start, end=end)
             htsget_obj['htsget']['id'] = drs_obj_id
+            htsget_obj['variantcount'] = count
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
             result['results'].append(htsget_obj)
-    result.pop('drs_object_ids')
     auth_code = 200
     return result, auth_code
 

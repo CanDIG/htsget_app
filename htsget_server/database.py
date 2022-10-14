@@ -26,6 +26,15 @@ class PositionBucketVariantFileAssociation(ObjectDBBase):
     pos_bucket_id = Column(Integer, ForeignKey('pos_bucket.id'), primary_key=True)
     variantfile_id = Column(String, ForeignKey('variantfile.id'), primary_key=True)
     bucket_count = Column(Integer, default=0)
+    def __repr__(self):
+        result = {
+            'pos_bucket_id': self.pos_bucket_id,
+            'variantfile_id': self.variantfile_id,
+            'count': self.bucket_count
+        }
+
+        return json.dumps(result)
+
 # each pos_bucket is in many variantfiles and each variantfile contains many pos_buckets
 pos_bucket_variantfile_association = Table(
     'pos_bucket_variantfile_association', ObjectDBBase.metadata,
@@ -772,7 +781,7 @@ def search(obj):
     # obj = {'regions', 'headers'}
     with Session() as session:
         vfile = aliased(VariantFile)
-        q = select(vfile.drs_object_id).select_from(PositionBucket).join(vfile.associated_pos_buckets).join(vfile.associated_headers)
+        q = select(vfile.drs_object_id, PositionBucket.id, PositionBucket.pos_bucket_id).select_from(PositionBucket).join(vfile.associated_pos_buckets).join(vfile.associated_headers)
         if 'headers' in obj:
             for header in obj['headers']:
                 q = q.where(Header.text.like(f"%{header}%"))
@@ -789,9 +798,19 @@ def search(obj):
                     q = q.where(PositionBucket.pos_bucket_id < region['end'])
         q = q.distinct()
         result = {
-            'drs_object_ids': []
+            'drs_object_ids': [],
+            'variantcount': []
         }
         for row in session.execute(q):
-            result['drs_object_ids'].append(str(row._mapping['drs_object_id']))
+            bv = session.query(PositionBucketVariantFileAssociation).filter_by(pos_bucket_id=row._mapping['id'], variantfile_id=row._mapping['drs_object_id']).one_or_none()
+            if bv is not None:
+                if len(result['drs_object_ids']) == 0:
+                    result['drs_object_ids'].append(bv.variantfile_id)
+                    result['variantcount'].append(bv.bucket_count)
+                if result['drs_object_ids'][-1] == bv.variantfile_id :
+                    result['variantcount'][-1] += bv.bucket_count
+                else:
+                    result['drs_object_ids'].append(bv.variantfile_id)
+                    result['variantcount'].append(bv.bucket_count)
         return result
     return None

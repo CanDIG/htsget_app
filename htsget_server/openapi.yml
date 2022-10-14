@@ -578,6 +578,9 @@ components:
                     items:
                         type: object
                         properties:
+                            variantcount:
+                              type: integer
+                              description: Approximate count of variants in the searched region
                             htsget:
                               $ref: '#/components/schemas/HtsgetTicket'
                             samples:
