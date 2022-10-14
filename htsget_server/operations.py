@@ -163,14 +163,24 @@ def index_variants(id_=None, force=False):
 def search_variants():
     req = connexion.request
     # for now, only work with one region:
-    if 'regions' in req.json and len(req.json['regions']) > 1:
-        return {"message": "Only one region at a time is searchable for now."}, 400
+    ref_name = None
+    start = None
+    end = None
+    if 'regions' in req.json:
+        if len(req.json['regions']) > 1:
+            return {"message": "Only one region at a time is searchable for now."}, 400
+        region = req.json['regions'][0]
+        ref_name = region['referenceName']
+        if 'start' in region:
+            start = region['start']
+        if 'end' in region:
+            end = region['end']
     result = database.search(req.json)
     result['results'] = []
     for drs_obj_id in result['drs_object_ids']:
         auth_code = authz.is_authed(drs_obj_id, connexion.request)
         if auth_code == 200:
-            htsget_obj, code = _get_urls("variant", drs_obj_id)
+            htsget_obj, code = _get_urls("variant", drs_obj_id, reference_name=ref_name, start=start, end=end)
             htsget_obj['htsget']['id'] = drs_obj_id
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
             result['results'].append(htsget_obj)
@@ -332,6 +342,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
             "class": "header"}]
         else:
             file_in = drs_obj["main"]
+            index = drs_obj["index"]
             if start is None:
                 start = 0
             if end is None:
@@ -346,33 +357,6 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
         }
         return response, 200
     return f"No {file_type} found for id: {id}, try using the other endpoint", 404
-
-
-def _get_index(position, file_in):
-    """
-    Get the first or last index of a reads or variant file.
-
-    :param position: Get either first or last index.
-        Options: first - "start"
-                 last - "end"
-    :param id: ID of a file
-    """
-    position = position.lower()
-    if position not in ["start", "end"]:
-        return "That position is not available"
-
-    # get the required index
-    if position == "start":
-        start = 0
-        for rec in file_in.fetch():
-            start = rec.pos
-            break
-        return start
-    elif position == "end":
-        end = 0
-        for rec in file_in.fetch():
-            end = rec.pos
-        return end
 
 
 # This is specific to our particular use case: a DRS object that represents a 
