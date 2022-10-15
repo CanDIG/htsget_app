@@ -581,6 +581,15 @@ components:
                             variantcount:
                               type: integer
                               description: Approximate count of variants in the searched region
+                            id:
+                              type: string
+                              description: Base name of the DRS object that represents this variant file
+                            reference_genome:
+                              type: string
+                              description: Reference genome this variant file is based on
+                              enum:
+                                - hg38
+                                - hg37
                             htsget:
                               $ref: '#/components/schemas/HtsgetTicket'
                             samples:
