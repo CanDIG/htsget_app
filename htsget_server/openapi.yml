@@ -190,6 +190,7 @@ paths:
             parameters:
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/forceParam'
+                - $ref: '#/components/parameters/refGenomeParam'
             responses:
                 200:
                     description: Successfully indexed variant file
@@ -318,6 +319,12 @@ tags:
         Large byte transfers of genomic files
 components:
     schemas:
+        ReferenceGenome:
+            type: string
+            description: Reference genome this variant file is based on
+            enum:
+              - hg38
+              - hg37
 
         # LOW-LEVEL, REUSABLE SCHEMAS
         ReadsFormats:
@@ -585,11 +592,7 @@ components:
                               type: string
                               description: Base name of the DRS object that represents this variant file
                             reference_genome:
-                              type: string
-                              description: Reference genome this variant file is based on
-                              enum:
-                                - hg38
-                                - hg37
+                              $ref: "#/components/schemas/ReferenceGenome"
                             htsget:
                               $ref: '#/components/schemas/HtsgetTicket'
                             samples:
@@ -656,6 +659,13 @@ components:
             required: false
             schema:
                 type: boolean
+        refGenomeParam:
+            in: query
+            name: genome
+            description: Specify reference genome, either hg37 or hg38. Default is hg38.
+            required: false
+            schema:
+                $ref: '#/components/schemas/ReferenceGenome'
         readsFormatParam:
             in: query
             name: format

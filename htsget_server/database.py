@@ -93,6 +93,7 @@ class VariantFile(ObjectDBBase):
     id = Column(String, primary_key=True)
     indexed = Column(Integer)
     chr_prefix = Column(String)
+    reference_genome = Column(String)
 
     # a variantfile maps to a drs object
     drs_object_id = Column(String, ForeignKey('drs_object.id'))

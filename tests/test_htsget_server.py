@@ -84,8 +84,8 @@ def test_index_variants():
 @pytest.mark.parametrize('sample', test_index_variants())
 def test_index_variantfile(sample):
     url = f"{HOST}/htsget/v1/variants/{sample}/index"
-    params = None
-    #params = {'force': True}
+    params = {"genome": "hg37"}
+    #params['force'] = True
     response = requests.get(url, params=params, headers=headers)
     print(response.text)
     assert response.json()["id"] == sample
