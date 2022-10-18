@@ -186,6 +186,7 @@ def search_variants():
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
+            htsget_obj['reference_genome'] = searchresult['reference_genome'][i]
             result['results'].append(htsget_obj)
     auth_code = 200
     return result, auth_code
@@ -206,7 +207,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     """
     params = {}
     if reference_name is not None:
-        params['reference_name'] = reference_name
+        params['referenceName'] = reference_name
     if slice_start is not None:
         params['start'] = slice_start
     if slice_end is not None:
@@ -214,7 +215,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     encoded_params = urlencode(params)
     url = f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
     if len(params.keys()) > 0:
-        url += encoded_params
+        url += f"?{encoded_params}"
     arr.append({'url': url, })
 
 
