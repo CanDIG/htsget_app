@@ -5,7 +5,7 @@ from datetime import datetime
 from config import DB_PATH, BUCKET_SIZE
 
 
-engine = create_engine(DB_PATH, echo=True)
+engine = create_engine(DB_PATH, echo=False)
 
 ObjectDBBase = declarative_base()
 
@@ -40,7 +40,7 @@ pos_bucket_variantfile_association = Table(
     'pos_bucket_variantfile_association', ObjectDBBase.metadata,
     Column('pos_bucket_id', ForeignKey('pos_bucket.id'), primary_key=True),
     Column('variantfile_id', ForeignKey('variantfile.id'), primary_key=True),
-    Column('bucket_count'), extend_existing=True
+    Column('bucket_count', default=0), extend_existing=True
 )
 
 

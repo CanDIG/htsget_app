@@ -183,7 +183,7 @@ CREATE TABLE header_variantfile_association (
 CREATE TABLE pos_bucket_variantfile_association (
 	pos_bucket_id INTEGER NOT NULL, 
 	variantfile_id VARCHAR NOT NULL, 
-	bucket_count INTEGER DEFAULT 0,
+	bucket_count INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY (pos_bucket_id, variantfile_id), 
 	FOREIGN KEY(pos_bucket_id) REFERENCES pos_bucket (id), 
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
