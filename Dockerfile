@@ -30,7 +30,7 @@ RUN apk add --no-cache \
 
 COPY requirements.txt /app/htsget_server/requirements.txt
 
-RUN pip install -r /app/htsget_server/requirements.txt
+RUN pip install --no-cache-dir -r /app/htsget_server/requirements.txt
 
 COPY . /app/htsget_server
 
