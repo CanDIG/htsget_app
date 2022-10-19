@@ -256,7 +256,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     :param start: Position index to begin at (1-based inclusive)
     :param end: Position index to end at (1-based inclusive)
     """
-    if end is not None and end < start:
+    if end is not None and end != -1 and end < start:
         response = {
             "detail": "End index cannot be smaller than start index",
             "status": 400,
@@ -379,8 +379,10 @@ def _get_genomic_obj(object_id):
     result = None
     drs_obj = _describe_drs_object(object_id)
     with tempfile.TemporaryDirectory() as tempdir:
-        index_file = _get_local_file(drs_obj['index'], tempdir)
-        main_file = _get_local_file(drs_obj['main'], tempdir)
+        index_file, status_code1 = _get_local_file(drs_obj['index'], tempdir)
+        main_file, status_code2 = _get_local_file(drs_obj['main'], tempdir)
+        if status_code2 > 200:
+            return { "error": main_file['message'], "status_code": status_code2 }
         if drs_obj['type'] == 'read':
             result = AlignmentFile(main_file, index_filename=index_file)
         else:
@@ -401,9 +403,9 @@ def _get_local_file(drs_file_obj_id, dir):
                     with requests.get(url["url"], stream=True) as r:
                         with r.raw as content:
                             f.write(content.data)
-                return f_path
+                return f_path, 200
             else:
-                return None
+                return url, 500
         else:
             # the access_url has all the info we need
             url_pieces = urlparse(method["access_url"]["url"])
