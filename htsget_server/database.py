@@ -295,14 +295,14 @@ class AccessMethod(ObjectDBBase):
         result = {
             'type': self.type
         }
-        if self.region is not "":
+        if self.region != "":
             result['region'] = self.region
-        if self.url is not "":
+        if self.url != "":
             result['access_url'] = {
                 'url': self.url,
                 'headers': json.loads(self.headers)
             }
-        if self.access_id is not "":
+        if self.access_id != "":
             result['access_id'] = self.access_id
 
         return json.dumps(result)
