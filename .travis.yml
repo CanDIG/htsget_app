@@ -1,11 +1,11 @@
 language: python
 python:
-  - 3.7
+  - 3.9
 
 cache: pip
 install:
   - pip install -r requirements.txt
-  - pip install -r requirements_dev.txt
+  - sqlite3 data/files.db -init data/files.sql 'select * from variantfile;'
 
 script:
   - python htsget_server/server.py &
@@ -13,4 +13,4 @@ script:
   - pytest tests/test_htsget_server.py
 
 env:
-  - HTSGET_TEST_KEY=thisisatest USE_MINIO_SANDBOX=True
+  - HTSGET_TEST_KEY=thisisatest USE_MINIO_SANDBOX=True DB_PATH=data/files.db

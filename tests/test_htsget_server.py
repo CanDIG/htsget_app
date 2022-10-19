@@ -13,6 +13,7 @@ from config import PORT, LOCAL_FILE_PATH
 HOST = f"http://localhost:{PORT}"
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
 CWD = os.getcwd()
+headers={"Test_Key": TEST_KEY, "Authorization": "Bearer testtest"}
 
 def test_post_objects(drs_objects):
     """
@@ -20,12 +21,13 @@ def test_post_objects(drs_objects):
     """
     # clean up old objects in db:
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    response = requests.request("GET", url)
+    response = requests.request("GET", url, headers=headers)
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
-        response = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
+        response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
-            response = requests.request("DELETE", url, headers={"Test_Key": TEST_KEY})
+            response = requests.request("DELETE", url, headers=headers)
+            print(f"DELETE {obj['name']}: {response.text}")
             assert response.status_code == 200
         if "access_methods" in obj and obj["access_methods"][0]["type"] == "s3":
             method = obj["access_methods"][0]
@@ -50,8 +52,8 @@ def test_post_objects(drs_objects):
                 assert False
                 return {"message": str(e)}, 500
         url = f"{HOST}/ga4gh/drs/v1/objects"
-        response = requests.request("POST", url, json=obj, headers={"Test_Key": TEST_KEY})
-        print(f"POST {obj['name']}: {response.json()}")
+        response = requests.request("POST", url, json=obj, headers=headers)
+        print(f"POST {obj['name']}: {response.text}")
         assert response.status_code == 200
 
 def test_post_update():
@@ -70,8 +72,24 @@ def test_post_update():
     "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
     "size": 100
   }
-    response = requests.post(url, json=obj, headers={"Test_Key": TEST_KEY})
+    response = requests.post(url, json=obj, headers=headers)
+    print(response.text)
     assert response.json()["size"] == 100
+
+
+def test_index_variants():
+    return [('sample.compressed'), ('NA18537'), ('NA20787')]
+
+
+@pytest.mark.parametrize('sample', test_index_variants())
+def test_index_variantfile(sample):
+    url = f"{HOST}/htsget/v1/variants/{sample}/index"
+    params = {"genome": "hg37"}
+    #params['force'] = True
+    response = requests.get(url, params=params, headers=headers)
+    print(response.text)
+    assert response.json()["id"] == sample
+
 
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]
@@ -85,8 +103,8 @@ def test_invalid_start_end(start, end):
     url_v = f"{HOST}/htsget/v1/variants/NA18537?referenceName=21&start={start}&end={end}"
     url_r = f"{HOST}/htsget/v1/reads/NA18537?referenceName=21&start={start}&end={end}"
 
-    res_v = requests.request("GET", url_v, headers={"Test_Key": TEST_KEY})
-    res_r = requests.request("GET", url_r, headers={"Test_Key": TEST_KEY})
+    res_v = requests.request("GET", url_v, headers=headers)
+    res_r = requests.request("GET", url_r, headers=headers)
 
     if end < start:
         assert res_v.status_code == 400
@@ -107,26 +125,22 @@ def test_existent_file(id, expected_status):
     url_v = f"{HOST}/htsget/v1/variants/{id}?referenceName=21&start=10235878&end=45412368"
     url_r = f"{HOST}/htsget/v1/reads/{id}?referenceName=21&start=10235878&end=45412368"
 
-    res_v = requests.request("GET", url_v, headers={"Test_Key": TEST_KEY})
-    res_r = requests.request("GET", url_r, headers={"Test_Key": TEST_KEY})
+    res_v = requests.request("GET", url_v, headers=headers)
+    res_r = requests.request("GET", url_r, headers=headers)
     assert res_v.status_code == expected_status or res_r.status_code == expected_status
-
-
-def test_file_without_start_end_data():
-    return [('NA18537', '21', '.vcf.gz', 'variant'), ('NA20787', '21', '.vcf.gz', 'variant')]
 
 
 def test_pull_slices_data():
     return [
-        ({"referenceName": "21",
-          "start": 92033, "end": 32345678}, 'NA18537', ".vcf.gz", "variant")
+        ({"referenceName": "20",
+          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant")
     ]
 
 
 @pytest.mark.parametrize('params, id_, file_extension, file_type', test_pull_slices_data())
 def test_pull_slices(params, id_, file_extension, file_type):
     url = f"{HOST}/htsget/v1/{file_type}s/{id_}"    
-    res = requests.request("GET", url, params=params, headers={"Test_Key": TEST_KEY})
+    res = requests.request("GET", url, params=params, headers=headers)
     res = res.json()    
     urls = res['htsget']['urls']
 
@@ -135,7 +149,8 @@ def test_pull_slices(params, id_, file_extension, file_type):
     equal = True
     for i in range(len(urls)):
         url = urls[i]['url']
-        res = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
+        res = requests.request("GET", url, headers=headers)
+        print(res.text)
 
         f_slice_name = f"{id_}_{i}{file_extension}"
         f_slice_path = f"./{f_slice_name}"
@@ -167,12 +182,55 @@ def test_get_read_header():
     A header of a SAM file should contain at least one @SQ line
     """
     url = f"{HOST}/htsget/v1/reads/data/NA02102?class=header&format=SAM"
-    res = requests.request("GET", url, headers={"Test_Key": TEST_KEY})
+    res = requests.request("GET", url, headers=headers)
+    print(res.text)
     for line in res.iter_lines():
         if "@SQ" in line.decode("utf-8"):
             assert True
             return
     assert False
+
+
+def test_search_variants():
+    return [
+        ({
+            'headers': [
+                'bcftools_viewVersion=1.4.1+htslib-1.4.1'
+            ],
+            'regions': [
+                {
+                    'referenceName': 'chr21',
+                    'start': 48110083,
+                    'end': 48120000
+                }
+            ]
+        }, 2), 
+        ({
+            'regions': [
+                {
+                    'referenceName': '20'
+                }
+            ]
+        }, 1),
+        ({
+            'regions': [
+                {
+                    'referenceName': 'chr21',
+                    'start': 48117000,
+                    'end': 48120634
+                }
+            ]
+        }, 1)
+    ]
+
+
+@pytest.mark.parametrize('body, count', test_search_variants())
+def test_search_variantfile(body, count):
+    url = f"{HOST}/htsget/v1/variants/search"
+    
+    response = requests.post(url, json=body, headers=headers)
+    print(response.text)
+    assert len(response.json()["results"]) == count
 
 @pytest.fixture
 def drs_objects():
@@ -242,6 +300,75 @@ def drs_objects():
     "mime_type": "application/octet-stream",
     "name": "NA18537",
     "self_uri": "drs://localhost/NA18537",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_id": "play.min.io:9000/testhtsget/sample.compressed.vcf.gz.tbi",
+        "type": "s3",
+        "region": "us-east-1"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "sample.compressed.vcf.gz.tbi",
+    "mime_type": "application/octet-stream",
+    "name": "sample.compressed.vcf.gz.tbi",
+    "self_uri": "drs://localhost/sample.compressed.vcf.gz.tbi",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_id": "play.min.io:9000/testhtsget/sample.compressed.vcf.gz",
+        "type": "s3",
+        "region": "us-east-1"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "sample.compressed.vcf.gz",
+    "mime_type": "application/octet-stream",
+    "name": "sample.compressed.vcf.gz",
+    "self_uri": "drs://localhost/sample.compressed.vcf.gz",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
+      {
+        "drs_uri": [
+          "drs://localhost/sample.compressed.vcf.gz"
+        ],
+        "name": "sample.compressed.vcf.gz",
+        "id": "variant"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/sample.compressed.vcf.gz.tbi"
+        ],
+        "name": "sample.compressed.vcf.gz.tbi",
+        "id": "index"
+      }
+    ],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "sample.compressed",
+    "mime_type": "application/octet-stream",
+    "name": "sample.compressed",
+    "self_uri": "drs://localhost/sample.compressed",
     "size": 0,
     "updated_time": "2021-09-27T18:40:00.539022",
     "version": "v1"

@@ -51,6 +51,10 @@ def list_objects():
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
 def get_access_url(object_id, access_id):
     app.logger.warning(f"looking for url {access_id}")
+    if object_id is not None:
+        auth_code = authz.is_authed(escape(object_id), request)
+        if auth_code != 200:
+            return {"message": f"Not authorized to access object {object_id}"}, auth_code
     id_parse = re.match(r"(https*:\/\/)*(.+?)\/(.+?)\/(.+)$", escape(access_id))
     if id_parse is not None:
         endpoint = id_parse.group(2)
@@ -65,18 +69,15 @@ def get_access_url(object_id, access_id):
             )
             bucket = "testhtsget"
         else:
-            response = requests.get(
-                AUTHZ['CANDIG_VAULT_URL'] + f"/v1/aws/{endpoint}-{bucket}",
-                headers={"Authorization": f"Bearer {VAULT_S3_TOKEN}"}
-            )
-            if response.status_code == 200:
+            response, status_code = authz.get_aws_credential(request, endpoint, bucket)
+            if status_code == 200:
                 client = Minio(
                     endpoint,
-                    access_key=response.json()["data"]["access"],
-                    secret_key=response.json()["data"]["secret"]
+                    access_key=response["access"],
+                    secret_key=response["secret"]
                 )
             else:
-                return {"message": f"Vault error: {response.text}"}, response.status_code
+                return response, status_code
         try:
             result = client.stat_object(bucket_name=bucket, object_name=object_name)
             url = client.presigned_get_object(bucket_name=bucket, object_name=object_name)
@@ -107,8 +108,9 @@ def delete_object(object_id):
 
 def list_datasets():
     datasets = database.list_datasets()
-    return datasets, 200
-    
+    authorized_datasets = authz.get_authorized_datasets(request)
+    return list(set(map(lambda x: x['id'], datasets)) & set(authorized_datasets)), 200
+
 
 def post_dataset():
     if not authz.is_site_admin(request):
@@ -121,7 +123,10 @@ def get_dataset(dataset_id):
     new_dataset = database.get_dataset(dataset_id)
     if new_dataset is None:
         return {"message": "No matching dataset found"}, 404
-    return new_dataset, 200
+    authorized_datasets = authz.get_authorized_datasets(request)
+    if new_dataset["id"] in authorized_datasets:
+        return new_dataset, 200
+    return {"message": f"Not authorized to access dataset {dataset_id}"}, 403
 
 
 def delete_dataset(dataset_id):

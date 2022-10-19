@@ -28,10 +28,14 @@ RUN apk add --no-cache \
 	git \
 	sqlite
 
+COPY requirements.txt /app/htsget_server/requirements.txt
+
+RUN pip install --no-cache-dir -r /app/htsget_server/requirements.txt
+
 COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
 
-RUN touch initial_setup && pip install --no-cache-dir -r requirements.txt
+RUN touch initial_setup
 
 ENTRYPOINT ["bash", "entrypoint.sh"]
