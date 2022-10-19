@@ -411,8 +411,8 @@ def _get_local_file(drs_file_obj_id, dir):
             url_pieces = urlparse(method["access_url"]["url"])
             if url_pieces.scheme == "file":
                 if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
-                    return url_pieces.path
-    return None
+                    return url_pieces.path, 200
+    return None, 500
 
 # describe an htsget DRS object, but don't open it
 def _describe_drs_object(object_id):
