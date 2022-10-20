@@ -131,7 +131,8 @@ class VariantFile(ObjectDBBase):
             'id': self.id,
             'drsobject': self.drs_object_id,
             'indexed': self.indexed,
-            'chr_prefix': self.chr_prefix
+            'chr_prefix': self.chr_prefix,
+            'reference_genome': self.reference_genome
         }
 
         return json.dumps(result)
@@ -492,6 +493,7 @@ def get_variantfile(variantfile_id):
 
 
 def create_variantfile(obj):
+    # obj = {"id", "reference_genome"}
     with Session() as session:
         new_variantfile = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
         if new_variantfile is None:
@@ -499,6 +501,7 @@ def create_variantfile(obj):
             new_variantfile.indexed = 0
             new_variantfile.chr_prefix = '0'
         new_variantfile.id = obj['id']
+        new_variantfile.reference_genome = obj['reference_genome']
         new_drs = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_drs is not None:
             new_variantfile.drs_object_id = new_drs.id
