@@ -182,7 +182,11 @@ def search_variants():
         count = searchresult['variantcount'][i]
         auth_code = authz.is_authed(drs_obj_id, connexion.request)
         if auth_code == 200:
-            htsget_obj, code = _get_urls("variant", drs_obj_id, reference_name=ref_name, start=start, end=end)
+            htsget_obj = {
+                'format': 'vcf',
+                'urls': []
+            }
+            htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
@@ -213,7 +217,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     if slice_end is not None:
         params['end'] = slice_end
     encoded_params = urlencode(params)
-    url = f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
+    url = f"{_get_base_url(file_type, id, data=True)}"
     if len(params.keys()) > 0:
         url += f"?{encoded_params}"
     arr.append({'url': url, })
@@ -317,7 +321,12 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
         os.remove(ntf.name)
         return response, 200
     return { "message": "no object matching id found" }, 404
-  
+    
+    
+def _get_base_url(file_type, id, data=False):
+    if data:
+        return f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
+    return f"{HTSGET_URL}/htsget/v1/{file_type}s/{id}"
   
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
@@ -349,7 +358,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
         if "error" in drs_obj:
             return drs_obj['error'], drs_obj['status_code']
         if _class == "header":
-            urls = [{"url": f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}?class=header",
+            urls = [{"url": f"{_get_base_url(file_type, id, data=True)}?class=header",
             "class": "header"}]
         else:
             file_in = drs_obj["main"]
