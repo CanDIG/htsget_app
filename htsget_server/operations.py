@@ -122,6 +122,8 @@ def index_variants(id_=None, force=False, genome='hg38'):
         gen_obj = _get_genomic_obj(id_)
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
+        if "error" in gen_obj:
+            return {"message": gen_obj['error']}, 500
         headers = str(gen_obj['file'].header).split('\n')
         database.add_header_for_variantfile({'texts': headers, 'variantfile_id': id_})
         samples = list(gen_obj['file'].header.samples)
