@@ -758,6 +758,26 @@ def list_pos_buckets():
         return None
 
 
+def get_variant_count_for_variantfile(obj):
+    # obj = {id, referenceName, start, end}
+    with Session() as session:
+        vfile = aliased(VariantFile)
+        q = select(vfile.drs_object_id, PositionBucket.id, PositionBucket.pos_bucket_id, PositionBucketVariantFileAssociation.bucket_count).select_from(PositionBucket).join(PositionBucketVariantFileAssociation).where(vfile.drs_object_id == PositionBucketVariantFileAssociation.variantfile_id).where(vfile.drs_object_id == obj['id'])
+        contig_id = normalize_contig(obj['referenceName'])
+        q = q.where(PositionBucket.contig_id == contig_id)
+        if 'start' in obj:
+            q = q.where(PositionBucket.pos_bucket_id >= obj['start'])
+        if 'end' in obj and obj['end'] != -1:
+            q = q.where(PositionBucket.pos_bucket_id < obj['end'])
+        q = q.distinct()
+        result = []
+        #"('drs_object_id', 'id', 'pos_bucket_id')"
+        for row in session.execute(q):
+            #return str(row._fields)
+            result.append({'pos_bucket': row._mapping['pos_bucket_id'], 'count': row._mapping['bucket_count']})
+        return result
+
+
 def normalize_contig(contig_id):
     with Session() as session:
         contig = session.query(Contig).filter_by(id=contig_id).one_or_none()

@@ -237,17 +237,29 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     :param end: Desired ending index of a file
     """
     urls = []
-    chunks = int((end - start)/chunk_size)
-    slice_start = start
-    slice_end = 0
-    if chunks >= 1 and start is not None and end is not None:
-        for i in range(chunks):
-            slice_end = slice_start + chunk_size
-            _create_slice(urls, id, reference_name, slice_start, slice_end, file_type)
-            slice_start = slice_end
-        _create_slice(urls, id, reference_name, slice_start, end, file_type)
-    else:  # One slice only
-        _create_slice(urls, id, reference_name, start, end, file_type)
+
+    # start pulling buckets: when we reach chunk size, make another chunk
+    buckets = database.get_variant_count_for_variantfile({"id": id, "referenceName": reference_name, "start": start, "end": end})
+    # return buckets
+    chunks = [{'count': 0, 'start': start, 'end': 0}]
+    curr_bucket = buckets.pop(0)
+    while len(buckets) > 0:
+        curr_chunk = chunks.pop()
+        # if the curr_chunk size is smaller than chunk size, we're still adding to it
+        if curr_chunk['count'] <= CHUNK_SIZE:
+            curr_chunk['count'] += curr_bucket['count']
+            curr_chunk['end'] = curr_bucket['pos_bucket']
+            chunks.append(curr_chunk)
+        else:
+            # new chunk: append old chunk, then start new
+            chunks.append(curr_chunk)
+            chunks.append({'count': 0, 'start': curr_chunk['end']+1, 'end': curr_chunk['end']+1})
+        curr_bucket = buckets.pop(0)
+    # return chunks
+    for i in range(0,len(chunks)):
+        slice_start = chunks[i]['start']
+        slice_end = chunks[i]['end']
+        _create_slice(urls, id, reference_name, slice_start, slice_end, file_type)
     return urls
 
 
