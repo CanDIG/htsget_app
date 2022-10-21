@@ -704,27 +704,29 @@ def create_pos_bucket(obj):
         for i in range(len(pos_bucket_ids)):
             pos_bucket_id = pos_bucket_ids[i]
             contig_id = contig_ids[i]
-            if curr_contig is None or curr_contig.id != contig_id:
-                curr_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
-                if curr_contig is not None:
-                    curr_contig.associated_variantfiles.append(new_variantfile)
-                    session.add(curr_contig)
-            new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
-            if new_pos_bucket is None:
-                new_pos_bucket = PositionBucket()
-                new_pos_bucket.pos_bucket_id = pos_bucket_id
-                new_pos_bucket.contig_id = contig_id
-                session.add(new_pos_bucket)
+            bucket_count = bucket_counts[i]
+            if bucket_count > 0:
+                if curr_contig is None or curr_contig.id != contig_id:
+                    curr_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
+                    if curr_contig is not None:
+                        curr_contig.associated_variantfiles.append(new_variantfile)
+                        session.add(curr_contig)
+                new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
+                if new_pos_bucket is None:
+                    new_pos_bucket = PositionBucket()
+                    new_pos_bucket.pos_bucket_id = pos_bucket_id
+                    new_pos_bucket.contig_id = contig_id
+                    session.add(new_pos_bucket)
+                    session.commit()
+                association = session.query(PositionBucketVariantFileAssociation).filter_by(pos_bucket_id=new_pos_bucket.id, variantfile_id=variantfile_id).one_or_none()
+                if association is None:
+                    association = PositionBucketVariantFileAssociation()
+                    association.pos_bucket_id = new_pos_bucket.id
+                    association.variantfile_id = variantfile_id
+                    association.bucket_count = 0
+                association.bucket_count = bucket_count
+                session.add(association)
                 session.commit()
-            association = session.query(PositionBucketVariantFileAssociation).filter_by(pos_bucket_id=new_pos_bucket.id, variantfile_id=variantfile_id).one_or_none()
-            if association is None:
-                association = PositionBucketVariantFileAssociation()
-                association.pos_bucket_id = new_pos_bucket.id
-                association.variantfile_id = variantfile_id
-                association.bucket_count = 0
-            association.bucket_count += bucket_counts[i]
-            session.add(association)
-            session.commit()
         return json.loads(str(new_pos_bucket))
         return None
 
