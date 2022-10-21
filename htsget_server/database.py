@@ -667,18 +667,19 @@ def create_position(obj):
     old_normalized_contigs = obj.pop('normalized_contigs')
     pos_bucket_ids = [get_bucket_for_position(obj['positions'].pop(0))]
     normalized_contigs = [old_normalized_contigs.pop(0)]
-    bucket_counts = [1]
+    bucket_counts = [0]
     bucket = None
     contig = None
     for i in range(len(obj['positions'])):
         curr_bucket = get_bucket_for_position(obj['positions'][i])
         curr_contig = old_normalized_contigs[i]
+        bucket_counts[-1] += 1
         if curr_contig != normalized_contigs[-1] or curr_bucket != pos_bucket_ids[-1]:
             pos_bucket_ids.append(curr_bucket)
-            bucket_counts.append(1)
+            bucket_counts.append(0)
             normalized_contigs.append(old_normalized_contigs[i])
-        else:
-            bucket_counts[-1] += 1
+        # else:
+        #     bucket_counts[-1] += 1
     obj['pos_bucket_ids'] = pos_bucket_ids
     obj['bucket_counts'] = bucket_counts
     obj['normalized_contigs'] = normalized_contigs
