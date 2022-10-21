@@ -340,14 +340,15 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     :param start: Desired starting index of the file
     :param end: Desired ending index of the file
     """
-    if end is not None and end < start:
-        response = {
-            "detail": "End index cannot be smaller than start index",
-            "status": 400,
-            "title": "Bad Request",
-            "type": "about:blank"
-        }
-        return "end cannot be less than start", 400
+    if end is not None and start is not None:
+        if end < start:
+            response = {
+                "detail": "End index cannot be smaller than start index",
+                "status": 400,
+                "title": "Bad Request",
+                "type": "about:blank"
+            }
+            return "end cannot be less than start", 400
 
     if reference_name == "None":
         reference_name = None
