@@ -131,7 +131,8 @@ class VariantFile(ObjectDBBase):
             'id': self.id,
             'drsobject': self.drs_object_id,
             'indexed': self.indexed,
-            'chr_prefix': self.chr_prefix
+            'chr_prefix': self.chr_prefix,
+            'reference_genome': self.reference_genome
         }
 
         return json.dumps(result)
@@ -492,6 +493,7 @@ def get_variantfile(variantfile_id):
 
 
 def create_variantfile(obj):
+    # obj = {"id", "reference_genome"}
     with Session() as session:
         new_variantfile = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
         if new_variantfile is None:
@@ -499,6 +501,7 @@ def create_variantfile(obj):
             new_variantfile.indexed = 0
             new_variantfile.chr_prefix = '0'
         new_variantfile.id = obj['id']
+        new_variantfile.reference_genome = obj['reference_genome']
         new_drs = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_drs is not None:
             new_variantfile.drs_object_id = new_drs.id
@@ -664,18 +667,19 @@ def create_position(obj):
     old_normalized_contigs = obj.pop('normalized_contigs')
     pos_bucket_ids = [get_bucket_for_position(obj['positions'].pop(0))]
     normalized_contigs = [old_normalized_contigs.pop(0)]
-    bucket_counts = [1]
-    bucket = None
-    contig = None
+    bucket_counts = [0]
+    curr_bucket = None
+    curr_contig = None
     for i in range(len(obj['positions'])):
         curr_bucket = get_bucket_for_position(obj['positions'][i])
         curr_contig = old_normalized_contigs[i]
+        bucket_counts[-1] += 1
         if curr_contig != normalized_contigs[-1] or curr_bucket != pos_bucket_ids[-1]:
             pos_bucket_ids.append(curr_bucket)
-            bucket_counts.append(1)
-            normalized_contigs.append(old_normalized_contigs[i])
-        else:
-            bucket_counts[-1] += 1
+            bucket_counts.append(0)
+            normalized_contigs.append(curr_contig)
+    # last position needs to be counted as well
+    bucket_counts[-1] += 1
     obj['pos_bucket_ids'] = pos_bucket_ids
     obj['bucket_counts'] = bucket_counts
     obj['normalized_contigs'] = normalized_contigs
@@ -700,27 +704,29 @@ def create_pos_bucket(obj):
         for i in range(len(pos_bucket_ids)):
             pos_bucket_id = pos_bucket_ids[i]
             contig_id = contig_ids[i]
-            if curr_contig is None or curr_contig.id != contig_id:
-                curr_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
-                if curr_contig is not None:
-                    curr_contig.associated_variantfiles.append(new_variantfile)
-                    session.add(curr_contig)
-            new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
-            if new_pos_bucket is None:
-                new_pos_bucket = PositionBucket()
-                new_pos_bucket.pos_bucket_id = pos_bucket_id
-                new_pos_bucket.contig_id = contig_id
-                session.add(new_pos_bucket)
+            bucket_count = bucket_counts[i]
+            if bucket_count > 0:
+                if curr_contig is None or curr_contig.id != contig_id:
+                    curr_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
+                    if curr_contig is not None:
+                        curr_contig.associated_variantfiles.append(new_variantfile)
+                        session.add(curr_contig)
+                new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
+                if new_pos_bucket is None:
+                    new_pos_bucket = PositionBucket()
+                    new_pos_bucket.pos_bucket_id = pos_bucket_id
+                    new_pos_bucket.contig_id = contig_id
+                    session.add(new_pos_bucket)
+                    session.commit()
+                association = session.query(PositionBucketVariantFileAssociation).filter_by(pos_bucket_id=new_pos_bucket.id, variantfile_id=variantfile_id).one_or_none()
+                if association is None:
+                    association = PositionBucketVariantFileAssociation()
+                    association.pos_bucket_id = new_pos_bucket.id
+                    association.variantfile_id = variantfile_id
+                    association.bucket_count = 0
+                association.bucket_count = bucket_count
+                session.add(association)
                 session.commit()
-            association = session.query(PositionBucketVariantFileAssociation).filter_by(pos_bucket_id=new_pos_bucket.id, variantfile_id=variantfile_id).one_or_none()
-            if association is None:
-                association = PositionBucketVariantFileAssociation()
-                association.pos_bucket_id = new_pos_bucket.id
-                association.variantfile_id = variantfile_id
-                association.bucket_count = 0
-            association.bucket_count += bucket_counts[i]
-            session.add(association)
-            session.commit()
         return json.loads(str(new_pos_bucket))
         return None
 
@@ -750,6 +756,26 @@ def list_pos_buckets():
             new_obj = json.loads(str(result))
             return new_obj
         return None
+
+
+def get_variant_count_for_variantfile(obj):
+    # obj = {id, referenceName, start, end}
+    with Session() as session:
+        vfile = aliased(VariantFile)
+        q = select(vfile.drs_object_id, PositionBucket.id, PositionBucket.pos_bucket_id, PositionBucketVariantFileAssociation.bucket_count).select_from(PositionBucket).join(PositionBucketVariantFileAssociation).where(vfile.drs_object_id == PositionBucketVariantFileAssociation.variantfile_id).where(vfile.drs_object_id == obj['id'])
+        contig_id = normalize_contig(obj['referenceName'])
+        q = q.where(PositionBucket.contig_id == contig_id)
+        if 'start' in obj:
+            q = q.where(PositionBucket.pos_bucket_id >= obj['start'])
+        if 'end' in obj and obj['end'] != -1:
+            q = q.where(PositionBucket.pos_bucket_id < obj['end'])
+        q = q.distinct()
+        result = []
+        #"('drs_object_id', 'id', 'pos_bucket_id')"
+        for row in session.execute(q):
+            #return str(row._fields)
+            result.append({'pos_bucket': row._mapping['pos_bucket_id'], 'count': row._mapping['bucket_count']})
+        return result
 
 
 def normalize_contig(contig_id):

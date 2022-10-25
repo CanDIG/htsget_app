@@ -122,6 +122,8 @@ def index_variants(id_=None, force=False, genome='hg38'):
         gen_obj = _get_genomic_obj(id_)
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
+        if "error" in gen_obj:
+            return {"message": gen_obj['error']}, 500
         headers = str(gen_obj['file'].header).split('\n')
         database.add_header_for_variantfile({'texts': headers, 'variantfile_id': id_})
         samples = list(gen_obj['file'].header.samples)
@@ -182,7 +184,11 @@ def search_variants():
         count = searchresult['variantcount'][i]
         auth_code = authz.is_authed(drs_obj_id, connexion.request)
         if auth_code == 200:
-            htsget_obj, code = _get_urls("variant", drs_obj_id, reference_name=ref_name, start=start, end=end)
+            htsget_obj = {
+                'format': 'vcf',
+                'urls': []
+            }
+            htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
@@ -213,7 +219,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     if slice_end is not None:
         params['end'] = slice_end
     encoded_params = urlencode(params)
-    url = f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
+    url = f"{_get_base_url(file_type, id, data=True)}"
     if len(params.keys()) > 0:
         url += f"?{encoded_params}"
     arr.append({'url': url, })
@@ -231,17 +237,29 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     :param end: Desired ending index of a file
     """
     urls = []
-    chunks = int((end - start)/chunk_size)
-    slice_start = start
-    slice_end = 0
-    if chunks >= 1 and start is not None and end is not None:
-        for i in range(chunks):
-            slice_end = slice_start + chunk_size
-            _create_slice(urls, id, reference_name, slice_start, slice_end, file_type)
-            slice_start = slice_end
-        _create_slice(urls, id, reference_name, slice_start, end, file_type)
-    else:  # One slice only
-        _create_slice(urls, id, reference_name, start, end, file_type)
+
+    # start pulling buckets: when we reach chunk size, make another chunk
+    buckets = database.get_variant_count_for_variantfile({"id": id, "referenceName": reference_name, "start": start, "end": end})
+    # return buckets
+    chunks = [{'count': 0, 'start': start, 'end': 0}]
+    curr_bucket = buckets.pop(0)
+    while len(buckets) > 0:
+        curr_chunk = chunks.pop()
+        # if the curr_chunk size is smaller than chunk size, we're still adding to it
+        if curr_chunk['count'] <= CHUNK_SIZE:
+            curr_chunk['count'] += curr_bucket['count']
+            curr_chunk['end'] = curr_bucket['pos_bucket']
+            chunks.append(curr_chunk)
+        else:
+            # new chunk: append old chunk, then start new
+            chunks.append(curr_chunk)
+            chunks.append({'count': 0, 'start': curr_chunk['end']+1, 'end': curr_chunk['end']+1})
+        curr_bucket = buckets.pop(0)
+    # return chunks
+    for i in range(0,len(chunks)):
+        slice_start = chunks[i]['start']
+        slice_end = chunks[i]['end']
+        _create_slice(urls, id, reference_name, slice_start, slice_end, file_type)
     return urls
 
 
@@ -317,7 +335,12 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
         os.remove(ntf.name)
         return response, 200
     return { "message": "no object matching id found" }, 404
-  
+    
+    
+def _get_base_url(file_type, id, data=False):
+    if data:
+        return f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
+    return f"{HTSGET_URL}/htsget/v1/{file_type}s/{id}"
   
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
@@ -329,14 +352,15 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     :param start: Desired starting index of the file
     :param end: Desired ending index of the file
     """
-    if end is not None and end < start:
-        response = {
-            "detail": "End index cannot be smaller than start index",
-            "status": 400,
-            "title": "Bad Request",
-            "type": "about:blank"
-        }
-        return "end cannot be less than start", 400
+    if end is not None and start is not None:
+        if end < start:
+            response = {
+                "detail": "End index cannot be smaller than start index",
+                "status": 400,
+                "title": "Bad Request",
+                "type": "about:blank"
+            }
+            return "end cannot be less than start", 400
 
     if reference_name == "None":
         reference_name = None
@@ -349,7 +373,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
         if "error" in drs_obj:
             return drs_obj['error'], drs_obj['status_code']
         if _class == "header":
-            urls = [{"url": f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}?class=header",
+            urls = [{"url": f"{_get_base_url(file_type, id, data=True)}?class=header",
             "class": "header"}]
         else:
             file_in = drs_obj["main"]
