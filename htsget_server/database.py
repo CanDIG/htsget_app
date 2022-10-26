@@ -820,9 +820,9 @@ def search(obj):
                 else:
                     return {"error": "no referenceName specified"}
                 if 'start' in region:
-                    q = q.where(PositionBucket.pos_bucket_id >= region['start'])
+                    q = q.where(PositionBucket.pos_bucket_id >= get_bucket_for_position(region['start']))
                 if 'end' in region:
-                    q = q.where(PositionBucket.pos_bucket_id < region['end'])
+                    q = q.where(PositionBucket.pos_bucket_id <= get_bucket_for_position(region['end']))
         q = q.distinct()
         result = {
             'drs_object_ids': [],
