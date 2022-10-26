@@ -172,7 +172,7 @@ def search_variants():
         if len(req.json['regions']) > 1:
             return {"message": "Only one region at a time is searchable for now."}, 400
         region = req.json['regions'][0]
-        ref_name = region['referenceName']
+        ref_name = database.normalize_contig(region['referenceName'])
         if 'start' in region:
             start = region['start']
         if 'end' in region:
