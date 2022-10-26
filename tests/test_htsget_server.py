@@ -239,14 +239,14 @@ def test_search_snp():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48060904,
-                    'end': 48060904
+                    'start': 48062672,
+                    'end': 48062673
                 }
             ]
         }
     response = requests.post(url, json=body, headers=headers)
     print(response.text)
-    assert len(response.json()["results"]) == 6
+    assert len(response.json()["results"]) == 1
 
 @pytest.fixture
 def drs_objects():
