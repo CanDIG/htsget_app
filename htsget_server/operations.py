@@ -196,7 +196,7 @@ def search_variants():
             result['results'].append(htsget_obj)
     # This is a good coarse search result, but what if the region is smaller than a bucket? 
     # We should actually grab all of the data from the drs_objects in question and count.
-    if (end - start <= BUCKET_SIZE):
+    if end is not None and start is not None and (end - start <= BUCKET_SIZE):
         fine_results = []
         for obj in result['results']:
             gen_obj = _get_genomic_obj(obj['id'])
