@@ -232,6 +232,22 @@ def test_search_variantfile(body, count):
     print(response.text)
     assert len(response.json()["results"]) == count
 
+
+def test_search_snp():
+    url = f"{HOST}/htsget/v1/variants/search"
+    body = {
+            'regions': [
+                {
+                    'referenceName': 'chr21',
+                    'start': 48060904,
+                    'end': 48060904
+                }
+            ]
+        }
+    response = requests.post(url, json=body, headers=headers)
+    print(response.text)
+    assert len(response.json()["results"]) == 6
+
 @pytest.fixture
 def drs_objects():
     return [
