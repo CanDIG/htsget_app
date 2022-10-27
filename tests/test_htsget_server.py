@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0,os.path.abspath("htsget_server"))
 from config import PORT, LOCAL_FILE_PATH
 
-HOST = f"http://localhost:{PORT}"
+HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
 CWD = os.getcwd()
 headers={"Test_Key": TEST_KEY, "Authorization": "Bearer testtest"}
