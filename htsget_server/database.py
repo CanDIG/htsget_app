@@ -763,9 +763,10 @@ def get_variant_count_for_variantfile(obj):
     with Session() as session:
         vfile = aliased(VariantFile)
         q = select(vfile.drs_object_id, PositionBucket.id, PositionBucket.pos_bucket_id, PositionBucketVariantFileAssociation.bucket_count).select_from(PositionBucket).join(PositionBucketVariantFileAssociation).where(vfile.drs_object_id == PositionBucketVariantFileAssociation.variantfile_id).where(vfile.drs_object_id == obj['id'])
-        contig_id = normalize_contig(obj['referenceName'])
-        q = q.where(PositionBucket.contig_id == contig_id)
-        if 'start' in obj:
+        if 'referenceName' in obj and obj['referenceName'] is not None:
+            contig_id = normalize_contig(obj['referenceName'])
+            q = q.where(PositionBucket.contig_id == contig_id)
+        if 'start' in obj and obj['start'] > 0:
             q = q.where(PositionBucket.pos_bucket_id >= obj['start'])
         if 'end' in obj and obj['end'] != -1:
             q = q.where(PositionBucket.pos_bucket_id < obj['end'])
@@ -820,9 +821,9 @@ def search(obj):
                 else:
                     return {"error": "no referenceName specified"}
                 if 'start' in region:
-                    q = q.where(PositionBucket.pos_bucket_id >= region['start'])
+                    q = q.where(PositionBucket.pos_bucket_id >= get_bucket_for_position(region['start']))
                 if 'end' in region:
-                    q = q.where(PositionBucket.pos_bucket_id < region['end'])
+                    q = q.where(PositionBucket.pos_bucket_id <= get_bucket_for_position(region['end']))
         q = q.distinct()
         result = {
             'drs_object_ids': [],

@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0,os.path.abspath("htsget_server"))
 from config import PORT, LOCAL_FILE_PATH
 
-HOST = f"http://localhost:{PORT}"
+HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
 CWD = os.getcwd()
 headers={"Test_Key": TEST_KEY, "Authorization": "Bearer testtest"}
@@ -133,7 +133,8 @@ def test_existent_file(id, expected_status):
 def test_pull_slices_data():
     return [
         ({"referenceName": "20",
-          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant")
+          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant"),
+        ({}, 'sample.compressed', ".vcf.gz", "variant")
     ]
 
 
@@ -170,7 +171,11 @@ def test_pull_slices(params, id_, file_extension, file_type):
             f_index = rec.pos - 1
             break
         # compare slice and file line by line
-        for x, y in zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index)):
+        if 'referenceName' in params:
+          zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
+        else:
+          zipped = zip(f_slice.fetch(), f.fetch())
+        for x, y in zipped:
             if x != y:
                 equal = False
                 assert equal
@@ -232,15 +237,33 @@ def test_search_variantfile(body, count):
     print(response.text)
     assert len(response.json()["results"]) == count
 
+
+def test_search_snp():
+    url = f"{HOST}/htsget/v1/variants/search"
+    body = {
+            'regions': [
+                {
+                    'referenceName': 'chr21',
+                    'start': 48062673,
+                    'end': 48062673
+                }
+            ]
+        }
+    response = requests.post(url, json=body, headers=headers)
+    print(response.text)
+    assert len(response.json()["results"]) == 1
+
 @pytest.fixture
 def drs_objects():
     return [
   {
     "access_methods": [
       {
-        "access_id": "play.min.io:9000/testhtsget/NA18537.vcf.gz.tbi",
-        "type": "s3",
-        "region": "us-east-1"
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/NA18537.vcf.gz.tbi"
+        },
+        "type": "file"
       }
     ],
     "aliases": [],
@@ -258,9 +281,11 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "play.min.io:9000/testhtsget/NA18537.vcf.gz",
-        "type": "s3",
-        "region": "us-east-1"
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/NA18537.vcf.gz"
+        },
+        "type": "file"
       }
     ],
     "aliases": [],
@@ -376,8 +401,11 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz.tbi",
-        "type": "s3"
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/NA20787.vcf.gz.tbi"
+        },
+        "type": "file"
       }
     ],
     "aliases": [],
@@ -395,8 +423,11 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz",
-        "type": "s3"
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/NA20787.vcf.gz"
+        },
+        "type": "file"
       }
     ],
     "aliases": [],

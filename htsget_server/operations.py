@@ -9,7 +9,7 @@ import drs_operations
 import database
 import authz
 import json
-from config import CHUNK_SIZE, HTSGET_URL
+from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT
 from markupsafe import escape
 import connexion
 
@@ -172,9 +172,11 @@ def search_variants():
         if len(req.json['regions']) > 1:
             return {"message": "Only one region at a time is searchable for now."}, 400
         region = req.json['regions'][0]
-        ref_name = region['referenceName']
+        ref_name = database.normalize_contig(region['referenceName'])
         if 'start' in region:
-            start = region['start']
+            start = region['start'] - 1
+            if start < 0:
+                start = 0
         if 'end' in region:
             end = region['end']
     searchresult = database.search(req.json)
@@ -194,6 +196,19 @@ def search_variants():
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
             htsget_obj['reference_genome'] = searchresult['reference_genome'][i]
             result['results'].append(htsget_obj)
+    # This is a good coarse search result, but what if the region is smaller than a bucket? 
+    # We should actually grab all of the data from the drs_objects in question and count.
+    if end is not None and start is not None and (end - start <= BUCKET_SIZE):
+        fine_results = []
+        for obj in result['results']:
+            gen_obj = _get_genomic_obj(obj['id'])
+            actual = gen_obj['file'].fetch(contig=ref_name, start=start, end=end)
+            actual_count = sum(1 for _ in actual)
+            if (actual_count > 0):
+                obj['variantcount'] = actual_count
+                fine_results.append(obj)
+        result['results'] = fine_results
+
     auth_code = 200
     return result, auth_code
 
@@ -337,10 +352,13 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     return { "message": "no object matching id found" }, 404
     
     
-def _get_base_url(file_type, id, data=False):
+def _get_base_url(file_type, id, data=False, testing=False):
+    url = HTSGET_URL
+    if authz.is_testing(request):
+        url = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
     if data:
-        return f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
-    return f"{HTSGET_URL}/htsget/v1/{file_type}s/{id}"
+        return f"{url}/htsget/v1/{file_type}s/data/{id}"
+    return f"{url}/htsget/v1/{file_type}s/{id}"
   
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
