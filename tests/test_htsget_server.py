@@ -254,9 +254,11 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "play.min.io:9000/testhtsget/NA18537.vcf.gz.tbi",
-        "type": "s3",
-        "region": "us-east-1"
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/NA18537.vcf.gz.tbi"
+        },
+        "type": "file"
       }
     ],
     "aliases": [],
@@ -274,9 +276,11 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "play.min.io:9000/testhtsget/NA18537.vcf.gz",
-        "type": "s3",
-        "region": "us-east-1"
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/NA18537.vcf.gz"
+        },
+        "type": "file"
       }
     ],
     "aliases": [],
@@ -392,8 +396,11 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz.tbi",
-        "type": "s3"
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/NA20787.vcf.gz.tbi"
+        },
+        "type": "file"
       }
     ],
     "aliases": [],
@@ -411,8 +418,11 @@ def drs_objects():
   {
     "access_methods": [
       {
-        "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz",
-        "type": "s3"
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/NA20787.vcf.gz"
+        },
+        "type": "file"
       }
     ],
     "aliases": [],
