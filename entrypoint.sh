@@ -7,8 +7,14 @@ export OPA_SECRET=$(cat /run/secrets/opa-service-token)
 
 if [[ -f "initial_setup" ]]; then
     if [[ -f "/run/secrets/cert.pem" ]]; then
-        SITE_PKGS=`python -c 'import site; print(site.getsitepackages()[0])'`
-        cat /run/secrets/cert.pem >> ${SITE_PKGS}/site-packages/certifi/cacert.pem
+        CERT=$(head -n 2 /run/secrets/cert.pem | tail -n 1)
+        SITE_PKGS=$(python -c 'import site; print(site.getsitepackages()[0])')
+        echo $SITE_PKGS
+        if grep -q "$CERT" $SITE_PKGS/certifi/cacert.pem
+        then
+            echo "hi"
+            cat /run/secrets/cert.pem >> ${SITE_PKGS}/certifi/cacert.pem
+        fi
     fi
 
     sed -i s@\<CANDIG_OPA_SECRET\>@$OPA_SECRET@ config.ini
