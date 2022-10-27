@@ -17,6 +17,8 @@ def is_authed(id_, request):
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return 200 # no auth
+    if is_site_admin(request):
+        return 200
     if "Authorization" in request.headers:
         authed_datasets = get_authorized_datasets(request)
         obj, code2 = drs_operations.get_object(id_)
@@ -32,6 +34,13 @@ def is_authed(id_, request):
     else:
         return 401
     return 403
+
+
+def is_testing(request):
+    if request.headers.get("Test_Key") == TEST_KEY:
+        print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        return True
 
 
 def get_authorized_datasets(request):

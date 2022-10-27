@@ -9,7 +9,7 @@ import drs_operations
 import database
 import authz
 import json
-from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE
+from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT
 from markupsafe import escape
 import connexion
 
@@ -350,10 +350,13 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     return { "message": "no object matching id found" }, 404
     
     
-def _get_base_url(file_type, id, data=False):
+def _get_base_url(file_type, id, data=False, testing=False):
+    url = HTSGET_URL
+    if authz.is_testing(request):
+        url = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
     if data:
-        return f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
-    return f"{HTSGET_URL}/htsget/v1/{file_type}s/{id}"
+        return f"{url}/htsget/v1/{file_type}s/data/{id}"
+    return f"{url}/htsget/v1/{file_type}s/{id}"
   
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
