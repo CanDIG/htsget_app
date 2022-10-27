@@ -174,7 +174,9 @@ def search_variants():
         region = req.json['regions'][0]
         ref_name = database.normalize_contig(region['referenceName'])
         if 'start' in region:
-            start = region['start']
+            start = region['start'] - 1
+            if start < 0:
+                start = 0
         if 'end' in region:
             end = region['end']
     searchresult = database.search(req.json)
