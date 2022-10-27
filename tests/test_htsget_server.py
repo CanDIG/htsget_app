@@ -133,7 +133,8 @@ def test_existent_file(id, expected_status):
 def test_pull_slices_data():
     return [
         ({"referenceName": "20",
-          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant")
+          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant"),
+        ({}, 'sample.compressed', ".vcf.gz", "variant")
     ]
 
 
@@ -170,7 +171,11 @@ def test_pull_slices(params, id_, file_extension, file_type):
             f_index = rec.pos - 1
             break
         # compare slice and file line by line
-        for x, y in zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index)):
+        if 'referenceName' in params:
+          zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
+        else:
+          zipped = zip(f_slice.fetch(), f.fetch())
+        for x, y in zipped:
             if x != y:
                 equal = False
                 assert equal
