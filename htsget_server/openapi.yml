@@ -191,6 +191,7 @@ paths:
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/forceParam'
                 - $ref: '#/components/parameters/refGenomeParam'
+                - $ref: '#/components/parameters/genomicIdParam'
             responses:
                 200:
                     description: Successfully indexed variant file
@@ -666,6 +667,13 @@ components:
             required: false
             schema:
                 $ref: '#/components/schemas/ReferenceGenome'
+        genomicIdParam:
+            in: query
+            name: genomic_id
+            description: If specified, sets this variant entity's associated genomic_id. Otherwise default is the same as the id.
+            required: false
+            schema:
+                type: string
         readsFormatParam:
             in: query
             name: format
