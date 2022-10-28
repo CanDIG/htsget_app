@@ -78,17 +78,21 @@ def test_post_update():
 
 
 def test_index_variants():
-    return [('sample.compressed'), ('NA18537'), ('NA20787'), ('multisample_1'), ('multisample_2')]
+    return [('sample.compressed', None), ('NA18537', None), ('NA20787', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
 
 
-@pytest.mark.parametrize('sample', test_index_variants())
-def test_index_variantfile(sample):
+@pytest.mark.parametrize('sample, genomic_id', test_index_variants())
+def test_index_variantfile(sample, genomic_id):
     url = f"{HOST}/htsget/v1/variants/{sample}/index"
     params = {"genome": "hg37"}
+    if genomic_id is not None:
+      params["genomic_id"] = genomic_id
     #params['force'] = True
     response = requests.get(url, params=params, headers=headers)
     print(response.text)
     assert response.json()["id"] == sample
+    if genomic_id is not None:
+      assert response.json()["genomic_id"] == genomic_id
 
 
 def invalid_start_end_data():
