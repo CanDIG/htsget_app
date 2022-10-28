@@ -111,11 +111,14 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 
 
 @app.route('/variants/<path:id_>/index')
-def index_variants(id_=None, force=False, genome='hg38'):
+def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
-        varfile = database.create_variantfile({"id": id_, "reference_genome": genome})
+        params = {"id": id_, "reference_genome": genome}
+        if genomic_id is not None:
+            params["genomic_id"] = genomic_id
+        varfile = database.create_variantfile(params)
         if varfile is not None:
             if varfile['indexed'] == 1 and not force:
                 return varfile, 200
@@ -193,6 +196,7 @@ def search_variants():
             htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
+            htsget_obj['genomic_id'] = database.get_variantfile(drs_obj_id)['genomic_id']
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
             htsget_obj['reference_genome'] = searchresult['reference_genome'][i]
             result['results'].append(htsget_obj)
