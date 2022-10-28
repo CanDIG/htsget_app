@@ -108,6 +108,8 @@ def delete_object(object_id):
 
 def list_datasets():
     datasets = database.list_datasets()
+    if authz.is_site_admin(request):
+        return datasets
     authorized_datasets = authz.get_authorized_datasets(request)
     return list(set(map(lambda x: x['id'], datasets)) & set(authorized_datasets)), 200
 
@@ -123,6 +125,8 @@ def get_dataset(dataset_id):
     new_dataset = database.get_dataset(dataset_id)
     if new_dataset is None:
         return {"message": "No matching dataset found"}, 404
+    if authz.is_site_admin(request):
+        return new_dataset, 200
     authorized_datasets = authz.get_authorized_datasets(request)
     if new_dataset["id"] in authorized_datasets:
         return new_dataset, 200
