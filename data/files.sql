@@ -189,9 +189,9 @@ CREATE TABLE pos_bucket_variantfile_association (
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 CREATE TABLE sample (
-	id VARCHAR NOT NULL, 
+	id INTEGER PRIMARY KEY AUTOINCREMENT, 
+	sample_id VARCHAR, 
 	variantfile_id VARCHAR, 
-	PRIMARY KEY (id), 
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 COMMIT;

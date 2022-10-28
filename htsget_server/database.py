@@ -132,8 +132,11 @@ class VariantFile(ObjectDBBase):
             'drsobject': self.drs_object_id,
             'indexed': self.indexed,
             'chr_prefix': self.chr_prefix,
-            'reference_genome': self.reference_genome
+            'reference_genome': self.reference_genome,
+            'samples': []
         }
+        for sample in self.samples:
+            result['samples'].append(sample.sample_id)
 
         return json.dumps(result)
 
@@ -170,7 +173,8 @@ class PositionBucket(ObjectDBBase):
 
 class Sample(ObjectDBBase):
     __tablename__ = 'sample'
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True)
+    sample_id = Column(String, primary_key=True)
     
     # a sample is in a single variantfile
     variantfile_id = Column(String, ForeignKey('variantfile.id'))
@@ -181,7 +185,7 @@ class Sample(ObjectDBBase):
     )
     def __repr__(self):
         result = {
-            'id': self.id,
+            'id': self.sample_id,
             'variantfile_id': self.variantfile_id
         }
         return json.dumps(result)
@@ -557,7 +561,7 @@ def list_variantfiles():
 
 def get_sample(sample_id):
     with Session() as session:
-        result = session.query(Sample).filter_by(id=sample_id).one_or_none()
+        result = session.query(Sample).filter_by(sample_id=sample_id).one_or_none()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
@@ -567,24 +571,22 @@ def get_sample(sample_id):
 def create_sample(obj):
     # obj = {'id', 'variantfile_id'}
     with Session() as session:
-        new_sample = session.query(Sample).filter_by(id=obj['id']).one_or_none()
+        new_sample = session.query(Sample).filter_by(sample_id=obj['id'], variantfile_id=obj['variantfile_id']).one_or_none()
         if new_sample is None:
             new_sample = Sample()
-        new_sample.id = obj['id']
-        new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
-        if new_variantfile is not None:
-            new_sample.variantfile_id = new_variantfile.id
+        new_sample.sample_id = obj['id']
+        new_sample.variantfile_id = obj['variantfile_id']
         session.add(new_sample)
         session.commit()
-        result = session.query(Sample).filter_by(id=obj['id']).one_or_none()
+        result = session.query(Sample).filter_by(sample_id=obj['id'], variantfile_id=obj['variantfile_id']).one_or_none()
         if result is not None:
             return json.loads(str(result))
         return None
 
 
-def delete_sample(sample_id):
+def delete_sample(id_):
     with Session() as session:
-        new_object = session.query(Sample).filter_by(id=sample_id).one()
+        new_object = session.query(Sample).filter_by(id=id_).one()
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))
@@ -603,9 +605,9 @@ def get_samples_in_drs_objects(obj):
     # obj = {'drs_object_ids'}
     with Session() as session:
         result = []
-        q = select(Sample.id).where(Sample.variantfile_id.in_(obj['drs_object_ids'])).distinct()
+        q = select(Sample.sample_id).where(Sample.variantfile_id.in_(obj['drs_object_ids'])).distinct()
         for row in session.execute(q):
-            result.append(str(row._mapping['id']))
+            result.append(str(row._mapping['sample_id']))
         return result
 
 
