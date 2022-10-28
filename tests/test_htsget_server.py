@@ -78,7 +78,7 @@ def test_post_update():
 
 
 def test_index_variants():
-    return [('sample.compressed'), ('NA18537'), ('NA20787')]
+    return [('sample.compressed'), ('NA18537'), ('NA20787'), ('multisample_1'), ('multisample_2')]
 
 
 @pytest.mark.parametrize('sample', test_index_variants())
@@ -253,6 +253,33 @@ def test_search_snp():
     print(response.text)
     assert len(response.json()["results"]) == 1
 
+
+def test_multisamples():
+    return [
+        ({
+            'regions': [
+                {
+                    'referenceName': 'chr21',
+                    'start': 5030000,
+                    'end': 5032000
+                }
+            ]
+        }, 2)
+    ]
+
+
+@pytest.mark.parametrize('body, count', test_multisamples())
+# The two multisample files both have two identically-named samples in them:
+# both files should return two samples
+def test_multisample(body, count):
+    url = f"{HOST}/htsget/v1/variants/search"
+    
+    response = requests.post(url, json=body, headers=headers)
+    print(response.text)
+    for result in response.json()["results"]:
+      assert len(result['samples']) == count
+
+
 @pytest.fixture
 def drs_objects():
     return [
@@ -325,6 +352,152 @@ def drs_objects():
     "mime_type": "application/octet-stream",
     "name": "NA18537",
     "self_uri": "drs://localhost/NA18537",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/multisample_1.vcf.gz.tbi"
+        },
+        "type": "file"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_1.vcf.gz.tbi",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_1.vcf.gz.tbi",
+    "self_uri": "drs://localhost/multisample_1.vcf.gz.tbi",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/multisample_1.vcf.gz"
+        },
+        "type": "file"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_1.vcf.gz",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_1.vcf.gz",
+    "self_uri": "drs://localhost/multisample_1.vcf.gz",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
+      {
+        "drs_uri": [
+          "drs://localhost/multisample_1.vcf.gz"
+        ],
+        "name": "multisample_1.vcf.gz",
+        "id": "variant"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/multisample_1.vcf.gz.tbi"
+        ],
+        "name": "multisample_1.vcf.gz.tbi",
+        "id": "index"
+      }
+    ],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_1",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_1",
+    "self_uri": "drs://localhost/multisample_1",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/multisample_2.vcf.gz.tbi"
+        },
+        "type": "file"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_2.vcf.gz.tbi",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_2.vcf.gz.tbi",
+    "self_uri": "drs://localhost/multisample_2.vcf.gz.tbi",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "access_methods": [
+      {
+        "access_url": {
+          "headers": [],
+          "url": f"file://{CWD}/data/files/multisample_2.vcf.gz"
+        },
+        "type": "file"
+      }
+    ],
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_2.vcf.gz",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_2.vcf.gz",
+    "self_uri": "drs://localhost/multisample_2.vcf.gz",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
+      {
+        "drs_uri": [
+          "drs://localhost/multisample_2.vcf.gz"
+        ],
+        "name": "multisample_2.vcf.gz",
+        "id": "variant"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/multisample_2.vcf.gz.tbi"
+        ],
+        "name": "multisample_2.vcf.gz.tbi",
+        "id": "index"
+      }
+    ],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_2",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_2",
+    "self_uri": "drs://localhost/multisample_2",
     "size": 0,
     "updated_time": "2021-09-27T18:40:00.539022",
     "version": "v1"
