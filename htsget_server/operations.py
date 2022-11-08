@@ -193,10 +193,12 @@ def search_variants():
                 'format': 'vcf',
                 'urls': []
             }
+            varfile = database.get_variantfile(drs_obj_id)
             htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
-            htsget_obj['genomic_id'] = database.get_variantfile(drs_obj_id)['genomic_id']
+            htsget_obj['genomic_id'] = varfile['genomic_id']
+            htsget_obj['chr_prefix'] = varfile['chr_prefix']  
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
             htsget_obj['reference_genome'] = searchresult['reference_genome'][i]
             result['results'].append(htsget_obj)
@@ -206,13 +208,18 @@ def search_variants():
         fine_results = []
         for obj in result['results']:
             gen_obj = _get_genomic_obj(obj['id'])
-            actual = gen_obj['file'].fetch(contig=ref_name, start=start, end=end)
+            try:
+                actual = gen_obj['file'].fetch(contig=obj['chr_prefix']+ref_name, start=start, end=end)
+            except Exception as e:
+                return {"message": str(e)}, 500
             actual_count = sum(1 for _ in actual)
             if (actual_count > 0):
                 obj['variantcount'] = actual_count
                 fine_results.append(obj)
         result['results'] = fine_results
-
+    for obj in result['results']:
+        if 'chr_prefix' in obj:
+            obj.pop('chr_prefix')
     auth_code = 200
     return result, auth_code
 
