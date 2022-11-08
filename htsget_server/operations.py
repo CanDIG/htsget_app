@@ -260,6 +260,9 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     # start pulling buckets: when we reach chunk size, make another chunk
     buckets = database.get_variant_count_for_variantfile({"id": id, "referenceName": reference_name, "start": start, "end": end})
     # return buckets
+    if buckets is None or len(buckets) == 0:
+        _create_slice(urls, id, reference_name, start, end, file_type)
+        return urls
     chunks = [{'count': 0, 'start': start, 'end': 0}]
     curr_bucket = buckets.pop(0)
     while len(buckets) > 0:
