@@ -78,7 +78,7 @@ def test_post_update():
 
 
 def test_index_variants():
-    return [('sample.compressed', None), ('NA18537', None), ('NA20787', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
+    return [('sample.compressed', None), ('NA18537', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
 
 
 @pytest.mark.parametrize('sample, genomic_id', test_index_variants())
