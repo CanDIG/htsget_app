@@ -273,6 +273,8 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
             # new chunk: append old chunk, then start new
             chunks.append(curr_chunk)
             chunks.append({'count': 0, 'start': curr_chunk['end']+1, 'end': curr_chunk['end']+1})
+    # for the last chunk, use the actual end requested:
+    chunks[-1]['end'] = end
     # return chunks
     for i in range(0,len(chunks)):
         slice_start = chunks[i]['start']
