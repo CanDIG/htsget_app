@@ -78,7 +78,7 @@ def test_post_update():
 
 
 def test_index_variants():
-    return [('sample.compressed', None), ('NA18537', None), ('NA20787', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
+    return [('sample.compressed', None), ('NA18537', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
 
 
 @pytest.mark.parametrize('sample, genomic_id', test_index_variants())
@@ -209,11 +209,11 @@ def test_search_variants():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48110083,
-                    'end': 48120000
+                    'start': 48110000,
+                    'end': 48120634
                 }
             ]
-        }, 2), 
+        }, 1), 
         ({
             'regions': [
                 {
@@ -225,11 +225,11 @@ def test_search_variants():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48117000,
-                    'end': 48120634
+                    'start': 48000000,
+                    'end': 48120000
                 }
             ]
-        }, 1)
+        }, 2)
     ]
 
 
