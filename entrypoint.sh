@@ -34,4 +34,5 @@ if [[ -f "initial_setup" ]]; then
 fi
 
 crond
+echo '10.182.19.137     ecs.uhn.ca' >> /etc/hosts
 python3 htsget_server/server.py $@ 

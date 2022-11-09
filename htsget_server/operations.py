@@ -115,6 +115,7 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
+        print(f"INDEXING {id_}")                        
         params = {"id": id_, "reference_genome": genome}
         if genomic_id is not None:
             params["genomic_id"] = genomic_id
@@ -128,8 +129,10 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
         if "error" in gen_obj:
             return {"message": gen_obj['error']}, 500
         headers = str(gen_obj['file'].header).split('\n')
+        print(f"Indexing {len(headers)} headers for {id_}")
         database.add_header_for_variantfile({'texts': headers, 'variantfile_id': id_})
         samples = list(gen_obj['file'].header.samples)
+        print(f"Indexing samples {samples} for {id_}")
         for sample in samples:
             if database.create_sample({'id': sample, 'variantfile_id': id_}) is None:
                 return {"message": f"Could not add sample {sample} to variantfile {id_}"}, 500
@@ -153,7 +156,9 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
                 normalized_contigs.append(normalized_contig_id)
             else:
                 app.logger.warning(f"referenceName {record.contig} in {id_} does not correspond to a known chromosome.")
+        print(f"indexing {len(positions)} positions for {id_}")
         res = database.create_position({'variantfile_id': id_, 'positions': positions, 'normalized_contigs': normalized_contigs})
+        print(f"completed indexing {id_}")
         if res is None:
             return {"message": f"Could not add positions {record.contig}:{record.pos} to variantfile {id_}"}, 500
         else:
@@ -453,8 +458,10 @@ def _get_local_file(drs_file_obj_id, dir):
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
             (url, status_code) = drs_operations.get_access_url(None, method["access_id"])
+            print(f"access url is {url}")
             if status_code < 300:
                 f_path = os.path.join(dir, drs_file_obj["name"])
+                print(f"writing temporary file {f_path}")
                 with open(f_path, mode='wb') as f:
                     with requests.get(url["url"], stream=True) as r:
                         with r.raw as content:
