@@ -233,10 +233,10 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     params = {}
     if reference_name is not None:
         params['referenceName'] = reference_name
-    if slice_start is not None:
-        params['start'] = slice_start
-    if slice_end is not None:
-        params['end'] = slice_end
+        if slice_start is not None:
+            params['start'] = slice_start
+        if slice_end is not None:
+            params['end'] = slice_end
     encoded_params = urlencode(params)
     url = f"{_get_base_url(file_type, id, data=True)}"
     if len(params.keys()) > 0:
