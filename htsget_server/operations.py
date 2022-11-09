@@ -261,8 +261,8 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     buckets = database.get_variant_count_for_variantfile({"id": id, "referenceName": reference_name, "start": start, "end": end})
     # return buckets
     chunks = [{'count': 0, 'start': start, 'end': 0}]
-    curr_bucket = buckets.pop(0)
     while len(buckets) > 0:
+        curr_bucket = buckets.pop(0)
         curr_chunk = chunks.pop()
         # if the curr_chunk size is smaller than chunk size, we're still adding to it
         if curr_chunk['count'] <= CHUNK_SIZE:
@@ -273,7 +273,6 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
             # new chunk: append old chunk, then start new
             chunks.append(curr_chunk)
             chunks.append({'count': 0, 'start': curr_chunk['end']+1, 'end': curr_chunk['end']+1})
-        curr_bucket = buckets.pop(0)
     # return chunks
     for i in range(0,len(chunks)):
         slice_start = chunks[i]['start']
