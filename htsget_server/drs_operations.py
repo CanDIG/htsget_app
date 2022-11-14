@@ -1,7 +1,6 @@
 from minio import Minio
 import connexion
 import database
-from config import AUTHZ, VAULT_S3_TOKEN
 from flask import request, Flask
 import os
 import re
@@ -60,29 +59,7 @@ def get_access_url(object_id, access_id):
         endpoint = id_parse.group(2)
         bucket = id_parse.group(3)
         object_name = id_parse.group(4)
-        # play.min.io endpoint is the sandbox: 
-        if "play.min.io" in endpoint:
-            client = Minio(
-                "play.min.io:9000",
-                access_key="Q3AM3UQ867SPQQA43P2F",
-                secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-            )
-            bucket = "testhtsget"
-        else:
-            response, status_code = authz.get_aws_credential(request, endpoint, bucket)
-            if status_code == 200:
-                client = Minio(
-                    endpoint,
-                    access_key=response["access"],
-                    secret_key=response["secret"]
-                )
-            else:
-                return response, status_code
-        try:
-            result = client.stat_object(bucket_name=bucket, object_name=object_name)
-            url = client.presigned_get_object(bucket_name=bucket, object_name=object_name)
-        except Exception as e:
-            return {"message": str(e)}, 500
+        url = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
         return {"url": url}, 200
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item"}, 400
