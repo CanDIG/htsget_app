@@ -6,7 +6,6 @@ config = configparser.ConfigParser(interpolation=None)
 config.read('./config.ini')
 
 AUTHZ = config['authz']
-CANDIG_OPA_SITE_ADMIN_KEY = os.getenv("CANDIG_OPA_SITE_ADMIN_KEY", "site_admin")
 HTSGET_URL = os.getenv("HTSGET_URL", f"http://localhost:{config['DEFAULT']['Port']}")
 
 DB_PATH = config['paths']['DBPath']

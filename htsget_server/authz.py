@@ -1,5 +1,5 @@
 import json
-from config import AUTHZ, TEST_KEY, VAULT_S3_TOKEN
+from config import AUTHZ, TEST_KEY
 from flask import Flask
 import drs_operations
 import authx.auth
