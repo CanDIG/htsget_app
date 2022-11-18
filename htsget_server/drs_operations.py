@@ -59,8 +59,10 @@ def get_access_url(object_id, access_id):
         endpoint = id_parse.group(2)
         bucket = id_parse.group(3)
         object_name = id_parse.group(4)
-        url = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
-        return {"url": url}, 200
+        url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
+        if status_code == 200:
+            return {"url": url}, status_code
+        return url, 500
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item"}, 400
 
