@@ -147,6 +147,9 @@ INSERT INTO alias VALUES('ChrMT','MT');
 INSERT INTO alias VALUES('x','X');
 INSERT INTO alias VALUES('y','Y');
 INSERT INTO alias VALUES('mt','MT');
+INSERT INTO alias VALUES('M','MT');
+INSERT INTO alias VALUES('chrM','MT');
+INSERT INTO alias VALUES('ChrM','MT');
 CREATE TABLE variantfile (
 	id VARCHAR NOT NULL, 
 	genomic_id VARCHAR,
