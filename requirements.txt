@@ -2,7 +2,7 @@ Flask==2.2.2
 Flask-Cors==3.0.10
 minio==7.1.12
 pysam==0.20.0
-sqlalchemy==1.4.43
+sqlalchemy==1.4.44
 connexion==2.14.1
 MarkupSafe==2.1.1
 candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@main
