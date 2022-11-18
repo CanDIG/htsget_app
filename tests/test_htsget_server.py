@@ -66,7 +66,7 @@ def test_post_update():
     assert response.json()["size"] == 100
 
 
-def test_index_variants():
+def index_variants():
     return [('sample.compressed', None), ('NA18537', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
 
 
