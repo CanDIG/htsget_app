@@ -66,8 +66,8 @@ def test_post_update():
     assert response.json()["size"] == 100
 
 
-def index_variants():
-    return [('sample.compressed', None), ('NA18537', None), ('NA20787', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
+def test_index_variants():
+    return [('sample.compressed', None), ('NA18537', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
 
 
 @pytest.mark.parametrize('sample, genomic_id', index_variants())
@@ -107,20 +107,43 @@ def test_invalid_start_end(start, end):
 
 
 def existent_file_test_data():
-    return [('NA18537', 200), ('NA20787', 200), ('HG203245', 404), ('NA185372', 404)]
+    return [
+      ('NA18537', 'variants',
+       {'referenceName': 21, 'start': 10235878, 'end': 45412368},
+       200),
+      ('NA18537', 'variants',
+       {'referenceName': 21},
+       200),
+      ('NA18537', 'variants',
+       {'start': 10235878, 'end': 45412368},
+       200),
+      ('NA18537', 'variants', {}, 200),
+      ('NA20787', 'variants', {}, 200),
+      ('NA20787', 'variants',
+       {'referenceName': 21},
+       200),
+      ('HG203245', 'variants', {}, 404)
+    ]
 
 
-@pytest.mark.parametrize('id, expected_status', existent_file_test_data())
-def test_existent_file(id, expected_status):
+@pytest.mark.parametrize('id, type, params, expected_status', existent_file_test_data())
+def test_existent_file(id, type, params, expected_status):
     """
     Should fail with expected error if a file does not exist for given ID
     """
-    url_v = f"{HOST}/htsget/v1/variants/{id}?referenceName=21&start=10235878&end=45412368"
-    url_r = f"{HOST}/htsget/v1/reads/{id}?referenceName=21&start=10235878&end=45412368"
+    url = f"{HOST}/htsget/v1/{type}/{id}"
 
-    res_v = requests.request("GET", url_v, headers=headers)
-    res_r = requests.request("GET", url_r, headers=headers)
-    assert res_v.status_code == expected_status or res_r.status_code == expected_status
+    res = requests.request("GET", url, params=params, headers=headers)
+    assert res.status_code == expected_status
+    if res.status_code == 200:
+      if 'referenceName' in params:
+        assert 'referenceName' in res.json()['htsget']['urls'][0]['url']
+        if 'start' in params:
+          assert str(params['start']) in res.json()['htsget']['urls'][0]['url']
+        if 'end' in params:
+          assert str(params['end']) in res.json()['htsget']['urls'][-1]['url']
+      else: # if there's no referenceName, there shouldn't be any start or end
+        assert 'start' not in res.json()['htsget']['urls'][0]['url']
 
 
 def pull_slices_data():
@@ -198,11 +221,11 @@ def search_variants():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48110083,
-                    'end': 48120000
+                    'start': 48110000,
+                    'end': 48120634
                 }
             ]
-        }, 2), 
+        }, 1), 
         ({
             'regions': [
                 {
@@ -214,11 +237,11 @@ def search_variants():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48117000,
-                    'end': 48120634
+                    'start': 48000000,
+                    'end': 48120000
                 }
             ]
-        }, 1)
+        }, 2)
     ]
 
 
