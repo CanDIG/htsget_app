@@ -3,8 +3,8 @@ import sys
 import pytest
 import requests
 from pysam import AlignmentFile, VariantFile
-from minio import Minio
 from pathlib import Path
+from authx.auth import get_minio_client
 
 # assumes that we are running pytest from the repo directory
 sys.path.insert(0,os.path.abspath("htsget_server"))
@@ -31,22 +31,11 @@ def test_post_objects(drs_objects):
             assert response.status_code == 200
         if "access_methods" in obj and obj["access_methods"][0]["type"] == "s3":
             method = obj["access_methods"][0]
-            client = Minio(
-                "play.min.io:9000",
-                access_key="Q3AM3UQ867SPQQA43P2F",
-                secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-            )
-            bucket = "testhtsget"
             try:
-                #create the minio bucket/object/etc
-                if not client.bucket_exists(bucket):
-                    if 'region' in method:
-                        client.make_bucket(bucket, location=method['region'])
-                    else:
-                        client.make_bucket(bucket)
+                client = get_minio_client(None, bucket='testhtsget')
                 file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
                 with Path.open(file, "rb") as fp:
-                    result = client.put_object(bucket, obj['id'], fp, file.stat().st_size)
+                    result = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
             except Exception as e:
                 print(str(e))
                 assert False
@@ -77,11 +66,11 @@ def test_post_update():
     assert response.json()["size"] == 100
 
 
-def test_index_variants():
+def index_variants():
     return [('sample.compressed', None), ('NA18537', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
 
 
-@pytest.mark.parametrize('sample, genomic_id', test_index_variants())
+@pytest.mark.parametrize('sample, genomic_id', index_variants())
 def test_index_variantfile(sample, genomic_id):
     url = f"{HOST}/htsget/v1/variants/{sample}/index"
     params = {"genome": "hg37"}
@@ -157,7 +146,7 @@ def test_existent_file(id, type, params, expected_status):
         assert 'start' not in res.json()['htsget']['urls'][0]['url']
 
 
-def test_pull_slices_data():
+def pull_slices_data():
     return [
         ({"referenceName": "20",
           "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant"),
@@ -165,7 +154,7 @@ def test_pull_slices_data():
     ]
 
 
-@pytest.mark.parametrize('params, id_, file_extension, file_type', test_pull_slices_data())
+@pytest.mark.parametrize('params, id_, file_extension, file_type', pull_slices_data())
 def test_pull_slices(params, id_, file_extension, file_type):
     url = f"{HOST}/htsget/v1/{file_type}s/{id_}"    
     res = requests.request("GET", url, params=params, headers=headers)
@@ -223,7 +212,7 @@ def test_get_read_header():
     assert False
 
 
-def test_search_variants():
+def search_variants():
     return [
         ({
             'headers': [
@@ -256,7 +245,7 @@ def test_search_variants():
     ]
 
 
-@pytest.mark.parametrize('body, count', test_search_variants())
+@pytest.mark.parametrize('body, count', search_variants())
 def test_search_variantfile(body, count):
     url = f"{HOST}/htsget/v1/variants/search"
     
@@ -281,7 +270,7 @@ def test_search_snp():
     assert len(response.json()["results"]) == 1
 
 
-def test_multisamples():
+def get_multisamples():
     return [
         ({
             'regions': [
@@ -295,7 +284,7 @@ def test_multisamples():
     ]
 
 
-@pytest.mark.parametrize('body, count', test_multisamples())
+@pytest.mark.parametrize('body, count', get_multisamples())
 # The two multisample files both have two identically-named samples in them:
 # both files should return two samples
 def test_multisample(body, count):

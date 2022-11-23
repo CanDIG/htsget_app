@@ -1,5 +1,5 @@
 import json
-from config import AUTHZ, TEST_KEY, VAULT_S3_TOKEN
+from config import AUTHZ, TEST_KEY
 from flask import Flask
 import drs_operations
 import authx.auth
@@ -44,7 +44,7 @@ def is_testing(request):
 
 
 def get_authorized_datasets(request):
-    return authx.auth.get_opa_datasets(request, AUTHZ['CANDIG_OPA_URL'], AUTHZ['CANDIG_OPA_SECRET'])
+    return authx.auth.get_opa_datasets(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
 
 
 def is_site_admin(request):
@@ -60,10 +60,9 @@ def is_site_admin(request):
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return True # no auth
     if "Authorization" in request.headers:
-        return authx.auth.is_site_admin(request, AUTHZ['CANDIG_OPA_URL'], AUTHZ['CANDIG_OPA_SECRET'])
+        return authx.auth.is_site_admin(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
     return False
 
 
-
-def get_aws_credential(request, endpoint, bucket):
-    return authx.auth.get_aws_credential(request, endpoint, bucket, VAULT_S3_TOKEN)
+def get_s3_url(request, s3_endpoint=None, bucket=None, object_id=None):
+    return authx.auth.get_s3_url(request, s3_endpoint=s3_endpoint, bucket=bucket, object_id=object_id)
