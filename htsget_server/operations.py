@@ -206,7 +206,11 @@ def search_variants():
         fine_results = []
         for obj in result['results']:
             gen_obj = _get_genomic_obj(obj['id'])
-            actual = gen_obj['file'].fetch(contig=ref_name, start=start, end=end)
+            orig_ref_name = database.get_contig_name_in_variantfile({'refname': ref_name, 'variantfile_id': obj['id']})
+            try:
+                actual = gen_obj['file'].fetch(contig=orig_ref_name, start=start, end=end)
+            except Exception as e:
+                return {"message": str(e)}, 500
             actual_count = sum(1 for _ in actual)
             if (actual_count > 0):
                 obj['variantcount'] = actual_count
