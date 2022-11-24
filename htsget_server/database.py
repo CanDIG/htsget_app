@@ -611,7 +611,7 @@ def get_samples_in_drs_objects(obj):
     # obj = {'drs_object_ids'}
     with Session() as session:
         result = []
-        q = select(Sample.sample_id).where(Sample.variantfile_id.in_(obj['drs_object_ids'])).distinct()
+        q = select(Sample.sample_id).where(Sample.variantfile_id.in_(set(obj['drs_object_ids']))).distinct()
         for row in session.execute(q):
             result.append(str(row._mapping['sample_id']))
         return result
@@ -850,7 +850,7 @@ def search(obj):
         ref_genomes = {}
         for rgv in rgvs:
             ref_genomes[rgv.id] = rgv.reference_genome
-        bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(pos_bucket_ids), PositionBucketVariantFileAssociation.variantfile_id.in_(drs_obj_ids)).order_by(PositionBucketVariantFileAssociation.variantfile_id).order_by(PositionBucketVariantFileAssociation.pos_bucket_id).all()
+        bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(set(pos_bucket_ids)), PositionBucketVariantFileAssociation.variantfile_id.in_(set(drs_obj_ids))).order_by(PositionBucketVariantFileAssociation.variantfile_id).order_by(PositionBucketVariantFileAssociation.pos_bucket_id).all()
         if bvs is not None:
             for bv in bvs:
                 result['raw'].append(str(bv))
