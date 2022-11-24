@@ -175,8 +175,8 @@ class PositionBucket(ObjectDBBase):
 
 class Sample(ObjectDBBase):
     __tablename__ = 'sample'
-    id = Column(Integer, primary_key=True)
-    sample_id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sample_id = Column(String)
     
     # a sample is in a single variantfile
     variantfile_id = Column(String, ForeignKey('variantfile.id'))
