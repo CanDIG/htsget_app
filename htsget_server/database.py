@@ -505,7 +505,7 @@ def create_variantfile(obj):
         if new_variantfile is None:
             new_variantfile = VariantFile()
             new_variantfile.indexed = 0
-            new_variantfile.chr_prefix = '0'
+            new_variantfile.chr_prefix = ''
         new_variantfile.id = obj['id']
         if "genomic_id" in obj:
             new_variantfile.genomic_id = obj['genomic_id']
