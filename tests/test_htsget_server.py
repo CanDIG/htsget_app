@@ -26,7 +26,7 @@ def get_headers():
         token = get_access_token(username=USERNAME, password=PASSWORD)
         print("got token")
         headers["Authorization"] = f"Bearer {token}"
-    except:
+    except Exception as e:
         headers["Authorization"] = "Bearer testtest"
     return headers
 
