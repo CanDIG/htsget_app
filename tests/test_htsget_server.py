@@ -30,6 +30,18 @@ def get_headers():
         headers["Authorization"] = "Bearer testtest"
     return headers
 
+
+def test_remove_objects(drs_objects):
+    headers = get_headers()
+    for obj in drs_objects:
+        url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
+        response = requests.request("GET", url, headers=headers)
+        if response.status_code == 200:
+            response = requests.request("DELETE", url, headers=headers)
+            print(f"DELETE {obj['name']}: {response.text}")
+            assert response.status_code == 200
+
+
 def test_post_objects(drs_objects):
     """
     Install test objects. Will fail if any post request returns an error.
@@ -57,11 +69,6 @@ def test_post_objects(drs_objects):
 
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
-        response = requests.request("GET", url, headers=headers)
-        if response.status_code == 200:
-            response = requests.request("DELETE", url, headers=headers)
-            print(f"DELETE {obj['name']}: {response.text}")
-            assert response.status_code == 200
         if "contents" not in obj:
             # create access_methods:
             obj["access_methods"] = [
@@ -82,6 +89,7 @@ def test_post_objects(drs_objects):
         response = requests.request("POST", url, json=obj, headers=headers)
         print(f"POST {obj['name']}: {response.text}")
         assert response.status_code == 200
+
 
 def test_post_update():
     id = "NA18537.vcf.gz.tbi"
