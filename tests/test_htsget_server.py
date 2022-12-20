@@ -4,7 +4,7 @@ import pytest
 import requests
 from pysam import AlignmentFile, VariantFile
 from pathlib import Path
-from authx.auth import get_minio_client
+from authx.auth import get_minio_client, get_access_token, store_aws_credential
 
 # assumes that we are running pytest from the repo directory
 sys.path.insert(0,os.path.abspath("htsget_server"))
@@ -12,16 +12,27 @@ from config import PORT, LOCAL_FILE_PATH
 
 HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
+USERNAME = os.getenv("CANDIG_SITE_ADMIN_USER")
+PASSWORD = os.getenv("CANDIG_SITE_ADMIN_PASSWORD")
+MINIO_URL = os.getenv("MINIO_URL")
+VAULT_URL = os.getenv("VAULT_URL")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 CWD = os.getcwd()
-headers={"Test_Key": TEST_KEY, "Authorization": "Bearer testtest"}
 
-def test_post_objects(drs_objects):
-    """
-    Install test objects. Will fail if any post request returns an error.
-    """
-    # clean up old objects in db:
-    url = f"{HOST}/ga4gh/drs/v1/objects"
-    response = requests.request("GET", url, headers=headers)
+def get_headers():
+    headers={"Test_Key": TEST_KEY}
+    try:
+        token = get_access_token(username=USERNAME, password=PASSWORD)
+        print("got token")
+        headers["Authorization"] = f"Bearer {token}"
+    except Exception as e:
+        headers["Authorization"] = "Bearer testtest"
+    return headers
+
+
+def test_remove_objects(drs_objects):
+    headers = get_headers()
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
         response = requests.request("GET", url, headers=headers)
@@ -29,10 +40,44 @@ def test_post_objects(drs_objects):
             response = requests.request("DELETE", url, headers=headers)
             print(f"DELETE {obj['name']}: {response.text}")
             assert response.status_code == 200
-        if "access_methods" in obj and obj["access_methods"][0]["type"] == "s3":
-            method = obj["access_methods"][0]
+
+
+def test_post_objects(drs_objects):
+    """
+    Install test objects. Will fail if any post request returns an error.
+    """
+    # clean up old objects in db:
+    url = f"{HOST}/ga4gh/drs/v1/objects"
+    headers = get_headers()
+    response = requests.request("GET", url, headers=headers)
+
+    client = None
+
+    try:
+        bucket = 'testhtsget'
+        if MINIO_URL and VAULT_URL and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
+            token = get_access_token(username=USERNAME, password=PASSWORD)
+            credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=MINIO_ACCESS_KEY, secret=MINIO_SECRET_KEY, vault_url=VAULT_URL)
+            if status_code == 200:
+                client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
+        if client is None:
+            client = get_minio_client(bucket=bucket)
+    except Exception as e:
+        print(str(e))
+        assert False
+        return {"message": str(e)}, 500
+
+    for obj in drs_objects:
+        url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
+        if "contents" not in obj:
+            # create access_methods:
+            obj["access_methods"] = [
+                {
+                    "type": "s3",
+                    "access_id": f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
+                }
+            ]
             try:
-                client = get_minio_client(None, bucket='testhtsget')
                 file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
                 with Path.open(file, "rb") as fp:
                     result = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
@@ -45,23 +90,18 @@ def test_post_objects(drs_objects):
         print(f"POST {obj['name']}: {response.text}")
         assert response.status_code == 200
 
+
 def test_post_update():
+    id = "NA18537.vcf.gz.tbi"
+    url = f"{HOST}/ga4gh/drs/v1/objects/{id}"
+    response = requests.request("GET", url, headers=get_headers())
+    if response.status_code == 200:
+        assert response.status_code == 200
+    obj = response.json()
+
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    obj = {
-    "access_methods": [
-      {
-        "access_url": {
-          "url": f"file://{CWD}/data/files/NA18537.vcf.gz.tbi"
-        },
-        "type": "file"
-      }
-    ],
-    "id": "NA18537.vcf.gz.tbi",
-    "name": "NA18537.vcf.gz.tbi",
-    "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
-    "size": 100
-  }
-    response = requests.post(url, json=obj, headers=headers)
+    obj["size"] = 100
+    response = requests.post(url, json=obj, headers=get_headers())
     print(response.text)
     assert response.json()["size"] == 100
 
@@ -75,13 +115,13 @@ def test_index_variantfile(sample, genomic_id):
     url = f"{HOST}/htsget/v1/variants/{sample}/index"
     params = {"genome": "hg37"}
     if genomic_id is not None:
-      params["genomic_id"] = genomic_id
+        params["genomic_id"] = genomic_id
     #params['force'] = True
-    response = requests.get(url, params=params, headers=headers)
+    response = requests.get(url, params=params, headers=get_headers())
     print(response.text)
     assert response.json()["id"] == sample
     if genomic_id is not None:
-      assert response.json()["genomic_id"] == genomic_id
+        assert response.json()["genomic_id"] == genomic_id
 
 
 def invalid_start_end_data():
@@ -96,8 +136,8 @@ def test_invalid_start_end(start, end):
     url_v = f"{HOST}/htsget/v1/variants/NA18537?referenceName=21&start={start}&end={end}"
     url_r = f"{HOST}/htsget/v1/reads/NA18537?referenceName=21&start={start}&end={end}"
 
-    res_v = requests.request("GET", url_v, headers=headers)
-    res_r = requests.request("GET", url_r, headers=headers)
+    res_v = requests.request("GET", url_v, headers=get_headers())
+    res_r = requests.request("GET", url_r, headers=get_headers())
 
     if end < start:
         assert res_v.status_code == 400
@@ -133,7 +173,7 @@ def test_existent_file(id, type, params, expected_status):
     """
     url = f"{HOST}/htsget/v1/{type}/{id}"
 
-    res = requests.request("GET", url, params=params, headers=headers)
+    res = requests.request("GET", url, params=params, headers=get_headers())
     assert res.status_code == expected_status
     if res.status_code == 200:
       if 'referenceName' in params:
@@ -156,9 +196,9 @@ def pull_slices_data():
 
 @pytest.mark.parametrize('params, id_, file_extension, file_type', pull_slices_data())
 def test_pull_slices(params, id_, file_extension, file_type):
-    url = f"{HOST}/htsget/v1/{file_type}s/{id_}"    
-    res = requests.request("GET", url, params=params, headers=headers)
-    res = res.json()    
+    url = f"{HOST}/htsget/v1/{file_type}s/{id_}"
+    res = requests.request("GET", url, params=params, headers=get_headers())
+    res = res.json()
     urls = res['htsget']['urls']
 
     f_index = 0
@@ -166,7 +206,7 @@ def test_pull_slices(params, id_, file_extension, file_type):
     equal = True
     for i in range(len(urls)):
         url = urls[i]['url']
-        res = requests.request("GET", url, headers=headers)
+        res = requests.request("GET", url, headers=get_headers())
         print(res.text)
 
         f_slice_name = f"{id_}_{i}{file_extension}"
@@ -203,7 +243,7 @@ def test_get_read_header():
     A header of a SAM file should contain at least one @SQ line
     """
     url = f"{HOST}/htsget/v1/reads/data/NA02102?class=header&format=SAM"
-    res = requests.request("GET", url, headers=headers)
+    res = requests.request("GET", url, headers=get_headers())
     print(res.text)
     for line in res.iter_lines():
         if "@SQ" in line.decode("utf-8"):
@@ -225,7 +265,7 @@ def search_variants():
                     'end': 48120634
                 }
             ]
-        }, 1), 
+        }, 1),
         ({
             'regions': [
                 {
@@ -248,8 +288,8 @@ def search_variants():
 @pytest.mark.parametrize('body, count', search_variants())
 def test_search_variantfile(body, count):
     url = f"{HOST}/htsget/v1/variants/search"
-    
-    response = requests.post(url, json=body, headers=headers)
+
+    response = requests.post(url, json=body, headers=get_headers())
     print(response.text)
     assert len(response.json()["results"]) == count
 
@@ -265,7 +305,7 @@ def test_search_snp():
                 }
             ]
         }
-    response = requests.post(url, json=body, headers=headers)
+    response = requests.post(url, json=body, headers=get_headers())
     print(response.text)
     assert len(response.json()["results"]) == 1
 
@@ -289,8 +329,8 @@ def get_multisamples():
 # both files should return two samples
 def test_multisample(body, count):
     url = f"{HOST}/htsget/v1/variants/search"
-    
-    response = requests.post(url, json=body, headers=headers)
+
+    response = requests.post(url, json=body, headers=get_headers())
     print(response.text)
     for result in response.json()["results"]:
       assert len(result['samples']) == count
@@ -300,15 +340,6 @@ def test_multisample(body, count):
 def drs_objects():
     return [
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/NA18537.vcf.gz.tbi"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -322,15 +353,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/NA18537.vcf.gz"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -373,15 +395,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/multisample_1.vcf.gz.tbi"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -395,15 +408,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/multisample_1.vcf.gz"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -446,15 +450,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/multisample_2.vcf.gz.tbi"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -468,15 +463,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/multisample_2.vcf.gz"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -519,13 +505,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/sample.compressed.vcf.gz.tbi",
-        "type": "s3",
-        "region": "us-east-1"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -539,13 +518,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/sample.compressed.vcf.gz",
-        "type": "s3",
-        "region": "us-east-1"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -588,15 +560,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/NA20787.vcf.gz.tbi"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:58:56.663378",
@@ -610,15 +573,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/NA20787.vcf.gz"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:58:56.663378",
@@ -661,12 +615,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/NA02102.bam.bai",
-        "type": "s3"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:58:56.663378",
@@ -680,15 +628,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/NA02102.bam"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:58:56.663378",
