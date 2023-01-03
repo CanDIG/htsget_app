@@ -3,25 +3,36 @@ import sys
 import pytest
 import requests
 from pysam import AlignmentFile, VariantFile
-from minio import Minio
 from pathlib import Path
+from authx.auth import get_minio_client, get_access_token, store_aws_credential
 
 # assumes that we are running pytest from the repo directory
 sys.path.insert(0,os.path.abspath("htsget_server"))
 from config import PORT, LOCAL_FILE_PATH
 
-HOST = f"http://localhost:{PORT}"
+HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
+USERNAME = os.getenv("CANDIG_SITE_ADMIN_USER")
+PASSWORD = os.getenv("CANDIG_SITE_ADMIN_PASSWORD")
+MINIO_URL = os.getenv("MINIO_URL")
+VAULT_URL = os.getenv("VAULT_URL")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 CWD = os.getcwd()
-headers={"Test_Key": TEST_KEY, "Authorization": "Bearer testtest"}
 
-def test_post_objects(drs_objects):
-    """
-    Install test objects. Will fail if any post request returns an error.
-    """
-    # clean up old objects in db:
-    url = f"{HOST}/ga4gh/drs/v1/objects"
-    response = requests.request("GET", url, headers=headers)
+def get_headers():
+    headers={"Test_Key": TEST_KEY}
+    try:
+        token = get_access_token(username=USERNAME, password=PASSWORD)
+        print("got token")
+        headers["Authorization"] = f"Bearer {token}"
+    except Exception as e:
+        headers["Authorization"] = "Bearer testtest"
+    return headers
+
+
+def test_remove_objects(drs_objects):
+    headers = get_headers()
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
         response = requests.request("GET", url, headers=headers)
@@ -29,24 +40,47 @@ def test_post_objects(drs_objects):
             response = requests.request("DELETE", url, headers=headers)
             print(f"DELETE {obj['name']}: {response.text}")
             assert response.status_code == 200
-        if "access_methods" in obj and obj["access_methods"][0]["type"] == "s3":
-            method = obj["access_methods"][0]
-            client = Minio(
-                "play.min.io:9000",
-                access_key="Q3AM3UQ867SPQQA43P2F",
-                secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-            )
-            bucket = "testhtsget"
+
+
+def test_post_objects(drs_objects):
+    """
+    Install test objects. Will fail if any post request returns an error.
+    """
+    # clean up old objects in db:
+    url = f"{HOST}/ga4gh/drs/v1/objects"
+    headers = get_headers()
+    response = requests.request("GET", url, headers=headers)
+
+    client = None
+
+    try:
+        bucket = 'testhtsget'
+        if MINIO_URL and VAULT_URL and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
+            token = get_access_token(username=USERNAME, password=PASSWORD)
+            credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=MINIO_ACCESS_KEY, secret=MINIO_SECRET_KEY, vault_url=VAULT_URL)
+            if status_code == 200:
+                client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
+        if client is None:
+            client = get_minio_client(bucket=bucket)
+    except Exception as e:
+        print(str(e))
+        assert False
+        return {"message": str(e)}, 500
+
+    for obj in drs_objects:
+        url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
+        if "contents" not in obj:
+            # create access_methods:
+            obj["access_methods"] = [
+                {
+                    "type": "s3",
+                    "access_id": f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
+                }
+            ]
             try:
-                #create the minio bucket/object/etc
-                if not client.bucket_exists(bucket):
-                    if 'region' in method:
-                        client.make_bucket(bucket, location=method['region'])
-                    else:
-                        client.make_bucket(bucket)
                 file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
                 with Path.open(file, "rb") as fp:
-                    result = client.put_object(bucket, obj['id'], fp, file.stat().st_size)
+                    result = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
             except Exception as e:
                 print(str(e))
                 assert False
@@ -56,39 +90,38 @@ def test_post_objects(drs_objects):
         print(f"POST {obj['name']}: {response.text}")
         assert response.status_code == 200
 
+
 def test_post_update():
+    id = "NA18537.vcf.gz.tbi"
+    url = f"{HOST}/ga4gh/drs/v1/objects/{id}"
+    response = requests.request("GET", url, headers=get_headers())
+    if response.status_code == 200:
+        assert response.status_code == 200
+    obj = response.json()
+
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    obj = {
-    "access_methods": [
-      {
-        "access_url": {
-          "url": f"file://{CWD}/data/files/NA18537.vcf.gz.tbi"
-        },
-        "type": "file"
-      }
-    ],
-    "id": "NA18537.vcf.gz.tbi",
-    "name": "NA18537.vcf.gz.tbi",
-    "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
-    "size": 100
-  }
-    response = requests.post(url, json=obj, headers=headers)
+    obj["size"] = 100
+    response = requests.post(url, json=obj, headers=get_headers())
     print(response.text)
     assert response.json()["size"] == 100
 
 
-def test_index_variants():
-    return [('sample.compressed'), ('NA18537'), ('NA20787')]
+def index_variants():
+    return [('sample.compressed', None), ('NA18537', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097')]
 
 
-@pytest.mark.parametrize('sample', test_index_variants())
-def test_index_variantfile(sample):
+@pytest.mark.parametrize('sample, genomic_id', index_variants())
+def test_index_variantfile(sample, genomic_id):
     url = f"{HOST}/htsget/v1/variants/{sample}/index"
     params = {"genome": "hg37"}
+    if genomic_id is not None:
+        params["genomic_id"] = genomic_id
     #params['force'] = True
-    response = requests.get(url, params=params, headers=headers)
+    response = requests.get(url, params=params, headers=get_headers())
     print(response.text)
     assert response.json()["id"] == sample
+    if genomic_id is not None:
+        assert response.json()["genomic_id"] == genomic_id
 
 
 def invalid_start_end_data():
@@ -103,8 +136,8 @@ def test_invalid_start_end(start, end):
     url_v = f"{HOST}/htsget/v1/variants/NA18537?referenceName=21&start={start}&end={end}"
     url_r = f"{HOST}/htsget/v1/reads/NA18537?referenceName=21&start={start}&end={end}"
 
-    res_v = requests.request("GET", url_v, headers=headers)
-    res_r = requests.request("GET", url_r, headers=headers)
+    res_v = requests.request("GET", url_v, headers=get_headers())
+    res_r = requests.request("GET", url_r, headers=get_headers())
 
     if end < start:
         assert res_v.status_code == 400
@@ -114,34 +147,58 @@ def test_invalid_start_end(start, end):
 
 
 def existent_file_test_data():
-    return [('NA18537', 200), ('NA20787', 200), ('HG203245', 404), ('NA185372', 404)]
-
-
-@pytest.mark.parametrize('id, expected_status', existent_file_test_data())
-def test_existent_file(id, expected_status):
-    """
-    Should fail with expected error if a file does not exist for given ID
-    """
-    url_v = f"{HOST}/htsget/v1/variants/{id}?referenceName=21&start=10235878&end=45412368"
-    url_r = f"{HOST}/htsget/v1/reads/{id}?referenceName=21&start=10235878&end=45412368"
-
-    res_v = requests.request("GET", url_v, headers=headers)
-    res_r = requests.request("GET", url_r, headers=headers)
-    assert res_v.status_code == expected_status or res_r.status_code == expected_status
-
-
-def test_pull_slices_data():
     return [
-        ({"referenceName": "20",
-          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant")
+      ('NA18537', 'variants',
+       {'referenceName': 21, 'start': 10235878, 'end': 45412368},
+       200),
+      ('NA18537', 'variants',
+       {'referenceName': 21},
+       200),
+      ('NA18537', 'variants',
+       {'start': 10235878, 'end': 45412368},
+       200),
+      ('NA18537', 'variants', {}, 200),
+      ('NA20787', 'variants', {}, 200),
+      ('NA20787', 'variants',
+       {'referenceName': 21},
+       200),
+      ('HG203245', 'variants', {}, 404)
     ]
 
 
-@pytest.mark.parametrize('params, id_, file_extension, file_type', test_pull_slices_data())
+@pytest.mark.parametrize('id, type, params, expected_status', existent_file_test_data())
+def test_existent_file(id, type, params, expected_status):
+    """
+    Should fail with expected error if a file does not exist for given ID
+    """
+    url = f"{HOST}/htsget/v1/{type}/{id}"
+
+    res = requests.request("GET", url, params=params, headers=get_headers())
+    assert res.status_code == expected_status
+    if res.status_code == 200:
+      if 'referenceName' in params:
+        assert 'referenceName' in res.json()['htsget']['urls'][0]['url']
+        if 'start' in params:
+          assert str(params['start']) in res.json()['htsget']['urls'][0]['url']
+        if 'end' in params:
+          assert str(params['end']) in res.json()['htsget']['urls'][-1]['url']
+      else: # if there's no referenceName, there shouldn't be any start or end
+        assert 'start' not in res.json()['htsget']['urls'][0]['url']
+
+
+def pull_slices_data():
+    return [
+        ({"referenceName": "20",
+          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant"),
+        ({}, 'sample.compressed', ".vcf.gz", "variant")
+    ]
+
+
+@pytest.mark.parametrize('params, id_, file_extension, file_type', pull_slices_data())
 def test_pull_slices(params, id_, file_extension, file_type):
-    url = f"{HOST}/htsget/v1/{file_type}s/{id_}"    
-    res = requests.request("GET", url, params=params, headers=headers)
-    res = res.json()    
+    url = f"{HOST}/htsget/v1/{file_type}s/{id_}"
+    res = requests.request("GET", url, params=params, headers=get_headers())
+    res = res.json()
     urls = res['htsget']['urls']
 
     f_index = 0
@@ -149,7 +206,7 @@ def test_pull_slices(params, id_, file_extension, file_type):
     equal = True
     for i in range(len(urls)):
         url = urls[i]['url']
-        res = requests.request("GET", url, headers=headers)
+        res = requests.request("GET", url, headers=get_headers())
         print(res.text)
 
         f_slice_name = f"{id_}_{i}{file_extension}"
@@ -170,7 +227,11 @@ def test_pull_slices(params, id_, file_extension, file_type):
             f_index = rec.pos - 1
             break
         # compare slice and file line by line
-        for x, y in zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index)):
+        if 'referenceName' in params:
+          zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
+        else:
+          zipped = zip(f_slice.fetch(), f.fetch())
+        for x, y in zipped:
             if x != y:
                 equal = False
                 assert equal
@@ -182,7 +243,7 @@ def test_get_read_header():
     A header of a SAM file should contain at least one @SQ line
     """
     url = f"{HOST}/htsget/v1/reads/data/NA02102?class=header&format=SAM"
-    res = requests.request("GET", url, headers=headers)
+    res = requests.request("GET", url, headers=get_headers())
     print(res.text)
     for line in res.iter_lines():
         if "@SQ" in line.decode("utf-8"):
@@ -191,7 +252,7 @@ def test_get_read_header():
     assert False
 
 
-def test_search_variants():
+def search_variants():
     return [
         ({
             'headers': [
@@ -200,11 +261,11 @@ def test_search_variants():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48110083,
-                    'end': 48120000
+                    'start': 48110000,
+                    'end': 48120634
                 }
             ]
-        }, 2), 
+        }, 1),
         ({
             'regions': [
                 {
@@ -216,19 +277,19 @@ def test_search_variants():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48117000,
-                    'end': 48120634
+                    'start': 48000000,
+                    'end': 48120000
                 }
             ]
-        }, 1)
+        }, 2)
     ]
 
 
-@pytest.mark.parametrize('body, count', test_search_variants())
+@pytest.mark.parametrize('body, count', search_variants())
 def test_search_variantfile(body, count):
     url = f"{HOST}/htsget/v1/variants/search"
-    
-    response = requests.post(url, json=body, headers=headers)
+
+    response = requests.post(url, json=body, headers=get_headers())
     print(response.text)
     assert len(response.json()["results"]) == count
 
@@ -239,26 +300,46 @@ def test_search_snp():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48062672,
+                    'start': 48062673,
                     'end': 48062673
                 }
             ]
         }
-    response = requests.post(url, json=body, headers=headers)
+    response = requests.post(url, json=body, headers=get_headers())
     print(response.text)
     assert len(response.json()["results"]) == 1
+
+
+def get_multisamples():
+    return [
+        ({
+            'regions': [
+                {
+                    'referenceName': 'chr21',
+                    'start': 5030000,
+                    'end': 5032000
+                }
+            ]
+        }, 2)
+    ]
+
+
+@pytest.mark.parametrize('body, count', get_multisamples())
+# The two multisample files both have two identically-named samples in them:
+# both files should return two samples
+def test_multisample(body, count):
+    url = f"{HOST}/htsget/v1/variants/search"
+
+    response = requests.post(url, json=body, headers=get_headers())
+    print(response.text)
+    for result in response.json()["results"]:
+      assert len(result['samples']) == count
+
 
 @pytest.fixture
 def drs_objects():
     return [
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/NA18537.vcf.gz.tbi",
-        "type": "s3",
-        "region": "us-east-1"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -272,13 +353,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/NA18537.vcf.gz",
-        "type": "s3",
-        "region": "us-east-1"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -321,13 +395,116 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_1.vcf.gz.tbi",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_1.vcf.gz.tbi",
+    "self_uri": "drs://localhost/multisample_1.vcf.gz.tbi",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_1.vcf.gz",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_1.vcf.gz",
+    "self_uri": "drs://localhost/multisample_1.vcf.gz",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
       {
-        "access_id": "play.min.io:9000/testhtsget/sample.compressed.vcf.gz.tbi",
-        "type": "s3",
-        "region": "us-east-1"
+        "drs_uri": [
+          "drs://localhost/multisample_1.vcf.gz"
+        ],
+        "name": "multisample_1.vcf.gz",
+        "id": "variant"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/multisample_1.vcf.gz.tbi"
+        ],
+        "name": "multisample_1.vcf.gz.tbi",
+        "id": "index"
       }
     ],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_1",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_1",
+    "self_uri": "drs://localhost/multisample_1",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_2.vcf.gz.tbi",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_2.vcf.gz.tbi",
+    "self_uri": "drs://localhost/multisample_2.vcf.gz.tbi",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_2.vcf.gz",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_2.vcf.gz",
+    "self_uri": "drs://localhost/multisample_2.vcf.gz",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
+    "aliases": [],
+    "checksums": [],
+    "contents": [
+      {
+        "drs_uri": [
+          "drs://localhost/multisample_2.vcf.gz"
+        ],
+        "name": "multisample_2.vcf.gz",
+        "id": "variant"
+      },
+      {
+        "drs_uri": [
+          "drs://localhost/multisample_2.vcf.gz.tbi"
+        ],
+        "name": "multisample_2.vcf.gz.tbi",
+        "id": "index"
+      }
+    ],
+    "created_time": "2021-09-27T18:40:00.538843",
+    "description": "",
+    "id": "multisample_2",
+    "mime_type": "application/octet-stream",
+    "name": "multisample_2",
+    "self_uri": "drs://localhost/multisample_2",
+    "size": 0,
+    "updated_time": "2021-09-27T18:40:00.539022",
+    "version": "v1"
+  },
+  {
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -341,13 +518,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/sample.compressed.vcf.gz",
-        "type": "s3",
-        "region": "us-east-1"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:40:00.538843",
@@ -390,12 +560,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz.tbi",
-        "type": "s3"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:58:56.663378",
@@ -409,12 +573,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/NA20787.vcf.gz",
-        "type": "s3"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:58:56.663378",
@@ -457,12 +615,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_id": "play.min.io:9000/testhtsget/NA02102.bam.bai",
-        "type": "s3"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:58:56.663378",
@@ -476,15 +628,6 @@ def drs_objects():
     "version": "v1"
   },
   {
-    "access_methods": [
-      {
-        "access_url": {
-          "headers": [],
-          "url": f"file://{CWD}/data/files/NA02102.bam"
-        },
-        "type": "file"
-      }
-    ],
     "aliases": [],
     "checksums": [],
     "created_time": "2021-09-27T18:58:56.663378",

@@ -7,7 +7,14 @@ export OPA_SECRET=$(cat /run/secrets/opa-service-token)
 
 if [[ -f "initial_setup" ]]; then
     if [[ -f "/run/secrets/cert.pem" ]]; then
-        cat /run/secrets/cert.pem >> /usr/local/lib/python3.7/site-packages/certifi/cacert.pem
+        CERT=$(head -n 2 /run/secrets/cert.pem | tail -n 1)
+        SITE_PKGS=$(python -c 'import site; print(site.getsitepackages()[0])')
+        echo $SITE_PKGS
+        if grep -q "$CERT" $SITE_PKGS/certifi/cacert.pem
+        then
+            echo "hi"
+            cat /run/secrets/cert.pem >> ${SITE_PKGS}/certifi/cacert.pem
+        fi
     fi
 
     sed -i s@\<CANDIG_OPA_SECRET\>@$OPA_SECRET@ config.ini
@@ -22,7 +29,7 @@ if [[ -f "initial_setup" ]]; then
     crontab cron_bkp
     rm cron_bkp
     
-    sqlite3 ${DB_PATH:-/app/htsget_server/data/files.db} -init /app/htsget_server/data/files.sql 
+    sqlite3 ${DB_PATH:-/app/htsget_server/data/files.db} -init /app/htsget_server/data/files.sql "SELECT * from variantfile"
     rm initial_setup
 fi
 

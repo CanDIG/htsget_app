@@ -91,6 +91,7 @@ class Contig(ObjectDBBase):
 class VariantFile(ObjectDBBase):
     __tablename__ = 'variantfile'
     id = Column(String, primary_key=True)
+    genomic_id = Column(String)
     indexed = Column(Integer)
     chr_prefix = Column(String)
     reference_genome = Column(String)
@@ -130,10 +131,14 @@ class VariantFile(ObjectDBBase):
         result = {
             'id': self.id,
             'drsobject': self.drs_object_id,
+            'genomic_id': self.genomic_id,
             'indexed': self.indexed,
             'chr_prefix': self.chr_prefix,
-            'reference_genome': self.reference_genome
+            'reference_genome': self.reference_genome,
+            'samples': []
         }
+        for sample in self.samples:
+            result['samples'].append(sample.sample_id)
 
         return json.dumps(result)
 
@@ -170,7 +175,8 @@ class PositionBucket(ObjectDBBase):
 
 class Sample(ObjectDBBase):
     __tablename__ = 'sample'
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sample_id = Column(String)
     
     # a sample is in a single variantfile
     variantfile_id = Column(String, ForeignKey('variantfile.id'))
@@ -181,7 +187,7 @@ class Sample(ObjectDBBase):
     )
     def __repr__(self):
         result = {
-            'id': self.id,
+            'id': self.sample_id,
             'variantfile_id': self.variantfile_id
         }
         return json.dumps(result)
@@ -493,14 +499,18 @@ def get_variantfile(variantfile_id):
 
 
 def create_variantfile(obj):
-    # obj = {"id", "reference_genome"}
+    # obj = {"id", "reference_genome", "genomic_id"}
     with Session() as session:
         new_variantfile = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
         if new_variantfile is None:
             new_variantfile = VariantFile()
             new_variantfile.indexed = 0
-            new_variantfile.chr_prefix = '0'
+            new_variantfile.chr_prefix = ''
         new_variantfile.id = obj['id']
+        if "genomic_id" in obj:
+            new_variantfile.genomic_id = obj['genomic_id']
+        else:
+            new_variantfile.genomic_id = obj['id']
         new_variantfile.reference_genome = obj['reference_genome']
         new_drs = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_drs is not None:
@@ -557,7 +567,7 @@ def list_variantfiles():
 
 def get_sample(sample_id):
     with Session() as session:
-        result = session.query(Sample).filter_by(id=sample_id).one_or_none()
+        result = session.query(Sample).filter_by(sample_id=sample_id).one_or_none()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
@@ -567,24 +577,22 @@ def get_sample(sample_id):
 def create_sample(obj):
     # obj = {'id', 'variantfile_id'}
     with Session() as session:
-        new_sample = session.query(Sample).filter_by(id=obj['id']).one_or_none()
+        new_sample = session.query(Sample).filter_by(sample_id=obj['id'], variantfile_id=obj['variantfile_id']).one_or_none()
         if new_sample is None:
             new_sample = Sample()
-        new_sample.id = obj['id']
-        new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
-        if new_variantfile is not None:
-            new_sample.variantfile_id = new_variantfile.id
+        new_sample.sample_id = obj['id']
+        new_sample.variantfile_id = obj['variantfile_id']
         session.add(new_sample)
         session.commit()
-        result = session.query(Sample).filter_by(id=obj['id']).one_or_none()
+        result = session.query(Sample).filter_by(sample_id=obj['id'], variantfile_id=obj['variantfile_id']).one_or_none()
         if result is not None:
             return json.loads(str(result))
         return None
 
 
-def delete_sample(sample_id):
+def delete_sample(id_):
     with Session() as session:
-        new_object = session.query(Sample).filter_by(id=sample_id).one()
+        new_object = session.query(Sample).filter_by(id=id_).one()
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))
@@ -603,9 +611,9 @@ def get_samples_in_drs_objects(obj):
     # obj = {'drs_object_ids'}
     with Session() as session:
         result = []
-        q = select(Sample.id).where(Sample.variantfile_id.in_(obj['drs_object_ids'])).distinct()
+        q = select(Sample.sample_id).where(Sample.variantfile_id.in_(set(obj['drs_object_ids']))).distinct()
         for row in session.execute(q):
-            result.append(str(row._mapping['id']))
+            result.append(str(row._mapping['sample_id']))
         return result
 
 
@@ -763,9 +771,10 @@ def get_variant_count_for_variantfile(obj):
     with Session() as session:
         vfile = aliased(VariantFile)
         q = select(vfile.drs_object_id, PositionBucket.id, PositionBucket.pos_bucket_id, PositionBucketVariantFileAssociation.bucket_count).select_from(PositionBucket).join(PositionBucketVariantFileAssociation).where(vfile.drs_object_id == PositionBucketVariantFileAssociation.variantfile_id).where(vfile.drs_object_id == obj['id'])
-        contig_id = normalize_contig(obj['referenceName'])
-        q = q.where(PositionBucket.contig_id == contig_id)
-        if 'start' in obj:
+        if 'referenceName' in obj and obj['referenceName'] is not None:
+            contig_id = normalize_contig(obj['referenceName'])
+            q = q.where(PositionBucket.contig_id == contig_id)
+        if 'start' in obj and obj['start'] > 0:
             q = q.where(PositionBucket.pos_bucket_id >= obj['start'])
         if 'end' in obj and obj['end'] != -1:
             q = q.where(PositionBucket.pos_bucket_id < obj['end'])
@@ -841,7 +850,7 @@ def search(obj):
         ref_genomes = {}
         for rgv in rgvs:
             ref_genomes[rgv.id] = rgv.reference_genome
-        bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(pos_bucket_ids), PositionBucketVariantFileAssociation.variantfile_id.in_(drs_obj_ids)).order_by(PositionBucketVariantFileAssociation.variantfile_id).order_by(PositionBucketVariantFileAssociation.pos_bucket_id).all()
+        bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(set(pos_bucket_ids)), PositionBucketVariantFileAssociation.variantfile_id.in_(set(drs_obj_ids))).order_by(PositionBucketVariantFileAssociation.variantfile_id).order_by(PositionBucketVariantFileAssociation.pos_bucket_id).all()
         if bvs is not None:
             for bv in bvs:
                 result['raw'].append(str(bv))

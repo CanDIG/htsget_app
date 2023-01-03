@@ -9,7 +9,7 @@ import drs_operations
 import database
 import authz
 import json
-from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE
+from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT
 from markupsafe import escape
 import connexion
 
@@ -111,11 +111,14 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 
 
 @app.route('/variants/<path:id_>/index')
-def index_variants(id_=None, force=False, genome='hg38'):
+def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
-        varfile = database.create_variantfile({"id": id_, "reference_genome": genome})
+        params = {"id": id_, "reference_genome": genome}
+        if genomic_id is not None:
+            params["genomic_id"] = genomic_id
+        varfile = database.create_variantfile(params)
         if varfile is not None:
             if varfile['indexed'] == 1 and not force:
                 return varfile, 200
@@ -174,7 +177,9 @@ def search_variants():
         region = req.json['regions'][0]
         ref_name = database.normalize_contig(region['referenceName'])
         if 'start' in region:
-            start = region['start']
+            start = region['start'] - 1
+            if start < 0:
+                start = 0
         if 'end' in region:
             end = region['end']
     searchresult = database.search(req.json)
@@ -191,6 +196,7 @@ def search_variants():
             htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
+            htsget_obj['genomic_id'] = database.get_variantfile(drs_obj_id)['genomic_id']
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
             htsget_obj['reference_genome'] = searchresult['reference_genome'][i]
             result['results'].append(htsget_obj)
@@ -200,7 +206,11 @@ def search_variants():
         fine_results = []
         for obj in result['results']:
             gen_obj = _get_genomic_obj(obj['id'])
-            actual = gen_obj['file'].fetch(contig=ref_name, start=start, end=end)
+            orig_ref_name = database.get_contig_name_in_variantfile({'refname': ref_name, 'variantfile_id': obj['id']})
+            try:
+                actual = gen_obj['file'].fetch(contig=orig_ref_name, start=start, end=end)
+            except Exception as e:
+                return {"message": str(e)}, 500
             actual_count = sum(1 for _ in actual)
             if (actual_count > 0):
                 obj['variantcount'] = actual_count
@@ -227,10 +237,10 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     params = {}
     if reference_name is not None:
         params['referenceName'] = reference_name
-    if slice_start is not None:
-        params['start'] = slice_start
-    if slice_end is not None:
-        params['end'] = slice_end
+        if slice_start is not None:
+            params['start'] = slice_start
+        if slice_end is not None:
+            params['end'] = slice_end
     encoded_params = urlencode(params)
     url = f"{_get_base_url(file_type, id, data=True)}"
     if len(params.keys()) > 0:
@@ -255,8 +265,8 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     buckets = database.get_variant_count_for_variantfile({"id": id, "referenceName": reference_name, "start": start, "end": end})
     # return buckets
     chunks = [{'count': 0, 'start': start, 'end': 0}]
-    curr_bucket = buckets.pop(0)
     while len(buckets) > 0:
+        curr_bucket = buckets.pop(0)
         curr_chunk = chunks.pop()
         # if the curr_chunk size is smaller than chunk size, we're still adding to it
         if curr_chunk['count'] <= CHUNK_SIZE:
@@ -267,7 +277,8 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
             # new chunk: append old chunk, then start new
             chunks.append(curr_chunk)
             chunks.append({'count': 0, 'start': curr_chunk['end']+1, 'end': curr_chunk['end']+1})
-        curr_bucket = buckets.pop(0)
+    # for the last chunk, use the actual end requested:
+    chunks[-1]['end'] = end
     # return chunks
     for i in range(0,len(chunks)):
         slice_start = chunks[i]['start']
@@ -350,10 +361,13 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     return { "message": "no object matching id found" }, 404
     
     
-def _get_base_url(file_type, id, data=False):
+def _get_base_url(file_type, id, data=False, testing=False):
+    url = HTSGET_URL
+    if authz.is_testing(request):
+        url = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
     if data:
-        return f"{HTSGET_URL}/htsget/v1/{file_type}s/data/{id}"
-    return f"{HTSGET_URL}/htsget/v1/{file_type}s/{id}"
+        return f"{url}/htsget/v1/{file_type}s/data/{id}"
+    return f"{url}/htsget/v1/{file_type}s/{id}"
   
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """

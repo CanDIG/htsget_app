@@ -147,8 +147,12 @@ INSERT INTO alias VALUES('ChrMT','MT');
 INSERT INTO alias VALUES('x','X');
 INSERT INTO alias VALUES('y','Y');
 INSERT INTO alias VALUES('mt','MT');
+INSERT INTO alias VALUES('M','MT');
+INSERT INTO alias VALUES('chrM','MT');
+INSERT INTO alias VALUES('ChrM','MT');
 CREATE TABLE variantfile (
 	id VARCHAR NOT NULL, 
+	genomic_id VARCHAR,
 	drs_object_id VARCHAR, 
 	indexed INTEGER,
 	chr_prefix VARCHAR,
@@ -189,9 +193,9 @@ CREATE TABLE pos_bucket_variantfile_association (
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 CREATE TABLE sample (
-	id VARCHAR NOT NULL, 
+	id INTEGER PRIMARY KEY AUTOINCREMENT, 
+	sample_id VARCHAR, 
 	variantfile_id VARCHAR, 
-	PRIMARY KEY (id), 
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 COMMIT;

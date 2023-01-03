@@ -1,7 +1,6 @@
 from minio import Minio
 import connexion
 import database
-from config import AUTHZ, VAULT_S3_TOKEN
 from flask import request, Flask
 import os
 import re
@@ -60,30 +59,10 @@ def get_access_url(object_id, access_id):
         endpoint = id_parse.group(2)
         bucket = id_parse.group(3)
         object_name = id_parse.group(4)
-        # play.min.io endpoint is the sandbox: 
-        if "play.min.io" in endpoint:
-            client = Minio(
-                "play.min.io:9000",
-                access_key="Q3AM3UQ867SPQQA43P2F",
-                secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-            )
-            bucket = "testhtsget"
-        else:
-            response, status_code = authz.get_aws_credential(request, endpoint, bucket)
-            if status_code == 200:
-                client = Minio(
-                    endpoint,
-                    access_key=response["access"],
-                    secret_key=response["secret"]
-                )
-            else:
-                return response, status_code
-        try:
-            result = client.stat_object(bucket_name=bucket, object_name=object_name)
-            url = client.presigned_get_object(bucket_name=bucket, object_name=object_name)
-        except Exception as e:
-            return {"message": str(e)}, 500
-        return {"url": url}, 200
+        url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
+        if status_code == 200:
+            return {"url": url}, status_code
+        return url, 500
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item"}, 400
 
@@ -108,6 +87,8 @@ def delete_object(object_id):
 
 def list_datasets():
     datasets = database.list_datasets()
+    if authz.is_site_admin(request):
+        return datasets
     authorized_datasets = authz.get_authorized_datasets(request)
     return list(set(map(lambda x: x['id'], datasets)) & set(authorized_datasets)), 200
 
@@ -123,6 +104,8 @@ def get_dataset(dataset_id):
     new_dataset = database.get_dataset(dataset_id)
     if new_dataset is None:
         return {"message": "No matching dataset found"}, 404
+    if authz.is_site_admin(request):
+        return new_dataset, 200
     authorized_datasets = authz.get_authorized_datasets(request)
     if new_dataset["id"] in authorized_datasets:
         return new_dataset, 200
