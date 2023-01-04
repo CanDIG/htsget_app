@@ -814,24 +814,23 @@ def get_contig_name_in_variantfile(obj):
 
 
 def search(obj):
-    # obj = {'regions', 'headers'}
+    # obj = {'region', 'headers'}
     with Session() as session:
         vfile = aliased(VariantFile)
         q = select(vfile.drs_object_id, vfile.reference_genome, PositionBucket.id, PositionBucket.pos_bucket_id).select_from(PositionBucket).join(vfile.associated_pos_buckets).join(vfile.associated_headers)
         if 'headers' in obj:
             for header in obj['headers']:
                 q = q.where(Header.text.like(f"%{header}%"))
-        if 'regions' in obj:
-            for region in obj['regions']:
-                if 'referenceName' in region:
-                    contig_id = normalize_contig(region['referenceName'])
-                    q = q.where(PositionBucket.contig_id == contig_id)
-                else:
-                    return {"error": "no referenceName specified"}
-                if 'start' in region:
-                    q = q.where(PositionBucket.pos_bucket_id >= get_bucket_for_position(region['start']))
-                if 'end' in region:
-                    q = q.where(PositionBucket.pos_bucket_id <= get_bucket_for_position(region['end']))
+        if 'region' in obj:
+            if 'referenceName' in obj['region']:
+                contig_id = normalize_contig(obj['region']['referenceName'])
+                q = q.where(PositionBucket.contig_id == contig_id)
+            else:
+                return {"error": "no referenceName specified"}
+            if 'start' in obj['region']:
+                q = q.where(PositionBucket.pos_bucket_id >= get_bucket_for_position(obj['region']['start']))
+            if 'end' in obj['region']:
+                q = q.where(PositionBucket.pos_bucket_id <= get_bucket_for_position(obj['region']['end']))
         q = q.distinct()
         result = {
             'drs_object_ids': [],
