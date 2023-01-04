@@ -74,13 +74,13 @@ class Contig(ObjectDBBase):
         "Alias",
         back_populates="contig"
     )
-    
+
     # a contig can be part of many variantfiles
     associated_variantfiles = relationship("VariantFile",
         secondary=contig_variantfile_association,
         back_populates="associated_contigs"
     )
-    
+
     # a contig can have many positions
     pos_buckets = relationship(
         "PositionBucket",
@@ -103,25 +103,25 @@ class VariantFile(ObjectDBBase):
         back_populates="variantfile",
         uselist=False
     )
-    
+
     # a variantfile can contain many contigs
     associated_contigs = relationship("Contig",
         secondary=contig_variantfile_association,
         back_populates="associated_variantfiles"
     )
-    
+
     # a variantfile can contain many pos_buckets
     associated_pos_buckets = relationship("PositionBucket",
         secondary=pos_bucket_variantfile_association,
         back_populates="associated_variantfiles"
     )
-    
+
     # a variantfile can contain many headers
     associated_headers = relationship("Header",
         secondary=header_variantfile_association,
         back_populates="associated_variantfiles"
     )
-    
+
     # a variantfile can contain several samples
     samples = relationship(
         "Sample",
@@ -148,7 +148,7 @@ class PositionBucket(ObjectDBBase):
     __tablename__ = 'pos_bucket'
     id = Column(Integer, primary_key=True)
     pos_bucket_id = Column(Integer) # each bucket contains 10 bp of positions
-    
+
     # a pos_bucket is part of a single contig
     contig_id = Column(String, ForeignKey('contig.id'))
     contig = relationship(
@@ -177,7 +177,7 @@ class Sample(ObjectDBBase):
     __tablename__ = 'sample'
     id = Column(Integer, primary_key=True, autoincrement=True)
     sample_id = Column(String)
-    
+
     # a sample is in a single variantfile
     variantfile_id = Column(String, ForeignKey('variantfile.id'))
     variantfile = relationship(
@@ -197,7 +197,7 @@ class Header(ObjectDBBase):
     __tablename__ = 'header'
     id = Column(Integer, primary_key=True)
     text = Column(String)
-    
+
     # a header is in many variantfiles
     associated_variantfiles = relationship("VariantFile",
         secondary=header_variantfile_association,
@@ -332,8 +332,8 @@ class ContentsObject(ObjectDBBase):
             result['contents'] = json.loads(self.contents)
 
         return json.dumps(result)
-    
-    
+
+
 ObjectDBBase.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
@@ -844,9 +844,9 @@ def search(obj):
         for row in session.execute(q):
             drs_obj_ids.append(row._mapping['drs_object_id'])
             pos_bucket_ids.append(row._mapping['id'])
-        
+
         rgvs = session.query(VariantFile).where(VariantFile.id.in_(set(drs_obj_ids))).all()
-        
+
         ref_genomes = {}
         for rgv in rgvs:
             ref_genomes[rgv.id] = rgv.reference_genome

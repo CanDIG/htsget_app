@@ -272,7 +272,7 @@ paths:
                     $ref: '#/components/responses/404NotFoundError'
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
-    
+
 #    /file-bytes:
 #        get:
 #            tags:

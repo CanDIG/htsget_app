@@ -98,8 +98,8 @@ def post_dataset():
         return {"message": "User is not authorized to POST"}, 403
     new_dataset = database.create_dataset(connexion.request.json)
     return new_dataset, 200
-    
-    
+
+
 def get_dataset(dataset_id):
     new_dataset = database.get_dataset(dataset_id)
     if new_dataset is None:
