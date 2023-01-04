@@ -136,14 +136,14 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
         contigs = {}
         for contig in list(gen_obj['file'].header.contigs):
             contigs[contig] = database.normalize_contig(contig)
-        
+
         # find first normalized contig and set the chr_prefix:
         for raw_contig in contigs.keys():
             if contigs[raw_contig] is not None:
                 prefix = database.get_contig_prefix(raw_contig)
                 varfile = database.set_variantfile_prefix({"variantfile_id": id_, "chr_prefix": prefix})
                 break
-        
+
         positions = []
         normalized_contigs = []
         for record in gen_obj['file'].fetch():
@@ -200,7 +200,7 @@ def search_variants():
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
             htsget_obj['reference_genome'] = searchresult['reference_genome'][i]
             result['results'].append(htsget_obj)
-    # This is a good coarse search result, but what if the region is smaller than a bucket? 
+    # This is a good coarse search result, but what if the region is smaller than a bucket?
     # We should actually grab all of the data from the drs_objects in question and count.
     if end is not None and start is not None and (end - start <= BUCKET_SIZE):
         fine_results = []
@@ -314,7 +314,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     file_type = "variant"
     if format_ in ["bam", "sam", "cram"]:
         file_type = "alignment"
-    
+
     write_mode = "w"
     if format_ in ["bcf", "bam"]:
         write_mode = "wb"
@@ -359,8 +359,8 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
         os.remove(ntf.name)
         return response, 200
     return { "message": "no object matching id found" }, 404
-    
-    
+
+
 def _get_base_url(file_type, id, data=False, testing=False):
     url = HTSGET_URL
     if authz.is_testing(request):
@@ -368,7 +368,7 @@ def _get_base_url(file_type, id, data=False, testing=False):
     if data:
         return f"{url}/htsget/v1/{file_type}s/data/{id}"
     return f"{url}/htsget/v1/{file_type}s/{id}"
-  
+
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
     Searches for file from ID and Return URLS for Read/Variant
@@ -421,10 +421,10 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     return f"No {file_type} found for id: {id}, try using the other endpoint", 404
 
 
-# This is specific to our particular use case: a DRS object that represents a 
+# This is specific to our particular use case: a DRS object that represents a
 # particular sample can have a variant or read file and an associated index file.
 # We need to query DRS to get the bundling object, which should contain links to
-# two contents objects. We can instantiate them into temp files and pass those 
+# two contents objects. We can instantiate them into temp files and pass those
 # file handles back.
 def _get_genomic_obj(object_id):
     result = None
@@ -477,16 +477,16 @@ def _describe_drs_object(object_id):
     if "contents" in drs_obj:
         for contents in drs_obj["contents"]:
             # get each drs object (should be the genomic file and its index)
-            print(contents)    
+            print(contents)
             # if sub_obj.name matches an index file regex, it's an index file
             index_match = re.fullmatch('.+\.(..i)$', contents["name"])
-    
+
             # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
             read_match = re.fullmatch('.+\.(.+?am)$', contents["name"])
-    
+
             # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
             variant_match = re.fullmatch('.+\.(.cf)(\.gz)*$', contents["name"])
-    
+
             if read_match is not None:
                 result['format'] = read_match.group(1).upper()
                 result['type'] = "read"
