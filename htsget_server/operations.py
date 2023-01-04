@@ -182,6 +182,7 @@ def search_variants():
                 start = 0
         if 'end' in region:
             end = region['end']
+        req.json['region'] = region
     searchresult = database.search(req.json)
     result = {'results': []}
     for i in range(len(searchresult['drs_object_ids'])):
