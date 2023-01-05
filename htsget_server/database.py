@@ -838,31 +838,25 @@ def search(obj):
             'raw': [],
             'reference_genome': []
         }
-        drs_obj_ids = []
-        pos_bucket_ids = []
+        drs_obj_ids = set()
+        pos_bucket_ids = set()
+        raw_result = {}
+        raw_results = []
         for row in session.execute(q):
-            drs_obj_ids.append(row._mapping['drs_object_id'])
-            pos_bucket_ids.append(row._mapping['id'])
+            drs_obj = row._mapping['drs_object_id']
+            if drs_obj not in raw_result:
+                raw_result[drs_obj] = []
+            raw_result[drs_obj].append(row._mapping['id'])
+        for drs_obj in raw_result.keys():
+            curr_result = {'drs_object_id': drs_obj, 'variantcount': 0}
+            curr_result['reference_genome'] = session.query(VariantFile).filter_by(id=drs_obj).one_or_none().reference_genome
+            bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(raw_result[drs_obj])).where(PositionBucketVariantFileAssociation.variantfile_id == drs_obj).all()
+            if bvs is not None:
+                for bv in bvs:
+                    curr_result['variantcount'] += bv.bucket_count
+            raw_results.append(curr_result)
+        result['raw'] = raw_result
+        result['raw_results'] = raw_results
 
-        rgvs = session.query(VariantFile).where(VariantFile.id.in_(set(drs_obj_ids))).all()
-
-        ref_genomes = {}
-        for rgv in rgvs:
-            ref_genomes[rgv.id] = rgv.reference_genome
-        bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(set(pos_bucket_ids)), PositionBucketVariantFileAssociation.variantfile_id.in_(set(drs_obj_ids))).order_by(PositionBucketVariantFileAssociation.variantfile_id).order_by(PositionBucketVariantFileAssociation.pos_bucket_id).all()
-        if bvs is not None:
-            for bv in bvs:
-                result['raw'].append(str(bv))
-                if len(result['drs_object_ids']) == 0:
-                    result['drs_object_ids'].append(bv.variantfile_id)
-                    result['variantcount'].append(bv.bucket_count)
-                    result['reference_genome'].append(ref_genomes[bv.variantfile_id])
-                    continue
-                if result['drs_object_ids'][-1] == bv.variantfile_id:
-                    result['variantcount'][-1] += bv.bucket_count
-                else:
-                    result['drs_object_ids'].append(bv.variantfile_id)
-                    result['variantcount'].append(bv.bucket_count)
-                    result['reference_genome'].append(ref_genomes[bv.variantfile_id])
-        return result
+        return raw_results
     return None

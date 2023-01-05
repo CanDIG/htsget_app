@@ -185,9 +185,10 @@ def search_variants():
         req.json['region'] = region
     searchresult = database.search(req.json)
     result = {'results': []}
-    for i in range(len(searchresult['drs_object_ids'])):
-        drs_obj_id = searchresult['drs_object_ids'][i]
-        count = searchresult['variantcount'][i]
+
+    for i in range(0,len(searchresult)):
+        drs_obj_id = searchresult[i]['drs_object_id']
+        count = searchresult[i]['variantcount']
         auth_code = authz.is_authed(drs_obj_id, connexion.request)
         if auth_code == 200:
             htsget_obj = {
@@ -199,7 +200,7 @@ def search_variants():
             htsget_obj['variantcount'] = count
             htsget_obj['genomic_id'] = database.get_variantfile(drs_obj_id)['genomic_id']
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
-            htsget_obj['reference_genome'] = searchresult['reference_genome'][i]
+            htsget_obj['reference_genome'] = searchresult[i]['reference_genome']
             result['results'].append(htsget_obj)
     # This is a good coarse search result, but what if the region is smaller than a bucket?
     # We should actually grab all of the data from the drs_objects in question and count.
