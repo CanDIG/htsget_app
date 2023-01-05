@@ -446,6 +446,7 @@ def _get_genomic_obj(object_id):
 def _get_local_file(drs_file_obj_id, dir):
     (drs_file_obj, status_code) = drs_operations.get_object(drs_file_obj_id)
     # get access_methods for this drs_file_obj
+    url = None
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
@@ -457,15 +458,13 @@ def _get_local_file(drs_file_obj_id, dir):
                         with r.raw as content:
                             f.write(content.data)
                 return f_path, 200
-            else:
-                return url, 500
         else:
             # the access_url has all the info we need
             url_pieces = urlparse(method["access_url"]["url"])
             if url_pieces.scheme == "file":
                 if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
                     return url_pieces.path, 200
-    return None, 500
+    return url, 500
 
 # describe an htsget DRS object, but don't open it
 def _describe_drs_object(object_id):
