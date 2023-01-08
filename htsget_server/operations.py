@@ -125,8 +125,8 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
         gen_obj = _get_genomic_obj(id_)
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
-        if "error" in gen_obj:
-            return {"message": gen_obj['error']}, 500
+        if "message" in gen_obj:
+            return {"message": gen_obj['message']}, 500
         headers = str(gen_obj['file'].header).split('\n')
         database.add_header_for_variantfile({'texts': headers, 'variantfile_id': id_})
         samples = list(gen_obj['file'].header.samples)
@@ -208,11 +208,13 @@ def search_variants():
         fine_results = []
         for obj in result['results']:
             gen_obj = _get_genomic_obj(obj['id'])
+            if "message" in gen_obj:
+                return gen_obj, 500
             orig_ref_name = database.get_contig_name_in_variantfile({'refname': ref_name, 'variantfile_id': obj['id']})
             try:
                 actual = gen_obj['file'].fetch(contig=orig_ref_name, start=start, end=end)
             except Exception as e:
-                return {"message": str(e)}, 500
+                return {"message": str(e), "method": "search_variants"}, 500
             actual_count = sum(1 for _ in actual)
             if (actual_count > 0):
                 obj['variantcount'] = actual_count
@@ -329,8 +331,8 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     # get a file and index from drs, based on the id_
     gen_obj = _get_genomic_obj(id_)
     if gen_obj is not None:
-        if "error" in gen_obj:
-            return gen_obj['error'], gen_obj['status_code']
+        if "message" in gen_obj:
+            return gen_obj['message'], gen_obj['status_code']
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
                                  mode='wb', delete=False)
@@ -345,7 +347,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
             try:
                 fetch = file_in.fetch(contig=ref_name, start=start, end=end)
             except ValueError as e:
-                return {"error": str(e)}, 400
+                return {"message": str(e)}, 400
 
             for rec in fetch:
                 file_out.write(rec)
@@ -389,7 +391,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
                 "title": "Bad Request",
                 "type": "about:blank"
             }
-            return "end cannot be less than start", 400
+            return {"message": "end cannot be less than start"}, 400
 
     if reference_name == "None":
         reference_name = None
@@ -420,7 +422,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
             }
         }
         return response, 200
-    return f"No {file_type} found for id: {id}, try using the other endpoint", 404
+    return {"message": f"No {file_type} found for id: {id}, try using the other endpoint"}, 404
 
 
 # This is specific to our particular use case: a DRS object that represents a
@@ -429,42 +431,60 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 # two contents objects. We can instantiate them into temp files and pass those
 # file handles back.
 def _get_genomic_obj(object_id):
-    result = None
+    result = {'status_code': 200}
     drs_obj = _describe_drs_object(object_id)
     with tempfile.TemporaryDirectory() as tempdir:
-        index_file, status_code1 = _get_local_file(drs_obj['index'], tempdir)
-        main_file, status_code2 = _get_local_file(drs_obj['main'], tempdir)
-        if status_code2 > 200:
-            return { "error": main_file['message'], "status_code": status_code2 }
-        if drs_obj['type'] == 'read':
-            result = AlignmentFile(main_file, index_filename=index_file)
+        index_result = _get_local_file(drs_obj['index'], tempdir)
+        if 'message' in index_result:
+            result = index_result
         else:
-            result = VariantFile(main_file, index_filename=index_file)
-    return { "file": result, "file_format": drs_obj['format'] }
+            main_result = _get_local_file(drs_obj['main'], tempdir)
+            if 'message' in main_result:
+                result = main_result
+            else:
+                print(index_result, main_result)
+                try:
+                    result['file_format'] = drs_obj['format']
+                    if drs_obj['type'] == 'read':
+                        result['file'] = AlignmentFile(main_result['file_path'], index_filename=index_result['file_path'])
+                    else:
+                        result['file'] = VariantFile(main_result['file_path'], index_filename=index_result['file_path'])
+                except Exception as e:
+                    return { "message": str(e), "status_code": 500, "method": f"_get_genomic_obj({object_id})"}
+    return result
 
 
 def _get_local_file(drs_file_obj_id, dir):
+    result = { "file_path": None, "status_code": 200, "method": f"_get_local_file({drs_file_obj_id})" }
     (drs_file_obj, status_code) = drs_operations.get_object(drs_file_obj_id)
+    if "message" in drs_file_obj:
+        result["message"] = drs_file_obj["message"]
+        result['status_code'] = status_code
+        return result
     # get access_methods for this drs_file_obj
-    url = None
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
             (url, status_code) = drs_operations.get_access_url(None, method["access_id"])
+            result["status_code"] = status_code
             if status_code < 300:
                 f_path = os.path.join(dir, drs_file_obj["name"])
                 with open(f_path, mode='wb') as f:
                     with requests.get(url["url"], stream=True) as r:
                         with r.raw as content:
                             f.write(content.data)
-                return f_path, 200
+                result["file_path"] = f_path
+                break
         else:
             # the access_url has all the info we need
             url_pieces = urlparse(method["access_url"]["url"])
             if url_pieces.scheme == "file":
                 if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
-                    return url_pieces.path, 200
-    return url, 500
+                    result["file_path"] = url_pieces.path
+    if result['file_path'] is None:
+        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}"
+        result.pop('file_path')
+    return result
 
 # describe an htsget DRS object, but don't open it
 def _describe_drs_object(object_id):
@@ -499,5 +519,5 @@ def _describe_drs_object(object_id):
             elif index_match is not None:
                 result['index'] = contents['name']
     if 'type' not in result:
-        return {"error": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
+        return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
     return result

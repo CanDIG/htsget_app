@@ -64,7 +64,7 @@ def get_access_url(object_id, access_id):
             return {"url": url}, status_code
         return url, 500
     else:
-        return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item"}, 400
+        return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "get_access_url"}, 400
 
 
 def post_object():
