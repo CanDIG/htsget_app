@@ -586,6 +586,8 @@ components:
                     items:
                         type: object
                         properties:
+                            region:
+                              $ref: "#/components/schemas/Region"
                             variantcount:
                               type: integer
                               description: Approximate count of variants in the searched region
