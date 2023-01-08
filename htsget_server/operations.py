@@ -167,59 +167,69 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
 @app.route('/variants/search')
 def search_variants():
     req = connexion.request
-    # for now, only work with one region:
     ref_name = None
     start = None
     end = None
-    if 'regions' in req.json:
-        if len(req.json['regions']) > 1:
-            return {"message": "Only one region at a time is searchable for now."}, 400
-        region = req.json['regions'][0]
-        ref_name = database.normalize_contig(region['referenceName'])
-        if 'start' in region:
-            start = region['start'] - 1
-            if start < 0:
-                start = 0
-        if 'end' in region:
-            end = region['end']
-        req.json['region'] = region
-    searchresult = database.search(req.json)
+    curr_search = {}
+    if 'headers' in req.json:
+        curr_search['headers'] = req.json['headers']
     result = {'results': []}
-
-    for i in range(0,len(searchresult)):
-        drs_obj_id = searchresult[i]['drs_object_id']
-        count = searchresult[i]['variantcount']
+    searchresults = []
+    # result['raw'] = searchresults
+    if 'regions' in req.json:
+        for region in req.json['regions']:
+            curr_search['region'] = {}
+            curr_search['region']['referenceName'] = database.normalize_contig(region['referenceName'])
+            if 'start' in region:
+                curr_search['region']['start'] = region['start'] - 1
+                if curr_search['region']['start'] < 0:
+                    curr_search['region']['start'] = 0
+            if 'end' in region:
+                curr_search['region']['end'] = region['end']
+            searchresult = database.search(curr_search)
+            for res in searchresult:
+                res['region'] = curr_search['region']
+                res['orig_region'] = region
+                searchresults.append(res)
+    else:
+        searchresults.extend(database.search(curr_search))
+    # return result, 200
+    for res in searchresults:
+        drs_obj_id = res['drs_object_id']
+        count = res['variantcount']
         auth_code = authz.is_authed(drs_obj_id, connexion.request)
         if auth_code == 200:
             htsget_obj = {
                 'format': 'vcf',
                 'urls': []
             }
+            if 'region' in res:
+                htsget_obj['region'] = res['region']
+                htsget_obj['orig_region'] = res['orig_region']
             htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
             htsget_obj['genomic_id'] = database.get_variantfile(drs_obj_id)['genomic_id']
             htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
-            htsget_obj['reference_genome'] = searchresult[i]['reference_genome']
+            htsget_obj['reference_genome'] = res['reference_genome']
             result['results'].append(htsget_obj)
-    # This is a good coarse search result, but what if the region is smaller than a bucket?
-    # We should actually grab all of the data from the drs_objects in question and count.
-    if end is not None and start is not None and (end - start <= BUCKET_SIZE):
-        fine_results = []
-        for obj in result['results']:
-            gen_obj = _get_genomic_obj(obj['id'])
-            if "message" in gen_obj:
-                return gen_obj, 500
-            orig_ref_name = database.get_contig_name_in_variantfile({'refname': ref_name, 'variantfile_id': obj['id']})
-            try:
-                actual = gen_obj['file'].fetch(contig=orig_ref_name, start=start, end=end)
-            except Exception as e:
-                return {"message": str(e), "method": "search_variants"}, 500
-            actual_count = sum(1 for _ in actual)
-            if (actual_count > 0):
-                obj['variantcount'] = actual_count
-                fine_results.append(obj)
-        result['results'] = fine_results
+
+    for res in result['results']:
+        # This is a good coarse search result, but what if the region is smaller than a bucket?
+        # We should actually grab all of the data from the drs_objects in question and count.
+        if 'region' in res:
+            if 'end' in res['region'] and 'start' in res['region'] and (res['region']['end'] - res['region']['start'] <= BUCKET_SIZE):
+                gen_obj = _get_genomic_obj(res['id'])
+                if "message" in gen_obj:
+                    return gen_obj, 500
+                orig_ref_name = database.get_contig_name_in_variantfile({'refname': res['region']['referenceName'], 'variantfile_id': res['id']})
+                try:
+                    actual = gen_obj['file'].fetch(contig=orig_ref_name, start=res['region']['start'], end=res['region']['end'])
+                    res['variantcount'] = sum(1 for _ in actual)
+                except Exception as e:
+                    return {"message": str(e), "method": "search_variants"}, 500
+            # clean up back to the user's original requested region
+            res['region'] = res.pop('orig_region')
 
     auth_code = 200
     return result, auth_code
