@@ -279,9 +279,14 @@ def search_variants():
                     'referenceName': 'chr21',
                     'start': 48000000,
                     'end': 48120000
+                },
+                {
+                    'referenceName': '21',
+                    'start': 48110000,
+                    'end': 48120634
                 }
             ]
-        }, 2)
+        }, 4)
     ]
 
 
