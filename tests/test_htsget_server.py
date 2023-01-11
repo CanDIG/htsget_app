@@ -304,7 +304,7 @@ def test_search_snp():
             'regions': [
                 {
                     'referenceName': 'chr21',
-                    'start': 48062673,
+                    'start': 48062672,
                     'end': 48062673
                 }
             ]

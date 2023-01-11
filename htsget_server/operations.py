@@ -331,8 +331,8 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
     :param id: ID of the file ( e.g. id=HG02102 for file HG02102.vcf.gz )
     :param reference_name: Chromosome or contig name
     :param format: Format of output (e.g. vcf, bcf)
-    :param start: Position index to begin at (1-based inclusive)
-    :param end: Position index to end at (1-based inclusive)
+    :param start: Position index to begin at (0-based inclusive)
+    :param end: Position index to end at (0-based exclusive)
     """
     if end is not None and end != -1 and end < start:
         response = {
@@ -350,10 +350,6 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
         end = None
     if start == 0:
         start = None
-
-    # convert coords to pysam 0-based:
-    if start is not None:
-        start = start-1
 
     format_ = format_.lower()
     file_type = "variant"
