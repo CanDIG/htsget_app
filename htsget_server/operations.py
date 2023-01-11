@@ -238,7 +238,7 @@ def search_variants():
 # https://rest.ensembl.org/map/human/GRCh37/X:1000000..1000100:1/GRCh38?content-type=application/json
 # https://rest.ensembl.org/xrefs/symbol/homo_sapiens/BRCA2?content-type=application/json
 
-def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
+def _create_slice(id, reference_name, slice_start, slice_end, file_type):
     """
     Creates slice and appends it to array of urls
 
@@ -259,7 +259,7 @@ def _create_slice(arr, id, reference_name, slice_start, slice_end, file_type):
     url = f"{_get_base_url(file_type, id, data=True)}"
     if len(params.keys()) > 0:
         url += f"?{encoded_params}"
-    arr.append({'url': url, })
+    return {'url': url}
 
 
 def _create_slices(chunk_size, id, reference_name, start, end, file_type):
@@ -297,7 +297,7 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     for i in range(0,len(chunks)):
         slice_start = chunks[i]['start']
         slice_end = chunks[i]['end']
-        _create_slice(urls, id, reference_name, slice_start, slice_end, file_type)
+        urls.append(_create_slice(id, reference_name, slice_start, slice_end, file_type))
     return urls
 
 
