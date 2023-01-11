@@ -200,8 +200,7 @@ def search_variants():
         auth_code = authz.is_authed(drs_obj_id, connexion.request)
         if auth_code == 200:
             htsget_obj = {
-                'format': 'vcf',
-                'urls': []
+                'format': 'vcf'
             }
             if 'region' in res:
                 htsget_obj['region'] = res['region']
@@ -213,9 +212,9 @@ def search_variants():
                 end = None
                 if 'end' in res['region']:
                     end = res['region']['end']
-                htsget_obj['urls'].append(_create_slice(drs_obj_id, orig_ref_name, start, end, 'variant', data=False))
+                htsget_obj['htsget'] = _create_slice(drs_obj_id, orig_ref_name, start, end, 'variant', data=False)
             else:
-                htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
+                htsget_obj['htsget'] = {"url": _get_base_url("variant", drs_obj_id, data=False)}
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
             htsget_obj['genomic_id'] = database.get_variantfile(drs_obj_id)['genomic_id']
@@ -249,7 +248,7 @@ def search_variants():
 
 def _create_slice(id, reference_name, slice_start, slice_end, file_type, data=True):
     """
-    Creates single slice for a region in a file
+    Creates single slice for a region in a file. Returns an HTSGetURL object.
 
     :param id: ID of the file
     :param reference_name: The Chromosome number
