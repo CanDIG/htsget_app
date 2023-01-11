@@ -100,7 +100,7 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
 
 
 @app.route('/variants/data/<path:id_>')
-def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_="body"):
+def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_=None):
     if id_ is not None:
         auth_code = authz.is_authed(escape(id_), request)
         if auth_code == 200:
@@ -206,7 +206,16 @@ def search_variants():
             if 'region' in res:
                 htsget_obj['region'] = res['region']
                 htsget_obj['orig_region'] = res['orig_region']
-            htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
+                orig_ref_name = database.get_contig_name_in_variantfile({'refname': res['region']['referenceName'], 'variantfile_id': drs_obj_id})
+                start = None
+                if 'start' in res['region']:
+                    start = res['region']['start']
+                end = None
+                if 'end' in res['region']:
+                    end = res['region']['end']
+                htsget_obj['urls'].append(_create_slice(drs_obj_id, orig_ref_name, start, end, 'variant', data=False))
+            else:
+                htsget_obj['urls'].append(_get_base_url("variant", drs_obj_id, data=False))
             htsget_obj['id'] = drs_obj_id
             htsget_obj['variantcount'] = count
             htsget_obj['genomic_id'] = database.get_variantfile(drs_obj_id)['genomic_id']
@@ -238,7 +247,7 @@ def search_variants():
 # https://rest.ensembl.org/map/human/GRCh37/X:1000000..1000100:1/GRCh38?content-type=application/json
 # https://rest.ensembl.org/xrefs/symbol/homo_sapiens/BRCA2?content-type=application/json
 
-def _create_slice(id, reference_name, slice_start, slice_end, file_type):
+def _create_slice(id, reference_name, slice_start, slice_end, file_type, data=True):
     """
     Creates slice and appends it to array of urls
 
@@ -249,6 +258,8 @@ def _create_slice(id, reference_name, slice_start, slice_end, file_type):
     :param slice_end: Ending index of a slice
     """
     params = {}
+    if data:
+        params['class'] = 'body'
     if reference_name is not None:
         params['referenceName'] = reference_name
         if slice_start is not None:
@@ -256,7 +267,7 @@ def _create_slice(id, reference_name, slice_start, slice_end, file_type):
         if slice_end is not None:
             params['end'] = slice_end
     encoded_params = urlencode(params)
-    url = f"{_get_base_url(file_type, id, data=True)}"
+    url = f"{_get_base_url(file_type, id, data=data)}"
     if len(params.keys()) > 0:
         url += f"?{encoded_params}"
     return {'url': url}
@@ -274,6 +285,10 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     :param end: Desired ending index of a file
     """
     urls = []
+    if start is None:
+        start = 0
+    if end is None:
+        end = -1
 
     # start pulling buckets: when we reach chunk size, make another chunk
     buckets = database.get_variant_count_for_variantfile({"id": id, "referenceName": reference_name, "start": start, "end": end})
@@ -292,16 +307,21 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
             chunks.append(curr_chunk)
             chunks.append({'count': 0, 'start': curr_chunk['end']+1, 'end': curr_chunk['end']+1})
     # for the last chunk, use the actual end requested:
-    chunks[-1]['end'] = end
+    if end != -1:
+        chunks[-1]['end'] = end
+    else:
+        chunks[-1]['end'] += BUCKET_SIZE
     # return chunks
     for i in range(0,len(chunks)):
         slice_start = chunks[i]['start']
         slice_end = chunks[i]['end']
-        urls.append(_create_slice(id, reference_name, slice_start, slice_end, file_type))
+        url = _create_slice(id, reference_name, slice_start, slice_end, file_type)
+        url['class'] = 'body'
+        urls.append(url)
     return urls
 
 
-def _get_data(id_, reference_name=None, start=None, end=None, class_="body", format_="VCF"):
+def _get_data(id_, reference_name=None, start=None, end=None, class_=None, format_="VCF"):
     # start = 17148269, end = 17157211, reference_name = 21
     """
     Returns the specified file:
@@ -423,24 +443,18 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     if drs_obj is not None:
         if "error" in drs_obj:
             return drs_obj['error'], drs_obj['status_code']
-        if _class == "header":
-            urls = [{"url": f"{_get_base_url(file_type, id, data=True)}?class=header",
-            "class": "header"}]
-        else:
-            file_in = drs_obj["main"]
-            index = drs_obj["index"]
-            if start is None:
-                start = 0
-            if end is None:
-                end = -1
-
-            urls = _create_slices(CHUNK_SIZE, id, reference_name, start, end, file_type)
         response = {
             'htsget': {
                 'format': drs_obj["format"],
-                'urls': urls
+                'urls': [{"url": f"{_get_base_url(file_type, id, data=True)}?class=header", "class": "header"}]
             }
         }
+        if _class == "header":
+            return response, 200
+
+        file_in = drs_obj["main"]
+        index = drs_obj["index"]
+        response['htsget']['urls'].extend(_create_slices(CHUNK_SIZE, id, reference_name, start, end, file_type))
         return response, 200
     return {"message": f"No {file_type} found for id: {id}, try using the other endpoint"}, 404
 
