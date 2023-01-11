@@ -324,6 +324,15 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
     if reference_name == "None":
         reference_name = None
 
+    if end == -1:
+        end = None
+    if start == 0:
+        start = None
+
+    # convert coords to pysam 0-based:
+    if start is not None:
+        start = start-1
+
     format_ = format_.lower()
     file_type = "variant"
     if format_ in ["bam", "sam", "cram"]:
@@ -345,25 +354,26 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_="body", for
             return gen_obj['message'], gen_obj['status_code']
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
-                                 mode='wb', delete=False)
-        if file_type == "variant":
-            file_out = VariantFile(ntf, mode=write_mode, header=file_in.header)
-        else:
-            file_out = AlignmentFile(ntf, mode=write_mode, header=file_in.header)
-        if class_ != "header":
+                                 mode='w', delete=False)
+        if class_ is None or class_ == "header":
+            ntf.write(str(file_in.header))
+
+        if class_ is None or class_ == "body":
             ref_name = None
             if reference_name is not None:
+                # there will have to be an update when we figure out how to index read files
                 ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': id_})
+                if ref_name is None:
+                    ref_name = reference_name
             try:
                 fetch = file_in.fetch(contig=ref_name, start=start, end=end)
+                for rec in fetch:
+                    ntf.write(str(rec))
             except ValueError as e:
                 return {"message": str(e)}, 400
 
-            for rec in fetch:
-                file_out.write(rec)
-
         file_in.close()
-        file_out.close()
+        ntf.close()
 
         # Send the temporary file as the response
         response = send_file(path_or_file=ntf.name,
