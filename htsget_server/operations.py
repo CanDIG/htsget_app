@@ -374,9 +374,9 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
             return gen_obj['message'], gen_obj['status_code']
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
-                                 mode='w', delete=False)
+                                 mode='wb', delete=False)
         if class_ is None or class_ == "header":
-            ntf.write(str(file_in.header))
+            ntf.write(str(file_in.header).encode('utf-8'))
 
         if class_ is None or class_ == "body":
             ref_name = None
@@ -388,7 +388,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
             try:
                 fetch = file_in.fetch(contig=ref_name, start=start, end=end)
                 for rec in fetch:
-                    ntf.write(str(rec))
+                    ntf.write(str(rec).encode('utf-8'))
             except ValueError as e:
                 return {"message": str(e)}, 400
 
