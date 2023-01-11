@@ -249,13 +249,14 @@ def search_variants():
 
 def _create_slice(id, reference_name, slice_start, slice_end, file_type, data=True):
     """
-    Creates slice and appends it to array of urls
+    Creates single slice for a region in a file
 
-    :param arr: The array to store urls
     :param id: ID of the file
     :param reference_name: The Chromosome number
     :param slice_start: Starting index of a slice
     :param slice_end: Ending index of a slice
+    :param file_type: "read" or "variant"
+    :param data: if this is a data url or just a ticket url
     """
     params = {}
     if data:
@@ -283,6 +284,7 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     :param reference_name: Chromosome Number
     :param start: Desired starting index of a file
     :param end: Desired ending index of a file
+    :param file_type: "read" or "variant"
     """
     urls = []
     if start is None:
@@ -406,6 +408,14 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
 
 
 def _get_base_url(file_type, id, data=False, testing=False):
+    """
+    Returns the base URL
+
+    :param file_type: "read" or "variant"
+    :param id: ID of a file
+    :param data: if this is a data url or just a ticket url
+    :param testing: if this is for testing
+    """
     url = HTSGET_URL
     if authz.is_testing(request):
         url = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
