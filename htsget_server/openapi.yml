@@ -702,7 +702,7 @@ components:
             required: false
             schema:
                 type: string
-                enum: [header]
+                enum: [header, body]
         referenceNameParam:
             in: query
             name: referenceName
