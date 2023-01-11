@@ -24,7 +24,6 @@ def get_headers():
     headers={"Test_Key": TEST_KEY}
     try:
         token = get_access_token(username=USERNAME, password=PASSWORD)
-        print("got token")
         headers["Authorization"] = f"Bearer {token}"
     except Exception as e:
         headers["Authorization"] = "Bearer testtest"
@@ -177,13 +176,13 @@ def test_existent_file(id, type, params, expected_status):
     assert res.status_code == expected_status
     if res.status_code == 200:
       if 'referenceName' in params:
-        assert 'referenceName' in res.json()['htsget']['urls'][0]['url']
+        assert 'referenceName' in res.json()['htsget']['urls'][1]['url']
         if 'start' in params:
-          assert str(params['start']) in res.json()['htsget']['urls'][0]['url']
+          assert str(params['start']) in res.json()['htsget']['urls'][1]['url']
         if 'end' in params:
           assert str(params['end']) in res.json()['htsget']['urls'][-1]['url']
       else: # if there's no referenceName, there shouldn't be any start or end
-        assert 'start' not in res.json()['htsget']['urls'][0]['url']
+        assert 'start' not in res.json()['htsget']['urls'][1]['url']
 
 
 def pull_slices_data():
@@ -204,38 +203,38 @@ def test_pull_slices(params, id_, file_extension, file_type):
     f_index = 0
     f_name = f"{id_}{file_extension}"
     equal = True
+    f_slice_name = f"{id_}{file_extension}"
+    f_slice_path = f"./{f_slice_name}"
+    f_slice = open(f_slice_path, 'wb')
     for i in range(len(urls)):
         url = urls[i]['url']
         res = requests.request("GET", url, headers=get_headers())
         print(res.text)
 
-        f_slice_name = f"{id_}_{i}{file_extension}"
-        f_slice_path = f"./{f_slice_name}"
-        f_slice = open(f_slice_path, 'wb')
         f_slice.write(res.content)
-        f_slice = None
-        f = None
-        if file_type == "variant":
-            f_slice = VariantFile(f_slice_path)
-            f = VariantFile(f"{LOCAL_FILE_PATH}/{f_name}")
-        elif file_type == "read":
-            f_slice = AlignmentFile(f_slice_path)
-            f = AlignmentFile(f"{LOCAL_FILE_PATH}/{f_name}")
+    f_slice = None
+    f = None
+    if file_type == "variant":
+        f_slice = VariantFile(f_slice_path)
+        f = VariantFile(f"{LOCAL_FILE_PATH}/{f_name}")
+    elif file_type == "read":
+        f_slice = AlignmentFile(f_slice_path)
+        f = AlignmentFile(f"{LOCAL_FILE_PATH}/{f_name}")
 
-        # get start index for original file
-        for rec in f_slice.fetch():
-            f_index = rec.pos - 1
-            break
-        # compare slice and file line by line
-        if 'referenceName' in params:
-          zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
-        else:
-          zipped = zip(f_slice.fetch(), f.fetch())
-        for x, y in zipped:
-            if x != y:
-                equal = False
-                assert equal
-        os.remove(f_slice_path)
+    # get start index for original file
+    for rec in f_slice.fetch():
+        f_index = rec.pos - 1
+        break
+    # compare slice and file line by line
+    if 'referenceName' in params:
+      zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
+    else:
+      zipped = zip(f_slice.fetch(), f.fetch())
+    for x, y in zipped:
+        if x != y:
+            equal = False
+            assert equal
+    os.remove(f_slice_path)
     assert equal
 
 def test_get_read_header():
