@@ -597,7 +597,7 @@ components:
                             reference_genome:
                               $ref: "#/components/schemas/ReferenceGenome"
                             htsget:
-                              $ref: '#/components/schemas/HtsgetTicket'
+                              $ref: "#/components/schemas/HtsgetUrl"
                             samples:
                               type: array
                               items:
