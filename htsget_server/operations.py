@@ -501,6 +501,7 @@ def _get_local_file(drs_file_obj_id, dir):
         result['status_code'] = status_code
         return result
     # get access_methods for this drs_file_obj
+    url = ""
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
@@ -521,7 +522,7 @@ def _get_local_file(drs_file_obj_id, dir):
                 if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
                     result["file_path"] = url_pieces.path
     if result['file_path'] is None:
-        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}"
+        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {url}"
         result.pop('file_path')
     return result
 
