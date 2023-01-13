@@ -198,4 +198,25 @@ CREATE TABLE sample (
 	variantfile_id VARCHAR,
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
+
+-- ncbiRefSeq table modified from https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/
+
+-- field	example	description
+-- reference_genome	hg38	Reference genome build
+-- gene_name	DDX11L1	varchar(255)	values	Gene name from http://www.genenames.org/
+-- transcript_name	NR_046018.2	Transcript name from NCBI RefSeq
+-- contig	1	Reference sequence chromosome or scaffold
+-- start	11873	Transcription start position (or end position for minus strand item)
+-- end	14409	Transcription end position (or start position for minus strand item)
+
+CREATE TABLE ncbiRefSeq (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	reference_genome varchar(10) NOT NULL,
+	gene_name varchar(255) NOT NULL,
+	transcript_name varchar(255) NOT NULL,
+	contig varchar(10) NOT NULL,
+	start int(10) NOT NULL,
+	end int(10) NOT NULL
+);
+
 COMMIT;
