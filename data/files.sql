@@ -216,7 +216,8 @@ CREATE TABLE ncbiRefSeq (
 	transcript_name varchar(255) NOT NULL,
 	contig varchar(10) NOT NULL,
 	start int(10) NOT NULL,
-	end int(10) NOT NULL
+	end int(10) NOT NULL,
+	UNIQUE(reference_genome, contig, gene_name, transcript_name)
 );
 
 COMMIT;
