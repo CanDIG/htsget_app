@@ -167,9 +167,6 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
 @app.route('/variants/search')
 def search_variants():
     req = connexion.request
-    ref_name = None
-    start = None
-    end = None
     curr_search = {}
     if 'headers' in req.json:
         curr_search['headers'] = req.json['headers']
@@ -374,7 +371,6 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
 
 
 def _get_data(id_, reference_name=None, start=None, end=None, class_=None, format_="VCF"):
-    # start = 17148269, end = 17157211, reference_name = 21
     """
     Returns the specified file:
 
