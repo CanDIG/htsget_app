@@ -562,8 +562,7 @@ def _get_local_file(drs_file_obj_id, dir):
                 f_path = os.path.join(dir, drs_file_obj["name"])
                 with open(f_path, mode='wb') as f:
                     with requests.get(url["url"], stream=True) as r:
-                        with r.raw as content:
-                            f.write(content.data)
+                        f.write(r.content)
                 result["file_path"] = f_path
                 break
         else:
@@ -573,7 +572,7 @@ def _get_local_file(drs_file_obj_id, dir):
                 if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
                     result["file_path"] = url_pieces.path
     if result['file_path'] is None:
-        result['message'] = f"No file was found for drs_obj {drs_file_obj_id} at {url}"
+        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {url}"
         result.pop('file_path')
     return result
 
