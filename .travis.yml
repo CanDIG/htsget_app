@@ -6,7 +6,7 @@ python:
 cache: pip
 install:
   - pip install -r requirements.txt
-  - sqlite3 data/files.db -init data/files.sql 'select * from variantfile;'
+  - bash create_db.sh
 
 script:
   - python htsget_server/server.py &
