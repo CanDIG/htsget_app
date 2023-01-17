@@ -511,8 +511,7 @@ def _get_local_file(drs_file_obj_id, dir):
                 f_path = os.path.join(dir, drs_file_obj["name"])
                 with open(f_path, mode='wb') as f:
                     with requests.get(url["url"], stream=True) as r:
-                        with r.raw as content:
-                            f.write(content.data)
+                        f.write(r.content)
                 result["file_path"] = f_path
                 break
         else:
