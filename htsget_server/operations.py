@@ -243,8 +243,59 @@ def search_variants():
     return result, auth_code
 
 
-# https://rest.ensembl.org/map/human/GRCh37/X:1000000..1000100:1/GRCh38?content-type=application/json
-# https://rest.ensembl.org/xrefs/symbol/homo_sapiens/BRCA2?content-type=application/json
+@app.route('/genes')
+def list_genes(type="gene_name"):
+    genes = database.list_refseqs()
+    results = set()
+    if genes is None:
+        return {"results": []}, 200
+    for gene in genes:
+        results.add(gene[type])
+    results = list(results)
+    results.sort()
+    return {"results": results}, 200
+
+
+@app.route('/transcripts')
+def list_transcripts():
+    return list_genes(type="transcript_name")
+
+
+@app.route('/genes/<path:id_>')
+def get_matching_genes(id_=None, type="gene_name"):
+    genes = database.search_genes(id_.upper(), type)
+    results = []
+    if genes is None:
+        return {"results": results}, 200
+    count = 0
+    curr_gene = ""
+    for gene in genes:
+        if gene[type] != curr_gene:
+            curr_gene = gene[type]
+            count += 1
+            if count > 5:
+                break
+            res = {
+                "gene_name": gene['gene_name'],
+                "transcript_name": gene['transcript_name'],
+                "regions": []
+            }
+            results.append(res)
+        res['regions'].append({
+            'reference_genome': gene['reference_genome'],
+            'region': {
+                'referenceName': gene['contig'],
+                'start': gene['start'],
+                'end': gene['end']
+            }
+        })
+    return {"results": results}, 200
+
+
+@app.route('/transcripts/<path:id_>')
+def get_matching_transcripts(id_=None):
+    return get_matching_genes(id_=id_, type="transcript_name")
+
 
 def _create_slice(id, reference_name, slice_start, slice_end, file_type, data=True):
     """
@@ -501,6 +552,7 @@ def _get_local_file(drs_file_obj_id, dir):
         result['status_code'] = status_code
         return result
     # get access_methods for this drs_file_obj
+    url = ""
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
@@ -521,7 +573,7 @@ def _get_local_file(drs_file_obj_id, dir):
                 if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
                     result["file_path"] = url_pieces.path
     if result['file_path'] is None:
-        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}"
+        result['message'] = f"No file was found for drs_obj {drs_file_obj_id} at {url}"
         result.pop('file_path')
     return result
 

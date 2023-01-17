@@ -273,33 +273,78 @@ paths:
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
 
-#    /file-bytes:
-#        get:
-#            tags:
-#                - Streaming
-#            summary: Stream bytes of a local file
-#            description: |
-#                Streams a single file part of a requested genomic file (reads or variants).
-#                This endpoint performs no region filtering or field/tag modification,
-#                rather it streams a file part by simple byte positions.
-#            parameters:
-#                - $ref: '#/components/parameters/htsgetFilePathHeaderParam'
-#                - $ref: '#/components/parameters/rangeHeaderParam'
-#            responses:
-#                200:
-#                    description:
-#                        Successfully stream file part of large genomic file
-#                    content:
-#                        application/octet-stream:
-#                            schema:
-#                                type: string
-#                                format: binary
-#                400:
-#                    $ref: '#/components/responses/400BadRequestError'
-#                404:
-#                    $ref: '#/components/responses/404NotFoundError'
-#                5XX:
-#                    $ref: '#/components/responses/5xxServerError'
+## NCBIRefSeq paths
+    /genes:
+        get:
+            operationId: "operations.list_genes"
+            summary: List all available gene names
+            description: List all gene names available in NCBIRefSeq database.
+            parameters:
+                - $ref: '#/components/parameters/refGenomeParam'
+            responses:
+                200:
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    results:
+                                        type: array
+                                        items:
+                                            type: string
+
+    /genes/{id}:
+        get:
+            summary: Get transcript region for genes matching id
+            operationId: "operations.get_matching_genes"
+            description: Get top five transcript regions matching the gene string
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+            responses:
+                200:
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                $ref: '#/components/schemas/GeneSearchResultsTicket'
+
+    /transcripts:
+        get:
+            operationId: "operations.list_transcripts"
+            summary: List all available gene names
+            description: List all NCBISelect transcript names available in NCBIRefSeq database.
+            parameters:
+                - $ref: '#/components/parameters/refGenomeParam'
+            responses:
+                200:
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    results:
+                                        type: array
+                                        items:
+                                            type: string
+
+    /transcripts/{id}:
+        get:
+            summary: Get transcript region for transcripts matching id
+            operationId: "operations.get_matching_transcripts"
+            description: Get top five transcript regions matching the transcript name string
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+            responses:
+                200:
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                $ref: '#/components/schemas/GeneSearchResultsTicket'
 
 tags:
     - name: Reads
@@ -603,6 +648,32 @@ components:
                               items:
                                   type: string
                                   description: Samples included in this Htsget object
+        GeneSearchResultsTicket:
+            type: object
+            properties:
+                results:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            gene_name:
+                                type: string
+                                description: HUGO gene name
+                            transcript_name:
+                                type: string
+                                description: Transcript name from NCBI RefSeq Select (https://www.ncbi.nlm.nih.gov/refseq/refseq_select/)
+                            regions:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        reference_genome:
+                                            type: string
+                                            enum:
+                                                - hg37
+                                                - hg38
+                                        region:
+                                            $ref: '#/components/schemas/Region'
 
         # ERROR SCHEMAS
         Error:
