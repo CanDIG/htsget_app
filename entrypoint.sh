@@ -31,7 +31,7 @@ if [[ -f "initial_setup" ]]; then
     db=${DB_PATH:-/app/htsget_server/data/files.db}
 
     # initialize the db if it's not already there:
-    sqlite3 -bail /data/files.db "SELECT * from variantfile"
+    sqlite3 -bail /data/files.db "SELECT * from ncbiRefSeq"
     if [[ $? -eq 1 ]]; then
         echo "initializing database..."
         sqlite3 $db -init /app/htsget_server/data/files.sql "SELECT * from variantfile"
