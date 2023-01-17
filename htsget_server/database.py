@@ -74,13 +74,13 @@ class Contig(ObjectDBBase):
         "Alias",
         back_populates="contig"
     )
-    
+
     # a contig can be part of many variantfiles
     associated_variantfiles = relationship("VariantFile",
         secondary=contig_variantfile_association,
         back_populates="associated_contigs"
     )
-    
+
     # a contig can have many positions
     pos_buckets = relationship(
         "PositionBucket",
@@ -103,25 +103,25 @@ class VariantFile(ObjectDBBase):
         back_populates="variantfile",
         uselist=False
     )
-    
+
     # a variantfile can contain many contigs
     associated_contigs = relationship("Contig",
         secondary=contig_variantfile_association,
         back_populates="associated_variantfiles"
     )
-    
+
     # a variantfile can contain many pos_buckets
     associated_pos_buckets = relationship("PositionBucket",
         secondary=pos_bucket_variantfile_association,
         back_populates="associated_variantfiles"
     )
-    
+
     # a variantfile can contain many headers
     associated_headers = relationship("Header",
         secondary=header_variantfile_association,
         back_populates="associated_variantfiles"
     )
-    
+
     # a variantfile can contain several samples
     samples = relationship(
         "Sample",
@@ -148,7 +148,7 @@ class PositionBucket(ObjectDBBase):
     __tablename__ = 'pos_bucket'
     id = Column(Integer, primary_key=True)
     pos_bucket_id = Column(Integer) # each bucket contains 10 bp of positions
-    
+
     # a pos_bucket is part of a single contig
     contig_id = Column(String, ForeignKey('contig.id'))
     contig = relationship(
@@ -177,7 +177,7 @@ class Sample(ObjectDBBase):
     __tablename__ = 'sample'
     id = Column(Integer, primary_key=True, autoincrement=True)
     sample_id = Column(String)
-    
+
     # a sample is in a single variantfile
     variantfile_id = Column(String, ForeignKey('variantfile.id'))
     variantfile = relationship(
@@ -197,7 +197,7 @@ class Header(ObjectDBBase):
     __tablename__ = 'header'
     id = Column(Integer, primary_key=True)
     text = Column(String)
-    
+
     # a header is in many variantfiles
     associated_variantfiles = relationship("VariantFile",
         secondary=header_variantfile_association,
@@ -332,8 +332,8 @@ class ContentsObject(ObjectDBBase):
             result['contents'] = json.loads(self.contents)
 
         return json.dumps(result)
-    
-    
+
+
 ObjectDBBase.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
@@ -814,24 +814,23 @@ def get_contig_name_in_variantfile(obj):
 
 
 def search(obj):
-    # obj = {'regions', 'headers'}
+    # obj = {'region', 'headers'}
     with Session() as session:
         vfile = aliased(VariantFile)
         q = select(vfile.drs_object_id, vfile.reference_genome, PositionBucket.id, PositionBucket.pos_bucket_id).select_from(PositionBucket).join(vfile.associated_pos_buckets).join(vfile.associated_headers)
         if 'headers' in obj:
             for header in obj['headers']:
                 q = q.where(Header.text.like(f"%{header}%"))
-        if 'regions' in obj:
-            for region in obj['regions']:
-                if 'referenceName' in region:
-                    contig_id = normalize_contig(region['referenceName'])
-                    q = q.where(PositionBucket.contig_id == contig_id)
-                else:
-                    return {"error": "no referenceName specified"}
-                if 'start' in region:
-                    q = q.where(PositionBucket.pos_bucket_id >= get_bucket_for_position(region['start']))
-                if 'end' in region:
-                    q = q.where(PositionBucket.pos_bucket_id <= get_bucket_for_position(region['end']))
+        if 'region' in obj:
+            if 'referenceName' in obj['region']:
+                contig_id = normalize_contig(obj['region']['referenceName'])
+                q = q.where(PositionBucket.contig_id == contig_id)
+            else:
+                return {"error": "no referenceName specified"}
+            if 'start' in obj['region']:
+                q = q.where(PositionBucket.pos_bucket_id >= get_bucket_for_position(obj['region']['start']))
+            if 'end' in obj['region']:
+                q = q.where(PositionBucket.pos_bucket_id <= get_bucket_for_position(obj['region']['end']))
         q = q.distinct()
         result = {
             'drs_object_ids': [],
@@ -839,31 +838,25 @@ def search(obj):
             'raw': [],
             'reference_genome': []
         }
-        drs_obj_ids = []
-        pos_bucket_ids = []
+        drs_obj_ids = set()
+        pos_bucket_ids = set()
+        raw_result = {}
+        raw_results = []
         for row in session.execute(q):
-            drs_obj_ids.append(row._mapping['drs_object_id'])
-            pos_bucket_ids.append(row._mapping['id'])
-        
-        rgvs = session.query(VariantFile).where(VariantFile.id.in_(set(drs_obj_ids))).all()
-        
-        ref_genomes = {}
-        for rgv in rgvs:
-            ref_genomes[rgv.id] = rgv.reference_genome
-        bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(set(pos_bucket_ids)), PositionBucketVariantFileAssociation.variantfile_id.in_(set(drs_obj_ids))).order_by(PositionBucketVariantFileAssociation.variantfile_id).order_by(PositionBucketVariantFileAssociation.pos_bucket_id).all()
-        if bvs is not None:
-            for bv in bvs:
-                result['raw'].append(str(bv))
-                if len(result['drs_object_ids']) == 0:
-                    result['drs_object_ids'].append(bv.variantfile_id)
-                    result['variantcount'].append(bv.bucket_count)
-                    result['reference_genome'].append(ref_genomes[bv.variantfile_id])
-                    continue
-                if result['drs_object_ids'][-1] == bv.variantfile_id:
-                    result['variantcount'][-1] += bv.bucket_count
-                else:
-                    result['drs_object_ids'].append(bv.variantfile_id)
-                    result['variantcount'].append(bv.bucket_count)
-                    result['reference_genome'].append(ref_genomes[bv.variantfile_id])
-        return result
+            drs_obj = row._mapping['drs_object_id']
+            if drs_obj not in raw_result:
+                raw_result[drs_obj] = []
+            raw_result[drs_obj].append(row._mapping['id'])
+        for drs_obj in raw_result.keys():
+            curr_result = {'drs_object_id': drs_obj, 'variantcount': 0}
+            curr_result['reference_genome'] = session.query(VariantFile).filter_by(id=drs_obj).one_or_none().reference_genome
+            bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(raw_result[drs_obj])).where(PositionBucketVariantFileAssociation.variantfile_id == drs_obj).all()
+            if bvs is not None:
+                for bv in bvs:
+                    curr_result['variantcount'] += bv.bucket_count
+            raw_results.append(curr_result)
+        result['raw'] = raw_result
+        result['raw_results'] = raw_results
+
+        return raw_results
     return None

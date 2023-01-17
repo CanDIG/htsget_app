@@ -272,7 +272,7 @@ paths:
                     $ref: '#/components/responses/404NotFoundError'
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
-    
+
 #    /file-bytes:
 #        get:
 #            tags:
@@ -586,6 +586,8 @@ components:
                     items:
                         type: object
                         properties:
+                            region:
+                              $ref: "#/components/schemas/Region"
                             variantcount:
                               type: integer
                               description: Approximate count of variants in the searched region
@@ -595,7 +597,7 @@ components:
                             reference_genome:
                               $ref: "#/components/schemas/ReferenceGenome"
                             htsget:
-                              $ref: '#/components/schemas/HtsgetTicket'
+                              $ref: "#/components/schemas/HtsgetUrl"
                             samples:
                               type: array
                               items:
@@ -700,7 +702,7 @@ components:
             required: false
             schema:
                 type: string
-                enum: [header]
+                enum: [header, body]
         referenceNameParam:
             in: query
             name: referenceName
