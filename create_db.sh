@@ -22,7 +22,7 @@ if [[ $numgenes -eq 0 ]]; then
     awk '{ print "INSERT OR IGNORE INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, end, gene_name) VALUES (" "\047hg37\047, \047" $1 "\047, \047" $2 "\047, " $3 ", " $4 ", \047" $5 "\047);"}' data/refseq/ncbiRefSeqSelect.hg37.txt >> genes.sql
     awk '{ print "INSERT OR IGNORE INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, end, gene_name) VALUES (" "\047hg38\047, \047" $1 "\047, \047" $2 "\047, " $3 ", " $4 ", \047" $5 "\047);"}' data/refseq/ncbiRefSeqSelect.hg38.txt >> genes.sql
 
-    cat genes.sql | sqlite3 $db
+    sqlite3 $db < genes.sql
     rm genes.sql
     echo "...done"
 fi
