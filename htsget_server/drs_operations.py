@@ -7,6 +7,7 @@ import re
 import authz
 import requests
 from markupsafe import escape
+from urllib.parse import parse_qs
 
 
 app = Flask(__name__)
@@ -54,15 +55,29 @@ def get_access_url(object_id, access_id):
         auth_code = authz.is_authed(escape(object_id), request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
-    id_parse = re.match(r"(https*:\/\/)*(.+?)\/(.+?)\/(.+)$", escape(access_id))
+    id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
     if id_parse is not None:
-        endpoint = id_parse.group(2)
+        endpoint = id_parse.group(1)
         bucket = id_parse.group(3)
         object_name = id_parse.group(4)
-        url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
+        url = None
+        if id_parse.group(5) is None:
+            url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
+        else:
+            keys = parse_qs(id_parse.group(6))
+            access = None
+            secret = None
+            public = False
+            if 'access' in keys:
+                access = keys['access'].pop()
+            if 'secret' in keys:
+                secret = keys['secret'].pop()
+            if 'public' in keys:
+                public = True
+            url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
         if status_code == 200:
             return {"url": url}, status_code
-        return url, 500
+        return {"error": url}, 500
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "get_access_url"}, 400
 
