@@ -74,7 +74,7 @@ def test_post_objects(drs_objects):
         if "contents" not in obj:
             # create access_methods:
             access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
-            if MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
+            if VAULT_URL is None and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
               access_id += f"?access={MINIO_ACCESS_KEY}&secret={MINIO_SECRET_KEY}"
             obj["access_methods"] = [
                 {
