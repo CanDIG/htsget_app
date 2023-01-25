@@ -537,7 +537,6 @@ def _describe_drs_object(object_id):
     if "contents" in drs_obj:
         for contents in drs_obj["contents"]:
             # get each drs object (should be the genomic file and its index)
-            print(contents)
             # if sub_obj.name matches an index file regex, it's an index file
             index_match = re.fullmatch('.+\.(..i)$', contents["name"])
 
