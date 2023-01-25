@@ -64,5 +64,5 @@ def is_site_admin(request):
     return False
 
 
-def get_s3_url(request, s3_endpoint=None, bucket=None, object_id=None):
-    return authx.auth.get_s3_url(request, s3_endpoint=s3_endpoint, bucket=bucket, object_id=object_id)
+def get_s3_url(request, s3_endpoint=None, bucket=None, object_id=None, access_key=None, secret_key=None, region=None, public=False):
+    return authx.auth.get_s3_url(request, s3_endpoint=s3_endpoint, bucket=bucket, object_id=object_id, access_key=access_key, secret_key=secret_key, region=region, public=public)
