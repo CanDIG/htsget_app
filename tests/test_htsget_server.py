@@ -54,11 +54,14 @@ def test_post_objects(drs_objects):
 
     try:
         bucket = 'testhtsget'
-        if MINIO_URL and VAULT_URL and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
+        if MINIO_URL and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
             token = get_access_token(username=USERNAME, password=PASSWORD)
-            credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=MINIO_ACCESS_KEY, secret=MINIO_SECRET_KEY, vault_url=VAULT_URL)
-            if status_code == 200:
-                client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
+            if VAULT_URL:
+                credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=MINIO_ACCESS_KEY, secret=MINIO_SECRET_KEY, vault_url=VAULT_URL)
+                if status_code == 200:
+                    client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
+            else:
+                client = get_minio_client(token=token, s3_endpoint=MINIO_URL, bucket=bucket, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY)
         if client is None:
             client = get_minio_client(bucket=bucket)
     except Exception as e:
