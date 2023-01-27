@@ -214,6 +214,31 @@ class Header(ObjectDBBase):
         return json.dumps(result)
 
 
+## gene search entities
+
+class NCBIRefSeq(ObjectDBBase):
+    __tablename__ = 'ncbiRefSeq'
+    id = Column(Integer, primary_key=True)
+    reference_genome = Column(String)
+    gene_name = Column(String)
+    transcript_name = Column(String)
+    contig = Column(String)
+    start = Column(Integer)
+    end = Column(Integer)
+
+    def __repr__(self):
+        result = {
+            'id': self.id,
+            'reference_genome': self.reference_genome,
+            'gene_name': self.gene_name,
+            'transcript_name': self.transcript_name,
+            'contig': self.contig,
+            'start': self.start,
+            'end': self.end
+        }
+        return json.dumps(result)
+
+
 ## CanDIG datasets entities
 dataset_association = Table(
     'dataset_association', ObjectDBBase.metadata,
@@ -487,6 +512,27 @@ def delete_dataset(dataset_id):
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))
+
+
+def list_refseqs(reference_genome="hg38"):
+    with Session() as session:
+        result = session.query(NCBIRefSeq).filter_by(reference_genome=reference_genome).all()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
+
+
+def search_genes(query, type):
+    with Session() as session:
+        if type == "transcript_name":
+            result = session.query(NCBIRefSeq).filter(NCBIRefSeq.transcript_name.like(f'{query}%')).order_by(NCBIRefSeq.transcript_name).order_by(NCBIRefSeq.reference_genome).all()
+        else:
+            result = session.query(NCBIRefSeq).filter(NCBIRefSeq.gene_name.like(f'{query}%')).order_by(NCBIRefSeq.gene_name).order_by(NCBIRefSeq.reference_genome).all()
+        if result is not None:
+            new_obj = json.loads(str(result))
+            return new_obj
+        return None
 
 
 def get_variantfile(variantfile_id):

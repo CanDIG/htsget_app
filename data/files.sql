@@ -1,17 +1,17 @@
 PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
 CREATE TABLE drs_object (
-        id VARCHAR NOT NULL, 
-        name VARCHAR, 
-        self_uri VARCHAR, 
-        size INTEGER, 
-        created_time VARCHAR, 
-        updated_time VARCHAR, 
-        version VARCHAR, 
-        mime_type VARCHAR, 
-        checksums VARCHAR, 
-        description VARCHAR, 
-        aliases VARCHAR, 
+        id VARCHAR NOT NULL,
+        name VARCHAR,
+        self_uri VARCHAR,
+        size INTEGER,
+        created_time VARCHAR,
+        updated_time VARCHAR,
+        version VARCHAR,
+        mime_type VARCHAR,
+        checksums VARCHAR,
+        description VARCHAR,
+        aliases VARCHAR,
         PRIMARY KEY (id)
 );
 INSERT INTO drs_object VALUES('NA18537.vcf.gz.tbi','NA18537.vcf.gz.tbi','drs://localhost/NA18537.vcf.gz.tbi',0,'2021-09-27T18:40:00.538843','2021-09-27T18:40:00.539022','v1','application/octet-stream','[]','','[]');
@@ -21,14 +21,14 @@ INSERT INTO drs_object VALUES('NA20787.vcf.gz.tbi','NA20787.vcf.gz.tbi','drs://l
 INSERT INTO drs_object VALUES('NA20787.vcf.gz','NA20787.vcf.gz','drs://localhost/NA20787.vcf.gz',0,'2021-09-27T18:58:56.663378','2021-09-27T18:58:56.663442','v1','application/octet-stream','[]','','[]');
 INSERT INTO drs_object VALUES('NA20787','NA20787','drs://localhost/NA20787',0,'2021-09-27T18:58:56.663378','2021-09-27T18:58:56.663442','v1','application/octet-stream','[]','','[]');
 CREATE TABLE access_method (
-        id INTEGER NOT NULL, 
-        drs_object_id INTEGER, 
-        type VARCHAR, 
-        access_id VARCHAR, 
-        region VARCHAR, 
-        url VARCHAR, 
-        headers VARCHAR, 
-        PRIMARY KEY (id), 
+        id INTEGER NOT NULL,
+        drs_object_id INTEGER,
+        type VARCHAR,
+        access_id VARCHAR,
+        region VARCHAR,
+        url VARCHAR,
+        headers VARCHAR,
+        PRIMARY KEY (id),
         FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 INSERT INTO access_method VALUES(1,'NA18537.vcf.gz.tbi','s3','s3.amazonaws.com/daisietestbucket1/test/NA18537.vcf.gz.tbi','','','[]');
@@ -36,12 +36,12 @@ INSERT INTO access_method VALUES(2,'NA18537.vcf.gz','s3','s3.amazonaws.com/daisi
 INSERT INTO access_method VALUES(3,'NA20787.vcf.gz.tbi','s3','s3.amazonaws.com/daisietestbucket1/test/NA20787.vcf.gz.tbi','','','[]');
 INSERT INTO access_method VALUES(4,'NA20787.vcf.gz','s3','s3.amazonaws.com/daisietestbucket1/test/NA20787.vcf.gz','','','[]');
 CREATE TABLE content_object (
-        id INTEGER NOT NULL, 
-        drs_object_id INTEGER, 
-        name VARCHAR, 
-        drs_uri VARCHAR, 
-        contents VARCHAR, 
-        PRIMARY KEY (id), 
+        id INTEGER NOT NULL,
+        drs_object_id INTEGER,
+        name VARCHAR,
+        drs_uri VARCHAR,
+        contents VARCHAR,
+        PRIMARY KEY (id),
         FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 INSERT INTO content_object VALUES(1,'NA18537','NA18537.vcf.gz','["drs://localhost/NA18537.vcf.gz"]','[]');
@@ -49,20 +49,20 @@ INSERT INTO content_object VALUES(2,'NA18537','NA18537.vcf.gz.tbi','["drs://loca
 INSERT INTO content_object VALUES(5,'NA20787','NA20787.vcf.gz','["drs://localhost/NA20787.vcf.gz"]','[]');
 INSERT INTO content_object VALUES(6,'NA20787','NA20787.vcf.gz.tbi','["drs://localhost/NA20787.vcf.gz.tbi"]','[]');
 CREATE TABLE dataset (
-	id VARCHAR NOT NULL, 
+	id VARCHAR NOT NULL,
 	PRIMARY KEY (id)
 );
 INSERT INTO dataset VALUES('controlled4');
 CREATE TABLE dataset_association (
-	dataset_id VARCHAR NOT NULL, 
-	drs_object_id VARCHAR NOT NULL, 
-	PRIMARY KEY (dataset_id, drs_object_id), 
-	FOREIGN KEY(dataset_id) REFERENCES dataset (id), 
+	dataset_id VARCHAR NOT NULL,
+	drs_object_id VARCHAR NOT NULL,
+	PRIMARY KEY (dataset_id, drs_object_id),
+	FOREIGN KEY(dataset_id) REFERENCES dataset (id),
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 INSERT INTO dataset_association VALUES('controlled4','NA18537');
 CREATE TABLE contig (
-	id VARCHAR NOT NULL, 
+	id VARCHAR NOT NULL,
 	PRIMARY KEY (id)
 );
 INSERT INTO contig VALUES('1');
@@ -91,9 +91,9 @@ INSERT INTO contig VALUES('X');
 INSERT INTO contig VALUES('Y');
 INSERT INTO contig VALUES('MT');
 CREATE TABLE alias (
-	id VARCHAR NOT NULL, 
-	contig_id VARCHAR, 
-	PRIMARY KEY (id), 
+	id VARCHAR NOT NULL,
+	contig_id VARCHAR,
+	PRIMARY KEY (id),
 	FOREIGN KEY(contig_id) REFERENCES contig (id)
 );
 INSERT INTO alias VALUES('chr1','1');
@@ -151,51 +151,73 @@ INSERT INTO alias VALUES('M','MT');
 INSERT INTO alias VALUES('chrM','MT');
 INSERT INTO alias VALUES('ChrM','MT');
 CREATE TABLE variantfile (
-	id VARCHAR NOT NULL, 
+	id VARCHAR NOT NULL,
 	genomic_id VARCHAR,
-	drs_object_id VARCHAR, 
+	drs_object_id VARCHAR,
 	indexed INTEGER,
 	chr_prefix VARCHAR,
 	reference_genome VARCHAR,
-	PRIMARY KEY (id), 
+	PRIMARY KEY (id),
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 CREATE TABLE pos_bucket (
-	id INTEGER PRIMARY KEY AUTOINCREMENT, 
-	pos_bucket_id INTEGER NOT NULL, 
-	contig_id VARCHAR, 
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	pos_bucket_id INTEGER NOT NULL,
+	contig_id VARCHAR,
 	FOREIGN KEY(contig_id) REFERENCES contig (id)
 );
 CREATE TABLE header (
-	id INTEGER PRIMARY KEY AUTOINCREMENT, 
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	text VARCHAR NOT NULL
 );
 CREATE TABLE contig_variantfile_association (
-	contig_id VARCHAR NOT NULL, 
-	variantfile_id VARCHAR NOT NULL, 
-	PRIMARY KEY (contig_id, variantfile_id), 
-	FOREIGN KEY(contig_id) REFERENCES contig (id), 
+	contig_id VARCHAR NOT NULL,
+	variantfile_id VARCHAR NOT NULL,
+	PRIMARY KEY (contig_id, variantfile_id),
+	FOREIGN KEY(contig_id) REFERENCES contig (id),
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 CREATE TABLE header_variantfile_association (
-	header_id INTEGER NOT NULL, 
-	variantfile_id VARCHAR NOT NULL, 
-	PRIMARY KEY (header_id, variantfile_id), 
-	FOREIGN KEY(header_id) REFERENCES header (id), 
+	header_id INTEGER NOT NULL,
+	variantfile_id VARCHAR NOT NULL,
+	PRIMARY KEY (header_id, variantfile_id),
+	FOREIGN KEY(header_id) REFERENCES header (id),
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 CREATE TABLE pos_bucket_variantfile_association (
-	pos_bucket_id INTEGER NOT NULL, 
-	variantfile_id VARCHAR NOT NULL, 
+	pos_bucket_id INTEGER NOT NULL,
+	variantfile_id VARCHAR NOT NULL,
 	bucket_count INTEGER NOT NULL DEFAULT 0,
-	PRIMARY KEY (pos_bucket_id, variantfile_id), 
-	FOREIGN KEY(pos_bucket_id) REFERENCES pos_bucket (id), 
+	PRIMARY KEY (pos_bucket_id, variantfile_id),
+	FOREIGN KEY(pos_bucket_id) REFERENCES pos_bucket (id),
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 CREATE TABLE sample (
-	id INTEGER PRIMARY KEY AUTOINCREMENT, 
-	sample_id VARCHAR, 
-	variantfile_id VARCHAR, 
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	sample_id VARCHAR,
+	variantfile_id VARCHAR,
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
+
+-- ncbiRefSeq table modified from https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/
+
+-- field	example	description
+-- reference_genome	hg38	Reference genome build
+-- gene_name	DDX11L1	varchar(255)	values	Gene name from http://www.genenames.org/
+-- transcript_name	NR_046018.2	Transcript name from NCBI RefSeq
+-- contig	1	Reference sequence chromosome or scaffold
+-- start	11873	Transcription start position (or end position for minus strand item)
+-- end	14409	Transcription end position (or start position for minus strand item)
+
+CREATE TABLE ncbiRefSeq (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	reference_genome varchar(10) NOT NULL,
+	gene_name varchar(255) NOT NULL,
+	transcript_name varchar(255) NOT NULL,
+	contig varchar(10) NOT NULL,
+	start int(10) NOT NULL,
+	end int(10) NOT NULL,
+	UNIQUE(reference_genome, contig, gene_name, transcript_name)
+);
+
 COMMIT;

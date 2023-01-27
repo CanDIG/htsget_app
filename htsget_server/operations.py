@@ -167,9 +167,6 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
 @app.route('/variants/search')
 def search_variants():
     req = connexion.request
-    ref_name = None
-    start = None
-    end = None
     curr_search = {}
     if 'headers' in req.json:
         curr_search['headers'] = req.json['headers']
@@ -243,8 +240,59 @@ def search_variants():
     return result, auth_code
 
 
-# https://rest.ensembl.org/map/human/GRCh37/X:1000000..1000100:1/GRCh38?content-type=application/json
-# https://rest.ensembl.org/xrefs/symbol/homo_sapiens/BRCA2?content-type=application/json
+@app.route('/genes')
+def list_genes(type="gene_name"):
+    genes = database.list_refseqs()
+    results = set()
+    if genes is None:
+        return {"results": []}, 200
+    for gene in genes:
+        results.add(gene[type])
+    results = list(results)
+    results.sort()
+    return {"results": results}, 200
+
+
+@app.route('/transcripts')
+def list_transcripts():
+    return list_genes(type="transcript_name")
+
+
+@app.route('/genes/<path:id_>')
+def get_matching_genes(id_=None, type="gene_name"):
+    genes = database.search_genes(id_.upper(), type)
+    results = []
+    if genes is None:
+        return {"results": results}, 200
+    count = 0
+    curr_gene = ""
+    for gene in genes:
+        if gene[type] != curr_gene:
+            curr_gene = gene[type]
+            count += 1
+            if count > 5:
+                break
+            res = {
+                "gene_name": gene['gene_name'],
+                "transcript_name": gene['transcript_name'],
+                "regions": []
+            }
+            results.append(res)
+        res['regions'].append({
+            'reference_genome': gene['reference_genome'],
+            'region': {
+                'referenceName': gene['contig'],
+                'start': gene['start'],
+                'end': gene['end']
+            }
+        })
+    return {"results": results}, 200
+
+
+@app.route('/transcripts/<path:id_>')
+def get_matching_transcripts(id_=None):
+    return get_matching_genes(id_=id_, type="transcript_name")
+
 
 def _create_slice(id, reference_name, slice_start, slice_end, file_type, data=True):
     """
@@ -323,7 +371,6 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
 
 
 def _get_data(id_, reference_name=None, start=None, end=None, class_=None, format_="VCF"):
-    # start = 17148269, end = 17157211, reference_name = 21
     """
     Returns the specified file:
 

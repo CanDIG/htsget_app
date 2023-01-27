@@ -346,6 +346,15 @@ def test_multisample(body, count):
       assert len(result['samples']) == count
 
 
+# There should be two BRCA genes in the database:
+def test_gene_search():
+    url = f"{HOST}/htsget/v1/genes/BRCA"
+
+    response = requests.get(url, headers=get_headers())
+    print(response.text)
+    assert len(response.json()['results']) == 2
+
+
 @pytest.fixture
 def drs_objects():
     return [
