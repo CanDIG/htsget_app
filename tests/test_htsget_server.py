@@ -97,7 +97,10 @@ def test_post_objects(drs_objects):
 
 
 def test_post_update():
-    id = "NA18537.vcf.gz.tbi"
+    """
+    Update NA18537 to local file
+    """
+    id = "NA18537.vcf.gz"
     url = f"{HOST}/ga4gh/drs/v1/objects/{id}"
     response = requests.request("GET", url, headers=get_headers())
     if response.status_code == 200:
@@ -105,10 +108,19 @@ def test_post_update():
     obj = response.json()
 
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    obj["size"] = 100
+    access_url = f"file://{CWD}/data/files/NA18537.vcf.gz"
+    obj["access_methods"] = [
+        {
+            "type": "file",
+            "access_url": {
+                "url": access_url
+            }
+        }
+    ]
     response = requests.post(url, json=obj, headers=get_headers())
     print(response.text)
-    assert response.json()["size"] == 100
+    assert len(response.json()["access_methods"]) == 1
+    assert response.json()["access_methods"][0]["access_url"]["url"] == access_url
 
 
 def index_variants():
@@ -195,7 +207,9 @@ def pull_slices_data():
     return [
         ({"referenceName": "20",
           "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant"),
-        ({}, 'sample.compressed', ".vcf.gz", "variant")
+        ({}, 'sample.compressed', ".vcf.gz", "variant"),
+        ({"referenceName": "21",
+          "start": 9410000, "end": 9420000}, 'NA18537', ".vcf.gz", "variant")
     ]
 
 
