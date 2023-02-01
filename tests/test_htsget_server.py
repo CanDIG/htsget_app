@@ -232,6 +232,7 @@ def test_pull_slices(params, id_, file_extension, file_type):
         print(res.text)
 
         f_slice.write(res.content)
+    f_slice.close()
     f_slice = None
     f = None
     if file_type == "variant":
