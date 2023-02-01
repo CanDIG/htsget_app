@@ -108,7 +108,7 @@ def test_post_update():
     obj = response.json()
 
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    access_url = f"file://{CWD}/data/files/NA18537.vcf.gz"
+    access_url = f"file:///{LOCAL_FILE_PATH}/NA18537.vcf.gz"
     obj["access_methods"] = [
         {
             "type": "file",
