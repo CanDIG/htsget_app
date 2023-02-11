@@ -564,9 +564,10 @@ def _get_local_file(drs_file_obj_id, dir):
         else:
             # the access_url has all the info we need
             url_pieces = urlparse(method["access_url"]["url"])
+            url = url_pieces
             if url_pieces.scheme == "file":
                 if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
-                    result["file_path"] = url_pieces.path
+                    result["file_path"] = url_pieces.path.lstrip("/")
     if result['file_path'] is None:
         result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {url}"
         result.pop('file_path')
