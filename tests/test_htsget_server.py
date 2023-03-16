@@ -358,6 +358,93 @@ def test_gene_search():
     assert len(response.json()['results']) == 2
 
 
+def test_beacon_get_search():
+    # for an authed user, this short allele form request should work:
+    # return two variations, one ref, one alt, for a single position.
+    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg37&allele=NC_000021.8%3Ag.5030847T%3EA"
+    response = requests.get(url, headers=get_headers())
+    print(response.text)
+    assert len(response.json()['response']) == 2
+
+    # for an unauthorized user, the request should not contain a full response, just a count
+    response = requests.get(url, headers=get_headers(username="test", password="test"))
+    print(response.text)
+    assert 'response' not in response.json()
+    assert response.json()['responseSummary']['exists']
+
+
+def get_beacon_post_search():
+        return [
+            (
+                # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
+                # first variation, corresponding to "NC_000021.8:g.5030551=", should contain two cases
+                {
+                    "query": {
+                        "requestParameters": {
+                            "start": [5030000],
+                            "end": [5030847],
+                            "assembly_id": "hg37",
+                            "reference_name": "21"
+                        }
+                    },
+                    "meta": {
+                        "apiVersion": "v2"
+                    }
+                }, 6, 2
+            ),
+            (
+                # 5 variations, corresponding to 2 refs and 3 alts in test
+                # first variation has two cases
+                {
+                    "query": {
+                        "requestParameters": {
+                            "start": [16562322],
+                            "end": [16613564],
+                            "reference_name": "1"
+                        }
+                    },
+                    "meta": {
+                        "apiVersion": "v2"
+                    }
+                }, 5, 2
+            )
+        ]
+
+
+@pytest.mark.parametrize('body, count, cases', get_beacon_post_search())
+def test_beacon_post_search(body, count, cases):
+    url = f"{HOST}/beacon/v2/g_variants"
+
+    response = requests.post(url, json=body, headers=get_headers())
+    print(response.text)
+    assert len(response.json()['response']) == count
+    assert len(response.json()['response'][0]['caseLevelData']) == cases
+
+# if we search for NBPF1, we should find records in test.vcf that contain NBPF1 in their VEP annotations.
+def test_beacon_search_annotations():
+    url = f"{HOST}/beacon/v2/g_variants"
+    body = {
+        "query": {
+            "requestParameters": {
+                "gene_id": 'NBPF1'
+            }
+        },
+        "meta": {
+            "apiVersion": "v2"
+        }
+    }
+    response = requests.post(url, json=body, headers=get_headers())
+    found_gene = False
+    for var in response.json()['response']:
+        if 'molecularAttributes' in var:
+            if 'geneIds' in var['molecularAttributes']:
+                print(var['molecularAttributes']['geneIds'])
+                if 'NBPF1' in var['molecularAttributes']['geneIds']:
+                    found_gene = True
+    assert found_gene
+
+
+
 @pytest.fixture
 def drs_objects():
     return [
