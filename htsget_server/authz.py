@@ -1,7 +1,7 @@
 import json
 from config import AUTHZ, TEST_KEY
 from flask import Flask
-import drs_operations
+import database
 import authx.auth
 
 
@@ -13,6 +13,8 @@ def is_authed(id_, request):
         print("WARNING: AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
         return 200 # no auth
+    if request is None:
+        return 401
     if request.headers.get("Test_Key") == TEST_KEY:
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
@@ -21,16 +23,11 @@ def is_authed(id_, request):
         return 200
     if "Authorization" in request.headers:
         authed_datasets = get_authorized_datasets(request)
-        obj, code2 = drs_operations.get_object(id_)
-        if code2 == 200:
+        obj = database.get_drs_object(id_)
+        if obj is not None and 'datasets' in obj:
             for dataset in obj["datasets"]:
                 if dataset in authed_datasets:
                     return 200
-        else:
-            msg = json.dumps(obj, indent=4)
-            print(msg)
-            app.logger.warning(msg)
-            return code2
     else:
         return 401
     return 403
