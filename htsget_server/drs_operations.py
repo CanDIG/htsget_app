@@ -37,6 +37,7 @@ def get_object(object_id, expand=False):
     access_url_parse = re.match(r"(.+?)/access_url/(.+)", escape(object_id))
     if access_url_parse is not None:
         return get_access_url(access_url_parse.group(1), access_url_parse.group(2))
+    new_object = None
     if object_id is not None:
         new_object = database.get_drs_object(escape(object_id), expand)
         auth_code = authz.is_authed(escape(object_id), request)
