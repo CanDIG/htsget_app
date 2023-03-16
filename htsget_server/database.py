@@ -536,6 +536,24 @@ def search_refseqs(query, type):
         return None
 
 
+def get_refseq_for_chromosome(reference_genome="hg38", contig=None):
+    with Session() as session:
+        result = session.query(NCBIRefSeq).filter(NCBIRefSeq.reference_genome==reference_genome, NCBIRefSeq.contig==contig).one_or_none()
+        if result is not None:
+            new_obj = json.loads(str(result))['transcript_name']
+            return new_obj
+        return None
+
+
+def get_chromosome_for_refseq(refseq=None):
+    with Session() as session:
+        result = session.query(NCBIRefSeq).filter(NCBIRefSeq.transcript_name==refseq, NCBIRefSeq.start==0).one_or_none()
+        if result is not None:
+            new_obj = json.loads(str(result))['contig']
+            return new_obj
+        return None
+
+
 def get_variantfile(variantfile_id):
     with Session() as session:
         result = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
