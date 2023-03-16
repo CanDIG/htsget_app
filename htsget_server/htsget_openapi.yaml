@@ -206,30 +206,6 @@ paths:
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
 
-    /variants/search:
-        post:
-            tags:
-                - Variants
-            summary: Search variants
-            operationId: "htsget_operations.search_variants"
-            description: |
-                Search variant files
-            requestBody:
-                $ref: '#/components/requestBodies/SearchRequestBody'
-            responses:
-                200:
-                    description: Search results
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/SearchResultsTicket'
-                400:
-                    $ref: '#/components/responses/400BadRequestError'
-                404:
-                    $ref: '#/components/responses/404NotFoundError'
-                5XX:
-                    $ref: '#/components/responses/5xxServerError'
-
     /variants/data/{id}:
         get:
             tags:
@@ -511,16 +487,6 @@ components:
                     $ref: '#/components/schemas/ReadsNoTags'
                 regions:
                     $ref: '#/components/schemas/Regions'
-        SearchRequestBody:
-            type: object
-            description: Body for requesting a search
-            properties:
-                regions:
-                    $ref: '#/components/schemas/Regions'
-                headers:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/HeaderText'
 
         # HTSGET TICKET SCHEMAS
         HtsgetBlockClass:
@@ -623,31 +589,6 @@ components:
                                                     - properties:
                                                         FilePath:
                                                             example: "/data/variants/object00001.vcf"
-        SearchResultsTicket:
-            type: object
-            properties:
-                results:
-                    type: array
-                    items:
-                        type: object
-                        properties:
-                            region:
-                              $ref: "#/components/schemas/Region"
-                            variantcount:
-                              type: integer
-                              description: Approximate count of variants in the searched region
-                            id:
-                              type: string
-                              description: Base name of the DRS object that represents this variant file
-                            reference_genome:
-                              $ref: "#/components/schemas/ReferenceGenome"
-                            htsget:
-                              $ref: "#/components/schemas/HtsgetUrl"
-                            samples:
-                              type: array
-                              items:
-                                  type: string
-                                  description: Samples included in this Htsget object
         GeneSearchResultsTicket:
             type: object
             properties:
@@ -873,13 +814,6 @@ components:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ReadsRequestBody'
-        SearchRequestBody:
-            description: Specify desired regions or header text to search
-            required: false
-            content:
-                application/json:
-                    schema:
-                        $ref: '#/components/schemas/SearchRequestBody'
     responses:
         400BadRequestError:
             description: The request was not processed, as the request parameters did not adhere to the specification
