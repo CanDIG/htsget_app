@@ -76,7 +76,7 @@ def test_post_objects(drs_objects):
             # create access_methods:
             access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
             if VAULT_URL is None and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
-              access_id += f"?access={MINIO_ACCESS_KEY}&secret={MINIO_SECRET_KEY}"
+                access_id += f"?access={MINIO_ACCESS_KEY}&secret={MINIO_SECRET_KEY}"
             obj["access_methods"] = [
                 {
                     "type": "s3",
