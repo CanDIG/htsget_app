@@ -1,6 +1,7 @@
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, aliased
 from sqlalchemy import Column, Integer, String, Boolean, MetaData, ForeignKey, Table, create_engine, select
 import json
+import re
 from datetime import datetime
 from config import DB_PATH, BUCKET_SIZE
 
@@ -663,13 +664,72 @@ def get_samples_in_drs_objects(obj):
         return result
 
 
-def get_header(text):
+def get_headers(obj):
+    # obj = {'text', 'variantfile_id', 'parse'}
     with Session() as session:
-        result = session.query(Header).filter_by(text=text).one_or_none()
-        if result is not None:
-            new_obj = json.loads(str(result))
-            return new_obj
-        return None
+        new_obj = {}
+        q = select(Header.text)
+        if "text" in obj:
+            q = q.like(Header.text)
+        if "variantfile_id" in obj:
+            q = q.where(Header.associated_variantfiles.any(VariantFile.id == obj['variantfile_id']))
+        for r in session.execute(q):
+            for k in r._mapping.values():
+                meta_parse = re.match(r"##(.+?)=(.+)", k)
+                if meta_parse is not None:
+                    if meta_parse.group(1) not in new_obj:
+                        new_obj[meta_parse.group(1)] = []
+                    if obj['parse']:
+                        new_meta = {}
+                        metadata_parse = re.match(r"^(<)*(.+?)>*$", meta_parse.group(2))
+                        if metadata_parse is not None:
+                            if metadata_parse.group(1) is not None:
+                                new_meta['structured'] = True
+                                fields = metadata_parse.group(2).split(",", 1)
+                                while len(fields) > 0:
+                                    curr_field = fields.pop(0)
+                                    if "=" in curr_field:
+                                        [k,v] = curr_field.split("=", 1)
+                                        if v.startswith('"'):
+                                            # we're inside a quoted value, so any commas in here are still part of the same value
+                                            fields.insert(0, v)
+                                            curr_value = ','.join(fields)
+                                            curr_value = curr_value[1:] # get rid of opening quote
+                                            # continue eating through until we get to an unescaped quote
+                                            new_value = curr_value[0]
+                                            curr_value = curr_value[1:]
+                                            while len(curr_value) > 0:
+                                                if curr_value.startswith('"'):
+                                                    if not new_value.endswith('\\'): # this wasn't an escaped quote
+                                                        curr_value = curr_value[2:] # 2 because of the next comma
+                                                        break
+                                                    # it was an escaped quote, so keep going...
+                                                new_value += curr_value[0]
+                                                curr_value = curr_value[1:]
+                                            new_meta[k] = new_value
+                                            fields = [curr_value]
+                                            continue
+                                        else:
+                                            new_meta[k] = v
+                                    if len(fields) > 0:
+                                        fields = fields.pop().split(",", 1)
+                            else:
+                                new_meta['structured'] = False
+                                new_meta['value'] = meta_parse.group(2)
+                    else:
+                        new_meta = meta_parse.group(2)
+                    new_obj[meta_parse.group(1)].append(new_meta)
+
+        cleaned_obj = {}
+        for type in new_obj.keys():
+            for entry in new_obj[type]:
+                if entry.pop('structured'):
+                    if type not in cleaned_obj:
+                        cleaned_obj[type] = {}
+                    cleaned_obj[type][entry.pop('ID')] = entry
+                else:
+                    cleaned_obj[type] = entry['value']
+        return cleaned_obj
 
 
 def add_header_for_variantfile(obj):
@@ -878,16 +938,10 @@ def search(obj):
             if 'end' in obj['region']:
                 q = q.where(PositionBucket.pos_bucket_id <= get_bucket_for_position(obj['region']['end']))
         q = q.distinct()
-        result = {
-            'drs_object_ids': [],
-            'variantcount': [],
-            'raw': [],
-            'reference_genome': []
-        }
         drs_obj_ids = set()
         pos_bucket_ids = set()
         raw_result = {}
-        raw_results = []
+        results = []
         for row in session.execute(q):
             drs_obj = row._mapping['drs_object_id']
             if drs_obj not in raw_result:
@@ -900,9 +954,7 @@ def search(obj):
             if bvs is not None:
                 for bv in bvs:
                     curr_result['variantcount'] += bv.bucket_count
-            raw_results.append(curr_result)
-        result['raw'] = raw_result
-        result['raw_results'] = raw_results
+            results.append(curr_result)
 
-        return raw_results
+        return results
     return None
