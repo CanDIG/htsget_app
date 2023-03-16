@@ -20,10 +20,11 @@ MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 CWD = os.getcwd()
 
-def get_headers():
+
+def get_headers(username=USERNAME, password=PASSWORD):
     headers={"Test_Key": TEST_KEY}
     try:
-        token = get_access_token(username=USERNAME, password=PASSWORD)
+        token = get_access_token(username=username, password=password)
         headers["Authorization"] = f"Bearer {token}"
     except Exception as e:
         headers["Authorization"] = "Bearer testtest"
