@@ -11,7 +11,7 @@ paths:
                - Reads
                - Service Info
            summary: Get reads service info
-           operationId: "operations.get_read_service_info"
+           operationId: "htsget_operations.get_read_service_info"
            description: Get metadata about this service's Reads API
            responses:
                200:
@@ -28,7 +28,7 @@ paths:
             tags:
                 - Reads
             summary: Get alignment (reads) file download ticket
-            operationId: "operations.get_reads"
+            operationId: "htsget_operations.get_reads"
             description: |
                 Gets an htsget ticket containing URLs that will enable the
                 transfer of a requested alignment file
@@ -90,7 +90,7 @@ paths:
                - Reads
                - Streaming
            summary: Stream alignment file part
-           operationId: "operations.get_reads_data"
+           operationId: "htsget_operations.get_reads_data"
            description: |
                Stream a single file part of a requested alignment file. Streams
                requested region(s), fields, and tags.
@@ -133,7 +133,7 @@ paths:
                - Variants
                - Service Info
            summary: Get variants service info
-           operationId: "operations.get_variant_service_info"
+           operationId: "htsget_operations.get_variant_service_info"
            description: Get metadata about this service's Variants API
            responses:
                200:
@@ -150,7 +150,7 @@ paths:
             tags:
                 - Variants
             summary: Get variant file download ticket
-            operationId: "operations.get_variants"
+            operationId: "htsget_operations.get_variants"
             description: |
                 Gets an htsget ticket containing URLs that will enable the
                 transfer of a requested variant file
@@ -184,7 +184,7 @@ paths:
             tags:
                 - Variants
             summary: Index variant file for search
-            operationId: "operations.index_variants"
+            operationId: "htsget_operations.index_variants"
             description: |
                 Index a variant file for searching
             parameters:
@@ -211,7 +211,7 @@ paths:
             tags:
                 - Variants
             summary: Search variants
-            operationId: "operations.search_variants"
+            operationId: "htsget_operations.search_variants"
             description: |
                 Search variant files
             requestBody:
@@ -236,7 +236,7 @@ paths:
                 - Variants
                 - Streaming
             summary: Stream variant file part
-            operationId: "operations.get_variants_data"
+            operationId: "htsget_operations.get_variants_data"
             description: |
                 Stream a single file part of a requested variant file. Streams
                 requested region(s).
@@ -276,7 +276,7 @@ paths:
 ## NCBIRefSeq paths
     /genes:
         get:
-            operationId: "operations.list_genes"
+            operationId: "htsget_operations.list_genes"
             summary: List all available gene names
             description: List all gene names available in NCBIRefSeq database.
             parameters:
@@ -297,7 +297,7 @@ paths:
     /genes/{id}:
         get:
             summary: Get transcript region for genes matching id
-            operationId: "operations.get_matching_genes"
+            operationId: "htsget_operations.get_matching_genes"
             description: Get top five transcript regions matching the gene string
             parameters:
                 - $ref: '#/components/parameters/idPathParam'
@@ -312,7 +312,7 @@ paths:
 
     /transcripts:
         get:
-            operationId: "operations.list_transcripts"
+            operationId: "htsget_operations.list_transcripts"
             summary: List all available gene names
             description: List all NCBISelect transcript names available in NCBIRefSeq database.
             parameters:
@@ -333,7 +333,7 @@ paths:
     /transcripts/{id}:
         get:
             summary: Get transcript region for transcripts matching id
-            operationId: "operations.get_matching_transcripts"
+            operationId: "htsget_operations.get_matching_transcripts"
             description: Get top five transcript regions matching the transcript name string
             parameters:
                 - $ref: '#/components/parameters/idPathParam'
