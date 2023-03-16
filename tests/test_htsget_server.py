@@ -76,7 +76,7 @@ def test_post_objects(drs_objects):
             # create access_methods:
             access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
             if VAULT_URL is None and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
-                access_id += f"?access={MINIO_ACCESS_KEY}&secret={MINIO_SECRET_KEY}"
+              access_id += f"?access={MINIO_ACCESS_KEY}&secret={MINIO_SECRET_KEY}"
             obj["access_methods"] = [
                 {
                     "type": "s3",
@@ -167,19 +167,19 @@ def test_invalid_start_end(start, end):
 def existent_file_test_data():
     return [
         ('NA18537', 'variants',
-           {'referenceName': 21, 'start': 10235878, 'end': 45412368},
-           200),
+         {'referenceName': 21, 'start': 10235878, 'end': 45412368},
+         200),
         ('NA18537', 'variants',
-           {'referenceName': 21},
-           200),
+         {'referenceName': 21},
+         200),
         ('NA18537', 'variants',
-           {'start': 10235878, 'end': 45412368},
-           200),
+         {'start': 10235878, 'end': 45412368},
+         200),
         ('NA18537', 'variants', {}, 200),
         ('NA20787', 'variants', {}, 200),
         ('NA20787', 'variants',
-           {'referenceName': 21},
-           200),
+         {'referenceName': 21},
+         200),
         ('HG203245', 'variants', {}, 404)
     ]
 
@@ -249,9 +249,9 @@ def test_pull_slices(params, id_, file_extension, file_type):
         break
     # compare slice and file line by line
     if 'referenceName' in params:
-        zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
+      zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
     else:
-        zipped = zip(f_slice.fetch(), f.fetch())
+      zipped = zip(f_slice.fetch(), f.fetch())
     for x, y in zipped:
         if x != y:
             equal = False
@@ -405,18 +405,18 @@ def drs_objects():
             "checksums": [],
             "contents": [
                 {
-                  "drs_uri": [
-                      "drs://localhost/NA18537.vcf.gz"
-                  ],
-                  "name": "NA18537.vcf.gz",
-                  "id": "variant"
+                    "drs_uri": [
+                        "drs://localhost/NA18537.vcf.gz"
+                    ],
+                    "name": "NA18537.vcf.gz",
+                    "id": "variant"
                 },
                 {
-                  "drs_uri": [
-                      "drs://localhost/NA18537.vcf.gz.tbi"
-                  ],
-                  "name": "NA18537.vcf.gz.tbi",
-                  "id": "index"
+                    "drs_uri": [
+                        "drs://localhost/NA18537.vcf.gz.tbi"
+                    ],
+                    "name": "NA18537.vcf.gz.tbi",
+                    "id": "index"
                 }
             ],
             "created_time": "2021-09-27T18:40:00.538843",
@@ -633,7 +633,7 @@ def drs_objects():
                 },
                 {
                     "drs_uri": [
-                       "drs://localhost/NA20787.vcf.gz.tbi"
+                        "drs://localhost/NA20787.vcf.gz.tbi"
                     ],
                     "name": "NA20787.vcf.gz.tbi",
                     "id": "index"
