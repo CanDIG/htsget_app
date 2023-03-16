@@ -1,14 +1,10 @@
 import os
-import re
 import tempfile
-import requests
 from flask import request, send_file, Flask
-from pysam import VariantFile, AlignmentFile
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlencode
 import drs_operations
 import database
 import authz
-import json
 from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT
 from markupsafe import escape
 import connexion
@@ -122,7 +118,7 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
         if varfile is not None:
             if varfile['indexed'] == 1 and not force:
                 return varfile, 200
-        gen_obj = _get_genomic_obj(id_)
+        gen_obj = drs_operations._get_genomic_obj(id_)
         if gen_obj is None:
             return {"message": f"No variant with id {id_} exists"}, 404
         if "message" in gen_obj:
@@ -157,7 +153,6 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
         if res is None:
             return {"message": f"Could not add positions {record.contig}:{record.pos} to variantfile {id_}"}, 500
         else:
-            varfile['pos'] = res
             database.mark_variantfile_as_indexed(id_)
         return varfile, 200
     else:
@@ -209,7 +204,7 @@ def search_variants():
                 end = None
                 if 'end' in res['region']:
                     end = res['region']['end']
-                htsget_obj['htsget'] = _create_slice(drs_obj_id, orig_ref_name, start, end, 'variant', data=False)
+                htsget_obj['htsget'] = _get_htsget_url(drs_obj_id, orig_ref_name, start, end, 'variant', data=False)
             else:
                 htsget_obj['htsget'] = {"url": _get_base_url("variant", drs_obj_id, data=False)}
             htsget_obj['id'] = drs_obj_id
@@ -224,7 +219,7 @@ def search_variants():
         # We should actually grab all of the data from the drs_objects in question and count.
         if 'region' in res:
             if 'end' in res['region'] and 'start' in res['region'] and (res['region']['end'] - res['region']['start'] <= BUCKET_SIZE):
-                gen_obj = _get_genomic_obj(res['id'])
+                gen_obj = drs_operations._get_genomic_obj(res['id'])
                 if "message" in gen_obj:
                     return gen_obj, 500
                 orig_ref_name = database.get_contig_name_in_variantfile({'refname': res['region']['referenceName'], 'variantfile_id': res['id']})
@@ -260,7 +255,7 @@ def list_transcripts():
 
 @app.route('/genes/<path:id_>')
 def get_matching_genes(id_=None, type="gene_name"):
-    genes = database.search_genes(id_.upper(), type)
+    genes = database.search_refseqs(id_.upper(), type)
     results = []
     if genes is None:
         return {"results": results}, 200
@@ -278,14 +273,15 @@ def get_matching_genes(id_=None, type="gene_name"):
                 "regions": []
             }
             results.append(res)
-        res['regions'].append({
-            'reference_genome': gene['reference_genome'],
-            'region': {
-                'referenceName': gene['contig'],
-                'start': gene['start'],
-                'end': gene['end']
-            }
-        })
+        if database.normalize_contig(gene['contig']) is not None:
+            res['regions'].append({
+                'reference_genome': gene['reference_genome'],
+                'region': {
+                    'referenceName': gene['contig'],
+                    'start': gene['start'],
+                    'end': gene['end']
+                }
+            })
     return {"results": results}, 200
 
 
@@ -294,7 +290,7 @@ def get_matching_transcripts(id_=None):
     return get_matching_genes(id_=id_, type="transcript_name")
 
 
-def _create_slice(id, reference_name, slice_start, slice_end, file_type, data=True):
+def _get_htsget_url(id, reference_name, slice_start, slice_end, file_type, data=True):
     """
     Creates single slice for a region in a file. Returns an HTSGetURL object.
 
@@ -321,7 +317,7 @@ def _create_slice(id, reference_name, slice_start, slice_end, file_type, data=Tr
     return {'url': url}
 
 
-def _create_slices(chunk_size, id, reference_name, start, end, file_type):
+def _get_htsget_urls(id, reference_name, start, end, file_type):
     """
     Returns array of slices of URLs
 
@@ -364,7 +360,7 @@ def _create_slices(chunk_size, id, reference_name, start, end, file_type):
     for i in range(0,len(chunks)):
         slice_start = chunks[i]['start']
         slice_end = chunks[i]['end']
-        url = _create_slice(id, reference_name, slice_start, slice_end, file_type)
+        url = _get_htsget_url(id, reference_name, slice_start, slice_end, file_type)
         url['class'] = 'body'
         urls.append(url)
     return urls
@@ -412,7 +408,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
     file_name = f"{id_}.{format_}"
 
     # get a file and index from drs, based on the id_
-    gen_obj = _get_genomic_obj(id_)
+    gen_obj = drs_operations._get_genomic_obj(id_)
     if gen_obj is not None:
         if "message" in gen_obj:
             return gen_obj['message'], gen_obj['status_code']
@@ -465,6 +461,7 @@ def _get_base_url(file_type, id, data=False, testing=False):
         return f"{url}/htsget/v1/{file_type}s/data/{id}"
     return f"{url}/htsget/v1/{file_type}s/{id}"
 
+
 def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
     """
     Searches for file from ID and Return URLS for Read/Variant
@@ -491,7 +488,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
-    drs_obj = _describe_drs_object(id)
+    drs_obj = drs_operations._describe_drs_object(id)
     if drs_obj is not None:
         if "error" in drs_obj:
             return drs_obj['error'], drs_obj['status_code']
@@ -506,105 +503,8 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 
         file_in = drs_obj["main"]
         index = drs_obj["index"]
-        response['htsget']['urls'].extend(_create_slices(CHUNK_SIZE, id, reference_name, start, end, file_type))
+        response['htsget']['urls'].extend(_get_htsget_urls(id, reference_name, start, end, file_type))
         return response, 200
     return {"message": f"No {file_type} found for id: {id}, try using the other endpoint"}, 404
 
 
-# This is specific to our particular use case: a DRS object that represents a
-# particular sample can have a variant or read file and an associated index file.
-# We need to query DRS to get the bundling object, which should contain links to
-# two contents objects. We can instantiate them into temp files and pass those
-# file handles back.
-def _get_genomic_obj(object_id):
-    result = {'status_code': 200}
-    drs_obj = _describe_drs_object(object_id)
-    with tempfile.TemporaryDirectory() as tempdir:
-        index_result = _get_local_file(drs_obj['index'], tempdir)
-        if 'message' in index_result:
-            result = index_result
-        else:
-            main_result = _get_local_file(drs_obj['main'], tempdir)
-            if 'message' in main_result:
-                result = main_result
-            else:
-                print(index_result, main_result)
-                try:
-                    result['file_format'] = drs_obj['format']
-                    if drs_obj['type'] == 'read':
-                        result['file'] = AlignmentFile(main_result['file_path'], index_filename=index_result['file_path'])
-                    else:
-                        result['file'] = VariantFile(main_result['file_path'], index_filename=index_result['file_path'])
-                except Exception as e:
-                    return { "message": str(e), "status_code": 500, "method": f"_get_genomic_obj({object_id})"}
-    return result
-
-
-def _get_local_file(drs_file_obj_id, dir):
-    result = { "file_path": None, "status_code": 200, "method": f"_get_local_file({drs_file_obj_id})" }
-    (drs_file_obj, status_code) = drs_operations.get_object(drs_file_obj_id)
-    if "message" in drs_file_obj:
-        result["message"] = drs_file_obj["message"]
-        result['status_code'] = status_code
-        return result
-    # get access_methods for this drs_file_obj
-    url = ""
-    for method in drs_file_obj["access_methods"]:
-        if "access_id" in method and method["access_id"] != "":
-            # we need to go to the access endpoint to get the url and file
-            (url, status_code) = drs_operations.get_access_url(None, method["access_id"])
-            result["status_code"] = status_code
-            if status_code < 300:
-                f_path = os.path.join(dir, drs_file_obj["name"])
-                with open(f_path, mode='wb') as f:
-                    with requests.get(url["url"], stream=True) as r:
-                        f.write(r.content)
-                result["file_path"] = f_path
-                break
-        else:
-            # the access_url has all the info we need
-            url_pieces = urlparse(method["access_url"]["url"])
-            url = url_pieces
-            if url_pieces.scheme == "file":
-                if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
-                    result["file_path"] = url_pieces.path.lstrip("/")
-    if result['file_path'] is None:
-        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {url}"
-        result.pop('file_path')
-    return result
-
-# describe an htsget DRS object, but don't open it
-def _describe_drs_object(object_id):
-    (drs_obj, status_code) = drs_operations.get_object(object_id)
-    if status_code != 200:
-        return None
-    result = {
-        "name": object_id
-    }
-    # drs_obj should have two contents objects
-    if "contents" in drs_obj:
-        for contents in drs_obj["contents"]:
-            # get each drs object (should be the genomic file and its index)
-            print(contents)
-            # if sub_obj.name matches an index file regex, it's an index file
-            index_match = re.fullmatch('.+\.(..i)$', contents["name"])
-
-            # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
-            read_match = re.fullmatch('.+\.(.+?am)$', contents["name"])
-
-            # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
-            variant_match = re.fullmatch('.+\.(.cf)(\.gz)*$', contents["name"])
-
-            if read_match is not None:
-                result['format'] = read_match.group(1).upper()
-                result['type'] = "read"
-                result['main'] = contents['name']
-            elif variant_match is not None:
-                result['format'] = variant_match.group(1).upper()
-                result['type'] = "variant"
-                result['main'] = contents['name']
-            elif index_match is not None:
-                result['index'] = contents['name']
-    if 'type' not in result:
-        return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
-    return result
