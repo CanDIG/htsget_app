@@ -142,6 +142,82 @@ def test_index_variantfile(sample, genomic_id, genome):
         assert response.json()["genomic_id"] == genomic_id
 
 
+def test_install_public_object():
+# s3://1000genomes/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
+    headers = get_headers()
+    token = get_access_token(username=USERNAME, password=PASSWORD)
+    client = get_minio_client(token=token, s3_endpoint="http://s3.us-east-1.amazonaws.com", bucket="1000genomes", access_key=None, secret_key=None, public=True)
+    access_id = f"{client['endpoint']}/{client['bucket']}"
+    pieces = [
+        {
+            "aliases": [],
+            "checksums": [],
+            "description": "",
+            "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+            "mime_type": "application/octet-stream",
+            "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+            "size": 0,
+            "version": "v1",
+            "access_methods": [
+                {
+                    "type": "s3",
+                    "access_id": f"{access_id}/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi?public=true"
+                }
+            ]
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "description": "",
+            "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+            "mime_type": "application/octet-stream",
+            "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+            "size": 0,
+            "version": "v1",
+            "access_methods": [
+                {
+                    "type": "s3",
+                    "access_id": f"{access_id}/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz?public=true"
+                }
+            ]
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "contents": [
+              {
+                "drs_uri": [
+                  "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+                ],
+                "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+                "id": "variant"
+              },
+              {
+                "drs_uri": [
+                  "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi"
+                ],
+                "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+                "id": "index"
+              }
+            ],
+            "description": "",
+            "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
+            "mime_type": "application/octet-stream",
+            "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
+            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
+            "size": 0,
+            "version": "v1"
+        }
+    ]
+    for obj in pieces:
+        url = f"{HOST}/ga4gh/drs/v1/objects"
+        response = requests.request("POST", url, json=obj, headers=headers)
+        print(f"POST {obj['name']}: {response.text}")
+        assert response.status_code == 200
+
+
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]
 
