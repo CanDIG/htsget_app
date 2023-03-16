@@ -162,74 +162,73 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
 @app.route('/variants/search')
 def search_variants():
     req = connexion.request
-    curr_search = {}
-    if 'headers' in req.json:
-        curr_search['headers'] = req.json['headers']
-    result = {'results': []}
-    searchresults = []
-    # result['raw'] = searchresults
+    result = {
+        # 'raw': [],
+        'results': []
+    }
+    searches = []
+
+    # compile all the searches we want to perform
     if 'regions' in req.json:
         for region in req.json['regions']:
-            curr_search['region'] = {}
-            curr_search['region']['referenceName'] = database.normalize_contig(region['referenceName'])
+            curr_search = {}
+            curr_search['region'] = {
+                'referenceName': database.normalize_contig(region['referenceName'])
+            }
             if 'start' in region:
-                curr_search['region']['start'] = region['start'] - 1
+                curr_search['region']['start'] = region['start']
                 if curr_search['region']['start'] < 0:
                     curr_search['region']['start'] = 0
             if 'end' in region:
                 curr_search['region']['end'] = region['end']
-            searchresult = database.search(curr_search)
-            for res in searchresult:
-                res['region'] = curr_search['region']
-                res['orig_region'] = region
-                searchresults.append(res)
-    else:
-        searchresults.extend(database.search(curr_search))
-    # return result, 200
-    for res in searchresults:
-        drs_obj_id = res['drs_object_id']
-        count = res['variantcount']
-        auth_code = authz.is_authed(drs_obj_id, connexion.request)
-        if auth_code == 200:
+            searches.append(curr_search)
+
+    for search in searches:
+        # add back headers
+        if 'headers' in req.json:
+            search['headers'] = req.json['headers']
+        searchresults = database.search(search)
+
+        # result['raw'].append({
+        #     'params': search,
+        #     'results': searchresults
+        # })
+
+        for res in searchresults:
             htsget_obj = {
                 'format': 'vcf'
             }
-            if 'region' in res:
-                htsget_obj['region'] = res['region']
-                htsget_obj['orig_region'] = res['orig_region']
-                orig_ref_name = database.get_contig_name_in_variantfile({'refname': res['region']['referenceName'], 'variantfile_id': drs_obj_id})
-                start = None
-                if 'start' in res['region']:
-                    start = res['region']['start']
-                end = None
-                if 'end' in res['region']:
-                    end = res['region']['end']
-                htsget_obj['htsget'] = _get_htsget_url(drs_obj_id, orig_ref_name, start, end, 'variant', data=False)
-            else:
-                htsget_obj['htsget'] = {"url": _get_base_url("variant", drs_obj_id, data=False)}
-            htsget_obj['id'] = drs_obj_id
-            htsget_obj['variantcount'] = count
-            htsget_obj['genomic_id'] = database.get_variantfile(drs_obj_id)['genomic_id']
-            htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [drs_obj_id]})
-            htsget_obj['reference_genome'] = res['reference_genome']
-            result['results'].append(htsget_obj)
-
-    for res in result['results']:
-        # This is a good coarse search result, but what if the region is smaller than a bucket?
-        # We should actually grab all of the data from the drs_objects in question and count.
-        if 'region' in res:
-            if 'end' in res['region'] and 'start' in res['region'] and (res['region']['end'] - res['region']['start'] <= BUCKET_SIZE):
-                gen_obj = drs_operations._get_genomic_obj(res['id'])
-                if "message" in gen_obj:
-                    return gen_obj, 500
-                orig_ref_name = database.get_contig_name_in_variantfile({'refname': res['region']['referenceName'], 'variantfile_id': res['id']})
-                try:
-                    actual = gen_obj['file'].fetch(contig=orig_ref_name, start=res['region']['start'], end=res['region']['end'])
-                    res['variantcount'] = sum(1 for _ in actual)
-                except Exception as e:
-                    return {"message": str(e), "method": "search_variants"}, 500
-            # clean up back to the user's original requested region
-            res['region'] = res.pop('orig_region')
+            auth_code = authz.is_authed(res['drs_object_id'], connexion.request)
+            if auth_code == 200:
+                htsget_obj['id'] = res['drs_object_id']
+                htsget_obj['variantcount'] = res['variantcount']
+                htsget_obj['genomic_id'] = database.get_variantfile(res['drs_object_id'])['genomic_id']
+                htsget_obj['samples'] = database.get_samples_in_drs_objects({'drs_object_ids': [res['drs_object_id']]})
+                htsget_obj['reference_genome'] = res['reference_genome']
+                if 'region' in search:
+                    orig_ref_name = database.get_contig_name_in_variantfile({'refname': search['region']['referenceName'], 'variantfile_id': res['drs_object_id']})
+                    start = None
+                    if 'start' in search['region']:
+                        start = search['region']['start']
+                    end = None
+                    if 'end' in search['region']:
+                        end = search['region']['end']
+                    htsget_obj['htsget'] = _get_htsget_url(res['drs_object_id'], orig_ref_name, start, end, 'variant', data=False)
+                    # This is a good coarse search result, but what if the region is smaller than a bucket?
+                    # We should actually grab all of the data from the drs_objects in question and count.
+                    if start and end and (end - start <= BUCKET_SIZE):
+                        gen_obj = drs_operations._get_genomic_obj(res['drs_object_id'])
+                        if "message" in gen_obj:
+                            return gen_obj, 500
+                        try:
+                            actual = gen_obj['file'].fetch(contig=orig_ref_name, start=start, end=end)
+                            htsget_obj['variantcount'] = sum(1 for _ in actual)
+                        except Exception as e:
+                            return {"message": str(e), "method": "search_variants"}, 500
+                else:
+                    htsget_obj['htsget'] = {"url": _get_base_url("variant", res['drs_object_id'], data=False)}
+                if htsget_obj['variantcount'] > 0:
+                    result['results'].append(htsget_obj)
 
     auth_code = 200
     return result, auth_code
