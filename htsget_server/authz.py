@@ -23,7 +23,7 @@ def is_authed(id_, request):
         return 200
     if "Authorization" in request.headers:
         authed_datasets = get_authorized_datasets(request)
-        obj= database.get_drs_object(id_)
+        obj = database.get_drs_object(id_)
         if obj is not None and 'datasets' in obj:
             for dataset in obj["datasets"]:
                 if dataset in authed_datasets:
