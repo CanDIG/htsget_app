@@ -125,7 +125,7 @@ def test_post_update():
 
 
 def index_variants():
-    return [('sample.compressed', None, 'hg37'), ('NA18537', None, 'hg37'), ('multisample_1', 'HG00096', 'hg37'), ('multisample_2', 'HG00097', 'hg37')]
+    return [('sample.compressed', None, 'hg37'), ('NA18537', None, 'hg37'), ('multisample_1', 'HG00096', 'hg37'), ('multisample_2', 'HG00097', 'hg37'), ('test', 'BIOCAN_00097', 'hg38')]
 
 
 @pytest.mark.parametrize('sample, genomic_id, genome', index_variants())
@@ -778,6 +778,61 @@ def drs_objects():
             "self_uri": "drs://localhost/NA02102",
             "size": 0,
             "updated_time": "2021-09-27T18:58:56.663442",
+            "version": "v1"
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "created_time": "2021-09-27T18:40:00.538843",
+            "description": "",
+            "id": "test.vcf.gz.tbi",
+            "mime_type": "application/octet-stream",
+            "name": "test.vcf.gz.tbi",
+            "self_uri": "drs://localhost/test.vcf.gz.tbi",
+            "size": 0,
+            "updated_time": "2021-09-27T18:40:00.539022",
+            "version": "v1"
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "created_time": "2021-09-27T18:40:00.538843",
+            "description": "",
+            "id": "test.vcf.gz",
+            "mime_type": "application/octet-stream",
+            "name": "test.vcf.gz",
+            "self_uri": "drs://localhost/test.vcf.gz",
+            "size": 0,
+            "updated_time": "2021-09-27T18:40:00.539022",
+            "version": "v1"
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "contents": [
+                {
+                    "drs_uri": [
+                        "drs://localhost/test.vcf.gz"
+                    ],
+                    "name": "test.vcf.gz",
+                    "id": "variant"
+                },
+                {
+                    "drs_uri": [
+                        "drs://localhost/test.vcf.gz.tbi"
+                    ],
+                    "name": "test.vcf.gz.tbi",
+                    "id": "index"
+                }
+            ],
+            "created_time": "2021-09-27T18:40:00.538843",
+            "description": "",
+            "id": "test",
+            "mime_type": "application/octet-stream",
+            "name": "test",
+            "self_uri": "drs://localhost/test",
+            "size": 0,
+            "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
         }
     ]
