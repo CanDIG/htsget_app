@@ -1,0 +1,1106 @@
+info:
+  contact:
+    email: beacon@ga4gh.org
+  description: TBD
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: GA4GH Beacon API Specification - Genomic Variations Endpoints
+  version: '2.0.0'
+openapi: 3.0.2
+servers:
+- url: /beacon/v2
+paths:
+  /service-info:
+    get:
+      description: Get information about the beacon using GA4GH ServiceInfo format
+      operationId: beacon_operations.get_beacon_service_info
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: A way for a service to describe basic metadata concerning a service alongside a set of capabilities and/or limitations of the service. More information on [GitHub](https://github.com/ga4gh-discovery/ga4gh-service-info/).
+                properties:
+                  contactUrl:
+                    description: URL of the contact for the provider of this service, e.g. a link to a contact form (RFC 3986 format), or an email (RFC 2368 format).
+                    example: mailto:support@example.com
+                    format: uri
+                    type: string
+                  createdAt:
+                    description: Timestamp describing when the service was first deployed and available (RFC 3339 format)
+                    example: '2019-06-04T12:58:19Z'
+                    format: date-time
+                    type: string
+                  description:
+                    description: Description of the service. Should be human readable and provide information about the service.
+                    example: This service provides...
+                    type: string
+                  documentationUrl:
+                    description: URL of the documentation of this service (RFC 3986 format). This should help someone learn how to use your service, including any specifics required to access data, e.g. authentication.
+                    example: https://docs.myservice.example.com
+                    format: uri
+                    type: string
+                  environment:
+                    description: Environment the service is running in. Use this to distinguish between production, development and testing/staging deployments. Suggested values are prod, test, dev, staging. However this is advised and not enforced.
+                    example: test
+                    type: string
+                  id:
+                    description: Unique ID of this service. Reverse domain name notation is recommended, though not required. The identifier should attempt to be globally unique so it can be used in downstream aggregator services e.g. Service Registry.
+                    example: org.ga4gh.myservice
+                    type: string
+                  name:
+                    description: Name of this service. Should be human readable.
+                    example: My project
+                    type: string
+                  organization:
+                    description: Organization providing the service
+                    properties:
+                      name:
+                        description: Name of the organization responsible for the service
+                        example: My organization
+                        type: string
+                      url:
+                        description: URL of the website of the organization (RFC 3986 format)
+                        example: https://example.com
+                        format: uri
+                        type: string
+                    required:
+                      - name
+                      - url
+                    type: object
+                  type:
+                    description: Type of a GA4GH service
+                    properties:
+                      artifact:
+                        description: Name of the API or GA4GH specification implemented. Official GA4GH types should be assigned as part of standards approval process. Custom artifacts are supported.
+                        example: beacon
+                        type: string
+                      group:
+                        description: Namespace in reverse domain name format. Use `org.ga4gh` for implementations compliant with official GA4GH specifications. For services with custom APIs not standardized by GA4GH, or implementations diverging from official GA4GH specifications, use a different namespace (e.g. your organization's reverse domain name).
+                        example: org.ga4gh
+                        type: string
+                      version:
+                        description: Version of the API or specification. GA4GH specifications use semantic versioning.
+                        example: 1.0.0
+                        type: string
+                    required:
+                      - group
+                      - artifact
+                      - version
+                    type: object
+                  updatedAt:
+                    description: Timestamp describing when the service was last updated (RFC 3339 format)
+                    example: '2019-06-04T12:58:19Z'
+                    format: date-time
+                    type: string
+                  version:
+                    description: Version of the service being described. Semantic versioning is recommended, but other identifiers, such as dates or commit hashes, are also allowed. The version should be changed whenever the service is updated.
+                    example: 1.0.0
+                    type: string
+                required:
+                  - id
+                  - name
+                  - type
+                  - organization
+                  - version
+                title: GA4GH service-info API specification
+                type: object
+          description: Successful operation
+      tags:
+        - Informational endpoints
+  /g_variants:
+    get:
+      description: Search for variants
+      operationId: beacon_operations.get_search
+      parameters:
+        - $ref: '#/components/parameters/skip'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/includeResultsetResponses'
+        - $ref: '#/components/parameters/start'
+        - $ref: '#/components/parameters/end'
+        - $ref: '#/components/parameters/assemblyId'
+        - $ref: '#/components/parameters/referenceName'
+        - $ref: '#/components/parameters/referenceBases'
+        - $ref: '#/components/parameters/alternateBases'
+        - $ref: '#/components/parameters/variantMinLength'
+        - $ref: '#/components/parameters/variantMaxLength'
+        - $ref: '#/components/parameters/genomicAlleleShortForm'
+        - $ref: '#/components/parameters/geneId'
+        - $ref: '#/components/parameters/filters'
+      responses:
+        '200':
+          $ref: '#/components/responses/ResultsOKResponse'
+        default:
+          $ref: '#/components/responses/BeaconErrorResponse'
+      tags:
+        - GET Endpoints
+    post:
+      description: Search for variants
+      operationId: beacon_operations.post_search
+      requestBody:
+        $ref: '#/components/requestBodies/BeaconRequestBody'
+      responses:
+        '200':
+          $ref: '#/components/responses/ResultsOKResponse'
+        default:
+          $ref: '#/components/responses/BeaconErrorResponse'
+      tags:
+        - POST Endpoints
+components:
+  parameters:
+    alternateBases:
+      in: query
+      name: alternateBases
+      schema:
+        type: string
+    aminoacidChange:
+      example: V600E
+      in: query
+      name: aminoacidChange
+      schema:
+        type: string
+    assemblyId:
+      in: query
+      name: assemblyId
+      schema:
+        type: string
+    end:
+      in: query
+      name: end
+      schema:
+        type: integer
+    entryId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+    filters:
+      in: query
+      name: filters
+      schema:
+        type: array
+        items:
+          type: string
+    geneId:
+      example: BRAF
+      in: query
+      name: geneId
+      schema:
+        type: string
+    genomicAlleleShortForm:
+      example: NM_004006.2:c.4375C>T
+      in: query
+      name: allele
+      schema:
+        type: string
+    includeResultsetResponses:
+      in: query
+      name: includeResultsetResponses
+      schema:
+        $ref: '#/components/schemas/IncludeResultsetResponses'
+    limit:
+      in: query
+      name: limit
+      schema:
+        $ref: '#/components/schemas/Limit'
+    referenceBases:
+      in: query
+      name: referenceBases
+      schema:
+        type: string
+    referenceName:
+      in: query
+      name: referenceName
+      schema:
+        type: string
+    skip:
+      in: query
+      name: skip
+      schema:
+        $ref: '#/components/schemas/Skip'
+    start:
+      in: query
+      name: start
+      schema:
+        type: integer
+    variantMaxLength:
+      in: query
+      name: variantMaxLength
+      schema:
+        format: int64
+        minimum: 0
+        type: integer
+    variantMinLength:
+      in: query
+      name: variantMinLength
+      schema:
+        format: int64
+        minimum: 0
+        type: integer
+  requestBodies:
+    BeaconRequestBody:
+      content:
+        'application/json':
+          schema:
+            type: object
+            description: Schema for the Beacon request. It is named `RequestBody` to keep the same nomenclature used by OpenAPI v3, but it actually contains the definition of the whole HTTP POST request payload.
+            properties:
+              meta:
+                $ref: '#/components/schemas/BeaconRequestMeta'
+              query:
+                $ref: '#/components/schemas/BeaconQuery'
+            required:
+              - meta
+              - query
+  responses:
+    ResultsOKResponse:
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/BeaconBooleanResponseBody"
+              - $ref: "#/components/schemas/BeaconCountResponseBody"
+              - $ref: "#/components/schemas/BeaconResultsetsResponseBody"
+      description: Successful operation.
+    BeaconErrorResponse:
+      description: An unsuccessful operation.
+      content:
+        application/json:
+          schema:
+            properties:
+              error:
+                description: Beacon-specific error.
+                properties:
+                  errorCode:
+                    description: Entry not found
+                    format: int32
+                    type: integer
+                  errorMessage:
+                    type: string
+                required:
+                  - errorCode
+                type: object
+              meta:
+                $ref: '#/components/schemas/BeaconResponseMeta'
+            required:
+              - meta
+              - error
+            type: object
+  schemas:
+    BeaconBooleanResponseBody:
+      description: Complete definition for a minimal response that provides *only* a `Boolean` exists true|false answer.
+      properties:
+        beaconHandovers:
+          $ref: '#/components/schemas/ListOfHandovers'
+        info:
+          $ref: '#/components/schemas/Info'
+        meta:
+          $ref: '#/components/schemas/BeaconResponseMeta'
+        responseSummary:
+          description: Boolean (true/false) response section.
+          properties:
+            exists:
+              $ref: '#/components/schemas/Exists'
+          required:
+            - exists
+          type: object
+      required:
+        - meta
+        - responseSummary
+      type: object
+    BeaconCountResponseBody:
+      description: Complete definition for a response that does not include record level details but provides `Boolean` and `count` information.
+      properties:
+        beaconHandovers:
+          $ref: '#/components/schemas/ListOfHandovers'
+        info:
+          $ref: '#/components/schemas/Info'
+        meta:
+          $ref: '#/components/schemas/BeaconResponseMeta'
+        responseSummary:
+          $ref: '#/components/schemas/BeaconCountResponseSection'
+      required:
+        - meta
+        - responseSummary
+      type: object
+    BeaconResultsetsResponseBody:
+      description: Beacon response that includes record level details, grouped in Resultsets.
+      properties:
+        beaconHandovers:
+          $ref: '#/components/schemas/ListOfHandovers'
+        info:
+          $ref: '#/components/schemas/Info'
+        meta:
+          $ref: '#/components/schemas/BeaconResponseMeta'
+        response:
+          $ref: '#/components/schemas/BeaconResultsets'
+        responseSummary:
+          $ref: '#/components/schemas/BeaconSummaryResponseSection'
+      required:
+        - meta
+        - responseSummary
+        - response
+      type: object
+    AlternateBases:
+      description: |-
+        Alternate bases for this variant (starting from `start`). * Accepted values: `[ACGTN]*` * N is a wildcard, that denotes the position of any base,
+          and can be used as a standalone base of any type or within a partially known
+          sequence. As example, a query of `ANNT` the Ns can take take any form of [ACGT]
+          and will match `ANNT`, `ACNT`, `ACCT`, `ACGT` ... and so forth.
+        * an *empty value* is used in the case of deletions with the maximally trimmed,
+          deleted sequence being indicated in `ReferenceBases`
+        * Categorical variant queries, e.g. such *not* being represented through
+          sequence & position, make use of the `variantType` parameter.
+        * either `alternateBases` or `variantType` is required.
+      pattern: ^([ACGTUNRYSWKMBDHV\-\.]*)$
+      type: string
+    Assembly:
+      description: Genomic assembly accession and version as RefSqeq assembly accession (e.g. "GCF_000001405.39") or a versioned assembly name or synonym such as UCSC Genome Browser assembly (e.g. "hg38") or Genome Reference Consortium Human (e.g. "GRCh38.p13") names.
+      default: hg38
+      example:
+        - GCF_000001405.39
+        - hg38
+        - GRCh38.p13
+      type: string
+    RefSeqId:
+      description: Reference sequence id for genomic reference sequence in which variant coordinates are given, e.g. "refseq:NC_000009.12" for human chromosome 9 in the GRCh38 assembly. The use of the assembly specific RefSeqId is recommended although alternatively names, synonymous or aliases e.g. "chr9" could be used in conjunction with an `Assembly` parameter.
+      example:
+        - refseq:NC_000009.12
+        - chr9
+        - NC_012920.1
+      type: string
+    ReferenceBases:
+      description: |-
+        Reference bases for this variant (starting from `start`). * Accepted values: `[ACGTN]*` * N is a wildcard, that denotes the position of any base,
+          and can be used as a standalone base of any type or within a partially known
+          sequence. As example, a query of `ANNT` the Ns can take take any form of [ACGT]
+          and will match `ANNT`, `ACNT`, `ACCT`, `ACGT` ... and so forth.
+        * an *empty value* is used in the case of insertions with the maximally trimmed, inserted
+          sequence being indicated in `AlternateBases`
+      pattern: ^([ACGTUNRYSWKMBDHV\-\.]*)$
+      type: string
+    BeaconQuery:
+      description: Parameters to limit the list of returned results.
+      type: object
+      properties:
+        includeResultsetResponses:
+          $ref: '#/components/schemas/IncludeResultsetResponses'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        requestParameters:
+          $ref: '#/components/schemas/RequestParameters'
+        requestedGranularity:
+          $ref: '#/components/schemas/Granularity'
+        testMode:
+          $ref: '#/components/schemas/TestMode'
+    ApiVersion:
+      description: Version of API, e.g. in request or response. Beacon uses a Github-style, "v"-prefixed semantic versioning format.
+      type: string
+    BeaconId:
+      description: The Id of a Beacon. Usually a reversed domain string, but any URI is acceptable. The purpose of this attribute is, in the context of a Beacon network, to disambiguate responses coming from different Beacons.
+      type: string
+    Exists:
+      description: Indicator of whether any record was observed in any of the collections queried. This should be non-null.
+      type: boolean
+    Filters:
+      description: Ontology based filters. A CURIE syntax is encouraged to be used.
+      example:
+        - BTO:0000199
+        - PATO:0000383
+      items:
+        type: string
+      type: array
+    Granularity:
+      default: boolean
+      description: |-
+        Level of detail of the response:
+        * `boolean`: returns true/false' responses * `count`: adds the total number of positive results found * `aggregated`: returns summary, aggregated or distribution like responses * `record`: returns details for every row. In cases where a Beacon prefers to return records with fewer than allattributes, different strategies have to be considered w/o adding them to the current design, e.g.:
+            - keeping non-mandatory attributes empty
+            - Beacon to provide a minimal record definition
+      enum:
+        - boolean
+        - count
+        - aggregated
+        - record
+      type: string
+    Handover:
+      description: |-
+        A handover is a typed link for attaching actionable links to results, non purely informational, requests. The goal of the handovers is to list the different actions available, e.g.:
+        * a link to a request access page * linking to a file for download, e.g. a VCF file
+        Another common scenario is to provide a fast summary response (e.g. BeconCountResponse) and to provide access to different endpoints for the entities matched by the query using temporary access tokens in the handover URLs.
+      properties:
+        handoverType:
+          $ref: '#/components/schemas/HandoverType'
+        note:
+          description: An optional text including considerations on the handover link provided.
+          example: This handover link provides access to a summarized VCF.
+          type: string
+        url:
+          description: URL endpoint to where the handover process could progress, in RFC3986 format
+          example: https://api.mygenomeservice.org/Handover/9dcc48d7-fc88-11e8-9110-b0c592dbf8c0/
+          format: uri
+          type: string
+      required:
+        - handoverType
+        - url
+      type: object
+    HandoverType:
+      type: object
+      description: in our context, only htsget urls should be returned
+      properties:
+        id:
+          type: string
+          enum:
+            - CUSTOM
+        label:
+          type: string
+          enum:
+            - HTSGET
+    IncludeResultsetResponses:
+      default: HIT
+      description: Indicator of whether responses from every Resultset should be included in the response to this request or just the ones with positive, negative results or no details at all. If null (not specified), the default value of 'HIT' is assumed. This parameter allows for returning boolean/counting results although the Beacon instance is capable to return record level details.
+      enum:
+        - ALL
+        - HIT
+        - MISS
+        - NONE
+      type: string
+    Info:
+      description: Placeholder to allow the Beacon to return any additional information that is necessary or could be of interest in relation to the query or the entry returned. It is recommended to encapsulate additional informations in this attribute instead of directly adding attributes at the same level than the others in order to avoid collision in the names of attributes in future versions of the specification.
+      type: object
+    Limit:
+      default: 10
+      description: Size of the page. Use `0` to return all the results or the maximum allowed by the Beacon, if there is any.
+      example: 10
+      minimum: 0
+      type: integer
+    ListOfHandovers:
+      description: Set of handovers to be added in one section the response.
+      items:
+        $ref: '#/components/schemas/Handover'
+      type: array
+    ListOfSchemas:
+      description: Set of schemas to be used in the response to a request.
+      items:
+        $ref: '#/components/schemas/SchemasPerEntity'
+      type: array
+    NumTotalResults:
+      description: Total number of results. NOT the number of results returned in this batch (after pagination) but the total obtained by the query.
+      minimum: 0
+      type: integer
+    PageToken:
+      description: A hash or similar that allows the server to retrieve a "page", e.g. (a subset of) a query response.
+      example: ab0sc&fe1dd
+      type: string
+    Pagination:
+      description: Pagination to apply or that has been applied on the results.
+      properties:
+        currentPage:
+          $ref: '#/components/schemas/PageToken'
+        limit:
+          $ref: '#/components/schemas/Limit'
+        nextPage:
+          $ref: '#/components/schemas/PageToken'
+        previousPage:
+          $ref: '#/components/schemas/PageToken'
+        skip:
+          $ref: '#/components/schemas/Skip'
+      type: object
+    SchemasPerEntity:
+      description: Schema to be used for the requested entry type in the response.
+      properties:
+        entityType:
+          example: Individual
+          type: string
+        schema:
+          type: string
+      type: object
+    Skip:
+      default: 0
+      description: '* In the request: number of pages to skip * In the response: number of pages that has been skipped'
+      example: 0
+      minimum: 0
+      type: integer
+    TestMode:
+      default: false
+      description: Used for indicating that a request or response is done in a test context e.g. for compliance testing i.e. to evaluate the acceptance/understanding of a request and the structure of the returned response by the Beacon instance. A TRUE `testMode` parameter DOES NOT require that the Beacon instance is a test instance, but that this specific request-response cycle is a testing one. When `true` the Beacon instance MUST respond the request but it SHOULD use virtual or non-sensitive data. Here, what is being evaluated is the acceptance/understanding of a request and the structure of the returned response by the Beacon instance.
+      type: boolean
+    BeaconResponseMeta:
+      description: Information about the response that could be relevant for the Beacon client in order to interpret the results.
+      properties:
+        apiVersion:
+          $ref: '#/components/schemas/ApiVersion'
+        beaconId:
+          $ref: '#/components/schemas/BeaconId'
+        receivedRequestSummary:
+          $ref: '#/components/schemas/BeaconReceivedRequestSummary'
+        returnedGranularity:
+          $ref: '#/components/schemas/Granularity'
+        returnedSchemas:
+          $ref: '#/components/schemas/ListOfSchemas'
+        testMode:
+          $ref: '#/components/schemas/TestMode'
+      required:
+        - beaconId
+        - apiVersion
+        - returnedSchemas
+        - returnedGranularity
+        - receivedRequestSummary
+      type: object
+    BeaconRequestMeta:
+      description: Meta section of the Beacon request. It includes request context details relevant for the Beacon server when processing the request.
+      properties:
+        apiVersion:
+          $ref: '#/components/schemas/ApiVersion'
+        requestedSchemas:
+          $ref: '#/components/schemas/ListOfSchemas'
+      required:
+        - apiVersion
+      type: object
+    ResultsetInstance:
+      additionalProperties: true
+      properties:
+        exists:
+          type: boolean
+        id:
+          description: id of the resultset
+          example: datasetA
+          type: string
+        info:
+          description: Additional details that could be of interest about the Resultset. Provided to clearly enclose any attribute that is not part of the Beacon specification.
+          type: object
+        results:
+          items:
+            $ref: '#/components/schemas/GenomicVariant'
+          minItems: 0
+          type: array
+        resultsCount:
+          description: Number of results in this Resultset.
+          type: integer
+        resultsHandovers:
+          $ref: '#/components/schemas/ListOfHandovers'
+        setType:
+          default: dataset
+          description: Entry type of resultSet. It SHOULD MATCH an entry type declared as collection in the Beacon configuration.
+          type: string
+      required:
+        - id
+        - setType
+        - exists
+        - resultsCount
+        - results
+    BeaconResultsets:
+      additionalProperties: true
+      description: Sets of results to be returned as query response.
+      properties:
+        resultSets:
+          items:
+            $ref: '#/components/schemas/ResultsetInstance'
+          minItems: 0
+          type: array
+      required:
+        - resultSets
+      title: Beacon ResultSet
+      type: object
+    BeaconCountResponseSection:
+      description: Payload definition for the "count" response.
+      properties:
+        exists:
+          $ref: '#/components/schemas/Exists'
+        numTotalResults:
+          $ref: '#/components/schemas/NumTotalResults'
+      required:
+        - exists
+        - numTotalResults
+      type: object
+    BeaconSummaryResponseSection:
+      description: Beacon results summary section.
+      properties:
+        exists:
+          $ref: '#/components/schemas/Exists'
+        numTotalResults:
+          $ref: '#/components/schemas/NumTotalResults'
+      required:
+        - exists
+      type: object
+    BeaconReceivedRequestSummary:
+      description: >-
+        Section of the response that summarize the request received as it has
+        been interpreted by the Beacon server. This summary can help to identify
+        differences between the incoming request and its interpretation or processing,
+        e.g. in the response granularity or pagination.
+        The required properties include those that should be part of every request.
+      type: object
+      properties:
+        apiVersion:
+          $ref: '#/components/schemas/ApiVersion'
+        requestedSchemas:
+          $ref: '#/components/schemas/ListOfSchemas'
+        filters:
+          $ref: '#/components/schemas/Filters'
+        requestParameters:
+          $ref: '#/components/schemas/RequestParameters'
+        includeResultsetResponses:
+          $ref: '#/components/schemas/IncludeResultsetResponses'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        requestedGranularity:
+          $ref: '#/components/schemas/Granularity'
+        testMode:
+          $ref: '#/components/schemas/TestMode'
+      required:
+        - apiVersion
+        - requestedSchemas
+        - pagination
+        - requestedGranularity
+    RequestParameters:
+      properties:
+        alternateBases:
+          $ref: '#/components/schemas/AlternateBases'
+        aminoacidChange:
+          description: Aminoacid alteration of interest. Format 1 letter, e.g. "V600E"
+          type: string
+        assemblyId:
+          $ref: '#/components/schemas/Assembly'
+        end:
+          description: 'Precise or bracketing the end of the variants of interest: * (0-based, exclusive) - see `start` * for bracket queries, provide 2 values (e.g. [111,222])."'
+          items:
+            format: int64
+            minimum: 1
+            type: integer
+          maxItems: 2
+          minItems: 0
+          type: array
+        geneId:
+          description: |-
+            * A gene identifier * It is strongly suggested to use a symbol following
+              the HGNC (https://www.genenames.org) nomenclature.
+          type: string
+        genomicAlleleShortForm:
+          description: HGVSId descriptor, e.g. NC_000017.11:g.43057063G>A
+          type: string
+        # mateName:
+        #   $ref: '#/components/schemas/RefSeqId'
+        referenceBases:
+          $ref: '#/components/schemas/ReferenceBases'
+        referenceName:
+          $ref: '#/components/schemas/RefSeqId'
+        start:
+          description: |-
+            Precise or fuzzy start coordinate position(s), allele locus (0-based, inclusive). * `start` only:
+              - for single positions, e.g. the start of a specified sequence
+                alteration where the size is given through the specified `alternateBases`
+              - typical use are queries for SNV and small InDels
+              - the use of `start` without an `end` parameter requires the use of
+                `alternateBases`
+            * `start` and `end`:
+              - for searching any variant falling fully or partially within the range
+                between `start` and `end` (a.k.a. "range query")
+              - additional use of `variantType` OR `alternateBases` can limit the
+                scope of the query
+              - by convention, partial overlaps of variants with the indicated genomic
+                range are accepted; for specific overlap requirements the 4-parameter
+                "Bracket Queries" should be employed
+            * 2 values in both `start` and `end` for constructing a "Bracket Query":
+              - can be used to match any contiguous genomic interval, e.g. for querying
+                imprecise positions
+              - identifies all structural variants starting between `start[0]` and `start[1]`,
+                and ending between `end[0]` <-> `end[1]`
+              - single or double sided precise matches can be achieved by setting
+                `start[1]=start[0]+1` and `end[1]=end[0]+1`
+          items:
+            format: int64
+            minimum: 0
+            type: integer
+          maxItems: 2
+          minItems: 1
+          type: array
+        variantMaxLength:
+          description: |-
+            * Maximum length in bases of a genomic variant. * This is an optional parameter without prescribed use. While a length is
+              commonly available for structural variants such as copy number variations,
+              it is recommended that length based queries should also be supported for
+              variants with indicated referenceBases and alternateBases, to enable
+              length-specific wildcard queries.
+          format: int64
+          minimum: 1
+          type: integer
+        variantMinLength:
+          description: |-
+            * Minimum length in bases of a genomic variant * This is an optional parameter without prescribed use. While a length is
+              commonly available for structural variants such as copy number variations,
+              it is recommended that length based queries should also be supported for
+              variants with indicated referenceBases and alternateBases, to enable
+              length-specific wildcard queries.
+          format: int64
+          minimum: 0
+          type: integer
+        variantType:
+          description: |-
+            The `variantType` is used to query variants which are not defined through a sequence of one or more bases using the `alternateBases` parameter. Examples here are e.g. structural variants: * DUP
+              - increased allelic count of material from the genomic region between
+                `start` and `end` positions
+              - no assumption about the placement of the additional sequences is being
+                made (i.e. no _in situ_ requirement as tandem duplications)
+            * DEL: deletion of sequence following `start` The Beacon model is not prescriptive with regard to the values allowed for `variantType` with use of extended types (such as from `EFO:0030063`) being possible. However, a support for the basic CNV types above - where represented in the data - is recommended. Either `alternateBases` or `variantType` is required, with the exception of range queries (single `start` and `end` parameters).
+          type: string
+      type: object
+    Identifiers:
+      properties:
+        clinvarVariantId:
+          description: ClinVar variant id. Other id values used by ClinVar can be added to `variantAlternativeIds`
+          pattern: ^(clinvar:)?\d+$
+          type: string
+        genomicHGVSId:
+          description: HGVSId descriptor.
+          type: string
+        proteinHGVSIds:
+          description: List of HGVSId descriptor(s) at protein level (for protein-altering variants).
+          items:
+            type: string
+          type: array
+        transcriptHGVSIds:
+          description: List of HGVSId descriptor(s) at transcript level.
+          items:
+            type: string
+          type: array
+        variantAlternativeIds:
+          description: List of cross-referencing ID(s), for the variant in other databases (e.g. dbSNP, ClinVar, ClinGen, COSMIC), as `externalReferences` with CURIE(s).
+          items:
+            type: object
+          type: array
+      type: object
+    PhenoClinicEffect:
+      description: List of annotated effects on disease or phenotypes.
+      properties:
+        annotatedWith:
+          $ref: '#/components/schemas/SoftwareTool'
+        category:
+          $ref: '#/components/schemas/OntologyTerm'
+          description: Ontology term for the type of disease, condition, phenotypic measurement, etc.
+        clinicalRelevance:
+          description: 'Indication of the clinical relevance of the variant Recommended: A value from the five-tiered classification from the American College of Medical Genetics (ACMG) designed to describe the likelihood that a genomic sequence variant is causative of an inherited disease. (NCIT:C168798).'
+          enum:
+            - benign
+            - likely benign
+            - uncertain significance
+            - likely pathogenic
+            - pathogenic
+          example: pathogenic
+          type: string
+        conditionId:
+          description: Internal identifier of the phenotype or clinical effect.
+          type: string
+        effect:
+          $ref: '#/components/schemas/OntologyTerm'
+          description: Ontology term for the phenotypic or clinical effect
+          examples:
+            - id: MONDO:0003582
+              label: hereditary breast ovarian cancer syndrome
+            - id: HP:0000256
+              label: macrocephaly
+        evidenceType:
+          $ref: '#/components/schemas/OntologyTerm'
+          description: 'Ontology term for the type of evidence supporting variant-disease association Recommended: values from the Evidence & Conclusion Ontology (ECO)'
+          examples:
+            - id: ECO:0000361
+              label: inferential evidence
+            - id: ECO:0000006
+              label: experimental evidence
+      required:
+        - conditionId
+        - effect
+      type: object
+    SoftwareTool:
+      properties:
+        toolName:
+          description: Name of the tool.
+          type: string
+        toolReferences:
+          additionalProperties: true
+          description: References to the tool
+          minProperties: 1
+          properties: {}
+          type: object
+        version:
+          description: Version used.
+          type: string
+      required:
+        - toolName
+        - version
+        - toolReferences
+      type: object
+    VariantLevelData:
+      properties:
+        clinicalInterpretations:
+          items:
+            $ref: '#/components/schemas/PhenoClinicEffect'
+          type: array
+        phenotypicEffects:
+          items:
+            $ref: '#/components/schemas/PhenoClinicEffect'
+          type: array
+      type: object
+    GenomicVariant:
+      description: Schema for a genomic variant entry. In this case, each GenomicVariant represents a single alternate allele, with the reference allele assumed from the reference sequence.
+      properties:
+        caseLevelData:
+          description: caseLevelData reports about the variation instances observed in individual analyses.
+          items:
+            properties:
+              alleleOrigin:
+                $ref: '#/components/schemas/OntologyTerm'
+                description: Ontology value for allele origin of variant in sample from the Variant Origin (SO:0001762). Categories are `somatic variant`, `germline variant`, `maternal variant`, `paternal variant`, `de novo variant`, `pedigree specific variant`, `population specific variant`. Corresponds to Variant Inheritance in FHIR.
+                examples:
+                  - id: SO:0001777
+                    label: somatic variant
+                  - id: SO:0001778
+                    label: germline variant
+                  - id: SO:0001781
+                    label: de novo variant
+              analysisId:
+                description: Reference to the bioinformatics analysis ID (`analysis.id`)
+                type: string
+              biosampleId:
+                description: Reference to biosample ID (`biosample.id`)
+                type: string
+              clinicalInterpretations:
+                items:
+                  $ref: '#/components/schemas/PhenoClinicEffect'
+                type: array
+              id:
+                description: Internal id of this case level *instance* of the variant. This is an optional housekeeping parameter and should not be confused with the identifier of the variant (`variantInternalId`).
+                type: string
+              individualId:
+                description: Reference to individual ID (`individual.id`)
+                type: string
+              phenotypicEffects:
+                items:
+                  $ref: '#/components/schemas/PhenoClinicEffect'
+                type: array
+              runId:
+                description: Reference to the experimental run ID (`run.id`)
+                type: string
+              genotype:
+                type: object
+                properties:
+                  zygosity:
+                    $ref: '#/components/schemas/OntologyTerm'
+                    description: Ontology term for zygosity in which variant is present in the sample from the Zygosity Ontology (GENO:0000391) , e.g `heterozygous` (GENO:0000135)
+                    examples:
+                      - id: GENO:0000458
+                        label: simple heterozygous
+                      - id: GENO:0000402
+                        label: compound heterozygous
+                      - id: GENO:0000136
+                        label: homozygous
+                  value:
+                    type: string
+                    description: VCF GT-style value, e.g. 0/0, 1|2
+                  secondaryAlleleIds:
+                    type: array
+                    description: variantInternalIds of the other allele(s) present in this genotype
+                    items:
+                      type: string
+                required:
+                  - zygosity
+            required:
+              - biosampleId
+            type: object
+          type: array
+        identifiers:
+          $ref: '#/components/schemas/Identifiers'
+        molecularAttributes:
+          properties:
+            aminoacidChanges:
+              description: List of change(s) at aminoacid level for protein affecting variants.
+              items:
+                type: string
+              type: array
+            geneIds:
+              items:
+                type: string
+              type: array
+            genomicFeatures:
+              items:
+                description: 'Genomic feature(s) related to the variant. NOTE: Although genes could also be referenced using these attributes, they have an independent section to allow direct queries.'
+                properties:
+                  featureClass:
+                    $ref: '#/components/schemas/OntologyTerm'
+                    description: 'Ontology term that describes the class of genomic feature affected by the variant. Values from SO (Sequence ontology) are recommended, e.g. `SO:0001623: 5 prime UTR variant`'
+                    examples:
+                      - id: SO:0001623
+                        label: 5 prime UTR variant
+                  featureID:
+                    $ref: '#/components/schemas/OntologyTerm'
+                    description: Where applicable, ID/accession/name of genomic feature related to the `featureClass`, preferably in CURIE format. If the value is a gene id or name, it points to the gene related to the `featureClass`, e.g. `the 5 prime UTR upstream of TP53`
+                    examples:
+                      - id: HGNC:11998
+                        label: TP53
+                required:
+                  - featureClass
+                type: object
+              type: array
+            molecularEffects:
+              description: 'Ontology term that includes describes the class of molecular consequence generated by the variant. Values from SO (Sequence Ontology) are recommended, e.g.  `SO:0001583: missense variant`.'
+              items:
+                $ref: '#/components/schemas/OntologyTerm'
+              type: array
+          type: object
+        variantInternalId:
+          description: Reference to the **internal** variant ID. This represents the primary key/identifier of that variant **inside** a given Beacon instance. Different Beacon instances may use identical id values, referring to unrelated variants. Public identifiers such as the GA4GH Variant Representation Id (VRSid) MUST be returned in the `identifiers` section. A Beacon instance can, of course, use the VRSid as their own internal id but still MUST represent this then in the `identifiers` section.
+          type: string
+        variantLevelData:
+          $ref: '#/components/schemas/VariantLevelData'
+        variation:
+          $ref: '#/components/schemas/MolecularVariation'
+      required:
+        - variantInternalId
+        - variation
+      title: Genomic Variation
+      type: object
+    Number:
+      description: A simple integer value as a VRS class.
+      type: object
+      properties:
+        type:
+          type: string
+          default: Number
+          description: MUST be "Number"
+        value:
+          type: integer
+          description: The value represented by Number
+      required:
+        - type
+        - value
+      additionalProperties: false
+    DefiniteRange:
+      description: A bounded, inclusive range of numbers.
+      type: object
+      properties:
+        type:
+          type: string
+          default: DefiniteRange
+          description: MUST be "DefiniteRange"
+        min:
+          type: number
+          description: The minimum value; inclusive
+        max:
+          type: number
+          description: The maximum value; inclusive
+      required:
+        - max
+        - min
+        - type
+      additionalProperties: false
+    IndefiniteRange:
+      description: 'A half-bounded range of numbers represented as a number bound and associated comparator. The bound operator is interpreted as follows: ''>='' are all numbers greater than and including `value`, ''<='' are all numbers less than and including `value`.'
+      type: object
+      properties:
+        type:
+          type: string
+          default: IndefiniteRange
+          description: MUST be "IndefiniteRange"
+        value:
+          type: number
+          description: The bounded value; inclusive
+        comparator:
+          type: string
+          enum:
+            - <=
+            - '>='
+          description: MUST be one of "<=" or ">=", indicating which direction the range is indefinite
+      required:
+        - comparator
+        - type
+        - value
+      additionalProperties: false
+    CURIE:
+      description: A [W3C Compact URI](https://www.w3.org/TR/curie/) formatted string. A CURIE string has the structure ``prefix``:``reference``, as defined by the W3C syntax.
+      type: string
+      pattern: ^\w[^:]*:.+$
+      example: ensembl:ENSG00000139618
+    OntologyTerm:
+      additionalProperties: true
+      description: Definition of an ontology term.
+      properties:
+        id:
+          $ref: "#/components/schemas/CURIE"
+        label:
+          description: The text that describes the term. By default it could be the preferred text of the term, but is it acceptable to customize it for a clearer description and understanding of the term in an specific context.
+          type: string
+      required:
+        - id
+      title: Ontology Term
+      type: object
+    MolecularVariation:
+      description: A variation on a contiguous molecule.
+      $ref: '#/components/schemas/Allele'
+    Location:
+      type: object
+      description: A Location defined by an interval on a referenced Sequence.
+      properties:
+        type:
+          type: string
+          default: SequenceLocation
+          description: MUST be "SequenceLocation"
+        sequence_id:
+          $ref: '#/components/schemas/CURIE'
+          description: A VRS Computed Identifier for the reference Sequence.
+        interval:
+            description: A SequenceInterval represents a span on a Sequence. Positions are always represented by contiguous spans using interbase coordinates or coordinate ranges.
+            type: object
+            properties:
+              type:
+                type: string
+                default: SequenceInterval
+                description: MUST be "SequenceInterval"
+              start:
+                oneOf:
+                  - $ref: '#/components/schemas/DefiniteRange'
+                  - $ref: '#/components/schemas/IndefiniteRange'
+                  - $ref: '#/components/schemas/Number'
+                description: The start coordinate or range of the interval. The minimum value of this coordinate or range is 0. MUST represent a coordinate or range less than the value of `end`.
+              end:
+                oneOf:
+                  - $ref: '#/components/schemas/DefiniteRange'
+                  - $ref: '#/components/schemas/IndefiniteRange'
+                  - $ref: '#/components/schemas/Number'
+                description: The end coordinate or range of the interval. The minimum value of this coordinate or range is 0. MUST represent a coordinate or range greater than the value of `start`.
+            required:
+              - end
+              - start
+              - type
+            additionalProperties: false
+      required:
+        - interval
+        - sequence_id
+        - type
+      additionalProperties: false
+    Allele:
+      properties:
+        type:
+          type: string
+          default: Allele
+          description: MUST be "Allele"
+        location:
+          $ref: "#/components/schemas/Location"
+        state:
+          type: object
+          properties:
+            type:
+              type: string
+              default: LiteralSequenceExpression
+              description: MUST be "LiteralSequenceExpression"
+            sequence:
+              type: string
+              description: the literal Sequence expressed
+          required:
+          - sequence
+          - type
+      required:
+      - location
+      - state
+      - type
