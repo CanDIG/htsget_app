@@ -9,10 +9,6 @@ app = Flask(__name__)
 
 
 def is_authed(id_, request):
-    if AUTHZ["CANDIG_AUTHORIZATION"] != "OPA":
-        print("WARNING: AUTHORIZATION IS DISABLED")
-        app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
-        return 200 # no auth
     if request is None:
         return 401
     if request.headers.get("Test_Key") == TEST_KEY:
@@ -48,10 +44,6 @@ def is_site_admin(request):
     """
     Is the user associated with the token a site admin?
     """
-    if AUTHZ["CANDIG_AUTHORIZATION"] != "OPA":
-        print("WARNING: AUTHORIZATION IS DISABLED")
-        app.logger.warning("WARNING: AUTHORIZATION IS DISABLED")
-        return True # no auth
     if request.headers.get("Test_Key") == TEST_KEY:
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
