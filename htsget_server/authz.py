@@ -37,7 +37,12 @@ def is_testing(request):
 
 
 def get_authorized_datasets(request):
-    return authx.auth.get_opa_datasets(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+    try:
+        return authx.auth.get_opa_datasets(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+    except Exception as e:
+        print(f"Couldn't authorize datasets: {type(e)} {str(e)}")
+        app.logger.warning(f"Couldn't authorize datasets: {type(e)} {str(e)}")
+        return []
 
 
 def is_site_admin(request):
@@ -49,7 +54,12 @@ def is_site_admin(request):
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return True # no auth
     if "Authorization" in request.headers:
-        return authx.auth.is_site_admin(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+        try:
+            return authx.auth.is_site_admin(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+        except Exception as e:
+            print(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
+            app.logger.warning(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
+            return False
     return False
 
 
