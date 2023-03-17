@@ -108,10 +108,13 @@ def list_datasets():
     datasets = database.list_datasets()
     if datasets is None:
         return [], 404
-    if authz.is_site_admin(request):
-        return list(map(lambda x: x['id'], datasets)), 200
-    authorized_datasets = authz.get_authorized_datasets(request)
-    return list(set(map(lambda x: x['id'], datasets)) & set(authorized_datasets)), 200
+    try:
+        if authz.is_site_admin(request):
+            return list(map(lambda x: x['id'], datasets)), 200
+        authorized_datasets = authz.get_authorized_datasets(request)
+        return list(set(map(lambda x: x['id'], datasets)).intersection(set(authorized_datasets))), 200
+    except:
+        return [], 500
 
 
 def post_dataset():
