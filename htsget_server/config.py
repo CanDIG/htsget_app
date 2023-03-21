@@ -3,7 +3,7 @@ import os
 from minio import Minio
 
 config = configparser.ConfigParser(interpolation=None)
-config.read('./config.ini')
+config.read(os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/../config.ini"))
 
 AUTHZ = config['authz']
 HTSGET_URL = os.getenv("HTSGET_URL", f"http://localhost:{config['DEFAULT']['Port']}")
@@ -11,7 +11,6 @@ HTSGET_URL = os.getenv("HTSGET_URL", f"http://localhost:{config['DEFAULT']['Port
 DB_PATH = config['paths']['DBPath']
 if os.environ.get("DB_PATH") is not None:
     DB_PATH = f"sqlite:///{os.environ.get('DB_PATH')}"
-LOCAL_FILE_PATH = config['paths']['LocalFilesPath']
 
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 
