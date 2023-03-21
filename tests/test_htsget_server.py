@@ -5,10 +5,12 @@ import requests
 from pysam import AlignmentFile, VariantFile
 from pathlib import Path
 from authx.auth import get_minio_client, get_access_token, store_aws_credential
+from config import PORT
 
 # assumes that we are running pytest from the repo directory
-sys.path.insert(0,os.path.abspath("htsget_server"))
-from config import PORT, LOCAL_FILE_PATH
+REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
+sys.path.insert(0, os.path.abspath(f"{REPO_DIR}/htsget_server"))
+LOCAL_FILE_PATH = os.path.abspath(f"{REPO_DIR}/data/files")
 
 HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
@@ -109,7 +111,7 @@ def test_post_update():
     obj = response.json()
 
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    access_url = f"file:///{LOCAL_FILE_PATH}/NA18537.vcf.gz"
+    access_url = f"file:///./data/files/NA18537.vcf.gz" # this is local within the htsget server container, not from where we're running pytest
     obj["access_methods"] = [
         {
             "type": "file",
