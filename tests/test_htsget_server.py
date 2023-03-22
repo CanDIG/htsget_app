@@ -5,12 +5,12 @@ import requests
 from pysam import AlignmentFile, VariantFile
 from pathlib import Path
 from authx.auth import get_minio_client, get_access_token, store_aws_credential
-from config import PORT
 
 # assumes that we are running pytest from the repo directory
 REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
 sys.path.insert(0, os.path.abspath(f"{REPO_DIR}/htsget_server"))
 LOCAL_FILE_PATH = os.path.abspath(f"{REPO_DIR}/data/files")
+from config import PORT
 
 HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
