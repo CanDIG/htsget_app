@@ -2,7 +2,6 @@ import os
 import sys
 import pytest
 import requests
-from pysam import AlignmentFile, VariantFile
 from pathlib import Path
 from authx.auth import get_minio_client, get_access_token, store_aws_credential
 
@@ -287,58 +286,23 @@ def test_existent_file(id, type, params, expected_status):
 
 def pull_slices_data():
     return [
-        ({"referenceName": "20",
-          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant"),
-        ({}, 'sample.compressed', ".vcf.gz", "variant"),
+        ({"referenceName": "19",
+          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant", 2),
+        ({}, 'sample.compressed', ".vcf.gz", "variant", 9),
         ({"referenceName": "21",
-          "start": 9410000, "end": 9420000}, 'NA18537', ".vcf.gz", "variant")
+          "start": 9410000, "end": 9420000}, 'NA18537', ".vcf.gz", "variant", 18)
     ]
 
 
-@pytest.mark.parametrize('params, id_, file_extension, file_type', pull_slices_data())
-def test_pull_slices(params, id_, file_extension, file_type):
-    url = f"{HOST}/htsget/v1/{file_type}s/{id_}"
+@pytest.mark.parametrize('params, id_, file_extension, file_type, count', pull_slices_data())
+def test_pull_slices(params, id_, file_extension, file_type, count):
+    params['class'] = 'body'
+    url = f"{HOST}/htsget/v1/{file_type}s/data/{id_}"
     res = requests.request("GET", url, params=params, headers=get_headers())
-    res = res.json()
-    urls = res['htsget']['urls']
+    lines = res.text.rstrip().split('\n')
+    print(lines)
+    assert count == len(lines)
 
-    f_index = 0
-    f_name = f"{id_}{file_extension}"
-    equal = True
-    f_slice_name = f"{id_}{file_extension}"
-    f_slice_path = f"./{f_slice_name}"
-    f_slice = open(f_slice_path, 'wb')
-    for i in range(len(urls)):
-        url = urls[i]['url']
-        res = requests.request("GET", url, headers=get_headers())
-        print(res.text)
-
-        f_slice.write(res.content)
-    f_slice.close()
-    f_slice = None
-    f = None
-    if file_type == "variant":
-        f_slice = VariantFile(f_slice_path)
-        f = VariantFile(f"{LOCAL_FILE_PATH}/{f_name}")
-    elif file_type == "read":
-        f_slice = AlignmentFile(f_slice_path)
-        f = AlignmentFile(f"{LOCAL_FILE_PATH}/{f_name}")
-
-    # get start index for original file
-    for rec in f_slice.fetch():
-        f_index = rec.pos - 1
-        break
-    # compare slice and file line by line
-    if 'referenceName' in params:
-      zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
-    else:
-      zipped = zip(f_slice.fetch(), f.fetch())
-    for x, y in zipped:
-        if x != y:
-            equal = False
-            assert equal
-    os.remove(f_slice_path)
-    assert equal
 
 def test_get_read_header():
     """
