@@ -193,6 +193,7 @@ def seq_match(a, b):
 
 def expand_iupac(base_str):
     result = []
+    # Find ambiguous nucleotide sequences (https://www.bioinformatics.org/sms/iupac.html) in the given sequence.
     ambig_match = re.match(r"(^.*?)([RYSWKMBDHVN])(.*$)", base_str)
     if ambig_match is None:
         return [base_str]
