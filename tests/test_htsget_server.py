@@ -148,7 +148,7 @@ def test_install_public_object():
     headers = get_headers()
     try:
         token = get_access_token(username=USERNAME, password=PASSWORD)
-    except:
+    except Exception as e:
         token = None
     client = get_minio_client(token=token, s3_endpoint="http://s3.us-east-1.amazonaws.com", bucket="1000genomes", access_key=None, secret_key=None, public=True)
     access_id = f"{client['endpoint']}/{client['bucket']}"

@@ -113,7 +113,7 @@ def list_datasets():
             return list(map(lambda x: x['id'], datasets)), 200
         authorized_datasets = authz.get_authorized_datasets(request)
         return list(set(map(lambda x: x['id'], datasets)).intersection(set(authorized_datasets))), 200
-    except:
+    except Exception as e:
         return [], 500
 
 
