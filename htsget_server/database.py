@@ -694,49 +694,15 @@ def get_headers(obj):
         for r in session.execute(q):
             for k in r._mapping.values():
                 meta_parse = re.match(r"##(.+?)=(.+)", k)
-                if meta_parse is not None:
-                    if meta_parse.group(1) not in new_obj:
-                        new_obj[meta_parse.group(1)] = []
-                    if obj['parse']:
-                        new_meta = {}
-                        metadata_parse = re.match(r"^(<)*(.+?)>*$", meta_parse.group(2))
-                        if metadata_parse is not None:
-                            if metadata_parse.group(1) is not None:
-                                new_meta['structured'] = True
-                                fields = metadata_parse.group(2).split(",", 1)
-                                while len(fields) > 0:
-                                    curr_field = fields.pop(0)
-                                    if "=" in curr_field:
-                                        [k,v] = curr_field.split("=", 1)
-                                        if v.startswith('"'):
-                                            # we're inside a quoted value, so any commas in here are still part of the same value
-                                            fields.insert(0, v)
-                                            curr_value = ','.join(fields)
-                                            curr_value = curr_value[1:] # get rid of opening quote
-                                            # continue eating through until we get to an unescaped quote
-                                            new_value = curr_value[0]
-                                            curr_value = curr_value[1:]
-                                            while len(curr_value) > 0:
-                                                if curr_value.startswith('"'):
-                                                    if not new_value.endswith('\\'): # this wasn't an escaped quote
-                                                        curr_value = curr_value[2:] # 2 because of the next comma
-                                                        break
-                                                    # it was an escaped quote, so keep going...
-                                                new_value += curr_value[0]
-                                                curr_value = curr_value[1:]
-                                            new_meta[k] = new_value
-                                            fields = [curr_value]
-                                            continue
-                                        else:
-                                            new_meta[k] = v
-                                    if len(fields) > 0:
-                                        fields = fields.pop().split(",", 1)
-                            else:
-                                new_meta['structured'] = False
-                                new_meta['value'] = meta_parse.group(2)
-                    else:
-                        new_meta = meta_parse.group(2)
-                    new_obj[meta_parse.group(1)].append(new_meta)
+                if meta_parse is None:
+                    continue
+                if meta_parse.group(1) not in new_obj:
+                    new_obj[meta_parse.group(1)] = []
+                if obj['parse']:
+                    new_meta = parse_header(meta_parse.group(2))
+                else:
+                    new_meta = meta_parse.group(2)
+                new_obj[meta_parse.group(1)].append(new_meta)
 
         cleaned_obj = {}
         for type in new_obj.keys():
@@ -748,6 +714,46 @@ def get_headers(obj):
                 else:
                     cleaned_obj[type] = entry['value']
         return cleaned_obj
+
+
+def parse_header(text):
+    new_meta = {}
+    metadata_parse = re.match(r"^(<)*(.+?)>*$", text)
+    if metadata_parse is not None:
+        if metadata_parse.group(1) is not None:
+            new_meta['structured'] = True
+            fields = metadata_parse.group(2).split(",", 1)
+            while len(fields) > 0:
+                curr_field = fields.pop(0)
+                if "=" in curr_field:
+                    [k,v] = curr_field.split("=", 1)
+                    if v.startswith('"'):
+                        # we're inside a quoted value, so any commas in here are still part of the same value
+                        fields.insert(0, v)
+                        curr_value = ','.join(fields)
+                        curr_value = curr_value[1:] # get rid of opening quote
+                        # continue eating through until we get to an unescaped quote
+                        new_value = curr_value[0]
+                        curr_value = curr_value[1:]
+                        while len(curr_value) > 0:
+                            if curr_value.startswith('"'):
+                                if not new_value.endswith('\\'): # this wasn't an escaped quote
+                                    curr_value = curr_value[2:] # 2 because of the next comma
+                                    break
+                                # it was an escaped quote, so keep going...
+                            new_value += curr_value[0]
+                            curr_value = curr_value[1:]
+                        new_meta[k] = new_value
+                        fields = [curr_value]
+                        continue
+                    else:
+                        new_meta[k] = v
+                if len(fields) > 0:
+                    fields = fields.pop().split(",", 1)
+        else:
+            new_meta['structured'] = False
+            new_meta['value'] = text
+    return new_meta
 
 
 def add_header_for_variantfile(obj):
