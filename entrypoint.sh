@@ -20,7 +20,6 @@ if [[ -f "initial_setup" ]]; then
     sed -i s@\<CANDIG_OPA_SECRET\>@$OPA_SECRET@ config.ini
     sed -i s@\<OPA_URL\>@$OPA_URL@ config.ini
     sed -i s@\<VAULT_URL\>@$VAULT_URL@ config.ini
-    sed -i s@\<CANDIG_AUTHORIZATION\>@$CANDIG_AUTH@ config.ini
 
     # set up crontab
     sed -i s@\<VAULT_S3_TOKEN\>@$VAULT_S3_TOKEN@ renew_token.sh

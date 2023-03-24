@@ -2,13 +2,14 @@ import os
 import sys
 import pytest
 import requests
-from pysam import AlignmentFile, VariantFile
 from pathlib import Path
 from authx.auth import get_minio_client, get_access_token, store_aws_credential
 
 # assumes that we are running pytest from the repo directory
-sys.path.insert(0,os.path.abspath("htsget_server"))
-from config import PORT, LOCAL_FILE_PATH
+REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
+sys.path.insert(0, os.path.abspath(f"{REPO_DIR}/htsget_server"))
+LOCAL_FILE_PATH = os.path.abspath(f"{REPO_DIR}/data/files")
+from config import PORT
 
 HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
@@ -76,7 +77,7 @@ def test_post_objects(drs_objects):
             # create access_methods:
             access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
             if VAULT_URL is None and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
-              access_id += f"?access={MINIO_ACCESS_KEY}&secret={MINIO_SECRET_KEY}"
+                access_id += f"?access={MINIO_ACCESS_KEY}&secret={MINIO_SECRET_KEY}"
             obj["access_methods"] = [
                 {
                     "type": "s3",
@@ -109,7 +110,7 @@ def test_post_update():
     obj = response.json()
 
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    access_url = f"file:///{LOCAL_FILE_PATH}/NA18537.vcf.gz"
+    access_url = f"file:///./data/files/NA18537.vcf.gz" # this is local within the htsget server container, not from where we're running pytest
     obj["access_methods"] = [
         {
             "type": "file",
@@ -125,7 +126,7 @@ def test_post_update():
 
 
 def index_variants():
-    return [('sample.compressed', None, 'hg37'), ('NA18537', None, 'hg37'), ('multisample_1', 'HG00096', 'hg37'), ('multisample_2', 'HG00097', 'hg37')]
+    return [('sample.compressed', None, 'hg37'), ('NA18537', None, 'hg37'), ('multisample_1', 'HG00096', 'hg37'), ('multisample_2', 'HG00097', 'hg37'), ('test', 'BIOCAN_00097', 'hg38')]
 
 
 @pytest.mark.parametrize('sample, genomic_id, genome', index_variants())
@@ -140,6 +141,85 @@ def test_index_variantfile(sample, genomic_id, genome):
     assert response.json()["id"] == sample
     if genomic_id is not None:
         assert response.json()["genomic_id"] == genomic_id
+
+
+def test_install_public_object():
+# s3://1000genomes/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
+    headers = get_headers()
+    try:
+        token = get_access_token(username=USERNAME, password=PASSWORD)
+    except Exception as e:
+        token = None
+    client = get_minio_client(token=token, s3_endpoint="http://s3.us-east-1.amazonaws.com", bucket="1000genomes", access_key=None, secret_key=None, public=True)
+    access_id = f"{client['endpoint']}/{client['bucket']}"
+    pieces = [
+        {
+            "aliases": [],
+            "checksums": [],
+            "description": "",
+            "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+            "mime_type": "application/octet-stream",
+            "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+            "size": 0,
+            "version": "v1",
+            "access_methods": [
+                {
+                    "type": "s3",
+                    "access_id": f"{access_id}/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi?public=true"
+                }
+            ]
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "description": "",
+            "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+            "mime_type": "application/octet-stream",
+            "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+            "size": 0,
+            "version": "v1",
+            "access_methods": [
+                {
+                    "type": "s3",
+                    "access_id": f"{access_id}/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz?public=true"
+                }
+            ]
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "contents": [
+              {
+                "drs_uri": [
+                  "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+                ],
+                "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+                "id": "variant"
+              },
+              {
+                "drs_uri": [
+                  "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi"
+                ],
+                "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+                "id": "index"
+              }
+            ],
+            "description": "",
+            "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
+            "mime_type": "application/octet-stream",
+            "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
+            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
+            "size": 0,
+            "version": "v1"
+        }
+    ]
+    for obj in pieces:
+        url = f"{HOST}/ga4gh/drs/v1/objects"
+        response = requests.request("POST", url, json=obj, headers=headers)
+        print(f"POST {obj['name']}: {response.text}")
+        assert response.status_code == 200
 
 
 def invalid_start_end_data():
@@ -206,58 +286,23 @@ def test_existent_file(id, type, params, expected_status):
 
 def pull_slices_data():
     return [
-        ({"referenceName": "20",
-          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant"),
-        ({}, 'sample.compressed', ".vcf.gz", "variant"),
+        ({"referenceName": "19",
+          "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant", 2),
+        ({}, 'sample.compressed', ".vcf.gz", "variant", 9),
         ({"referenceName": "21",
-          "start": 9410000, "end": 9420000}, 'NA18537', ".vcf.gz", "variant")
+          "start": 9410000, "end": 9420000}, 'NA18537', ".vcf.gz", "variant", 18)
     ]
 
 
-@pytest.mark.parametrize('params, id_, file_extension, file_type', pull_slices_data())
-def test_pull_slices(params, id_, file_extension, file_type):
-    url = f"{HOST}/htsget/v1/{file_type}s/{id_}"
+@pytest.mark.parametrize('params, id_, file_extension, file_type, count', pull_slices_data())
+def test_pull_slices(params, id_, file_extension, file_type, count):
+    params['class'] = 'body'
+    url = f"{HOST}/htsget/v1/{file_type}s/data/{id_}"
     res = requests.request("GET", url, params=params, headers=get_headers())
-    res = res.json()
-    urls = res['htsget']['urls']
+    lines = res.text.rstrip().split('\n')
+    print(lines)
+    assert count == len(lines)
 
-    f_index = 0
-    f_name = f"{id_}{file_extension}"
-    equal = True
-    f_slice_name = f"{id_}{file_extension}"
-    f_slice_path = f"./{f_slice_name}"
-    f_slice = open(f_slice_path, 'wb')
-    for i in range(len(urls)):
-        url = urls[i]['url']
-        res = requests.request("GET", url, headers=get_headers())
-        print(res.text)
-
-        f_slice.write(res.content)
-    f_slice.close()
-    f_slice = None
-    f = None
-    if file_type == "variant":
-        f_slice = VariantFile(f_slice_path)
-        f = VariantFile(f"{LOCAL_FILE_PATH}/{f_name}")
-    elif file_type == "read":
-        f_slice = AlignmentFile(f_slice_path)
-        f = AlignmentFile(f"{LOCAL_FILE_PATH}/{f_name}")
-
-    # get start index for original file
-    for rec in f_slice.fetch():
-        f_index = rec.pos - 1
-        break
-    # compare slice and file line by line
-    if 'referenceName' in params:
-      zipped = zip(f_slice.fetch(), f.fetch(contig=params['referenceName'], start=f_index))
-    else:
-      zipped = zip(f_slice.fetch(), f.fetch())
-    for x, y in zipped:
-        if x != y:
-            equal = False
-            assert equal
-    os.remove(f_slice_path)
-    assert equal
 
 def test_get_read_header():
     """
@@ -273,95 +318,6 @@ def test_get_read_header():
     assert False
 
 
-def search_variants():
-    return [
-        ({
-            'headers': [
-                'bcftools_viewVersion=1.4.1+htslib-1.4.1'
-            ],
-            'regions': [
-                {
-                    'referenceName': 'chr21',
-                    'start': 48110000,
-                    'end': 48120634
-                }
-            ]
-        }, 1),
-        ({
-            'regions': [
-                {
-                    'referenceName': '20'
-                }
-            ]
-        }, 1),
-        ({
-            'regions': [
-                {
-                    'referenceName': 'chr21',
-                    'start': 48000000,
-                    'end': 48120000
-                },
-                {
-                    'referenceName': '21',
-                    'start': 48110000,
-                    'end': 48120634
-                }
-            ]
-        }, 4)
-    ]
-
-
-@pytest.mark.parametrize('body, count', search_variants())
-def test_search_variantfile(body, count):
-    url = f"{HOST}/htsget/v1/variants/search"
-
-    response = requests.post(url, json=body, headers=get_headers())
-    print(response.text)
-    assert len(response.json()["results"]) == count
-
-
-def test_search_snp():
-    url = f"{HOST}/htsget/v1/variants/search"
-    body = {
-            'regions': [
-                {
-                    'referenceName': 'chr21',
-                    'start': 48062672,
-                    'end': 48062673
-                }
-            ]
-        }
-    response = requests.post(url, json=body, headers=get_headers())
-    print(response.text)
-    assert len(response.json()["results"]) == 1
-
-
-def get_multisamples():
-    return [
-        ({
-            'regions': [
-                {
-                    'referenceName': 'chr21',
-                    'start': 5030000,
-                    'end': 5032000
-                }
-            ]
-        }, 2)
-    ]
-
-
-@pytest.mark.parametrize('body, count', get_multisamples())
-# The two multisample files both have two identically-named samples in them:
-# both files should return two samples
-def test_multisample(body, count):
-    url = f"{HOST}/htsget/v1/variants/search"
-
-    response = requests.post(url, json=body, headers=get_headers())
-    print(response.text)
-    for result in response.json()["results"]:
-        assert len(result['samples']) == count
-
-
 # There should be two BRCA genes in the database:
 def test_gene_search():
     url = f"{HOST}/htsget/v1/genes/BRCA"
@@ -369,6 +325,95 @@ def test_gene_search():
     response = requests.get(url, headers=get_headers())
     print(response.text)
     assert len(response.json()['results']) == 2
+
+
+def test_beacon_get_search():
+    # for an authed user, this short allele form request should work:
+    # return two variations, one ref, one alt, for a single position.
+    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg37&allele=NC_000021.8%3Ag.5030847T%3EA"
+    response = requests.get(url, headers=get_headers())
+    print(response.text)
+    assert len(response.json()['response']) == 2
+
+    # for an unauthorized user, the request should not contain a full response, just a count
+    headers = get_headers(username="test", password="test")
+    headers.pop("Test_Key")
+    response = requests.get(url, headers=headers)
+    print(response.text)
+    assert 'response' not in response.json()
+    assert response.json()['responseSummary']['exists']
+
+
+def get_beacon_post_search():
+        return [
+            (
+                # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
+                # first variation, corresponding to "NC_000021.8:g.5030551=", should contain two cases
+                {
+                    "query": {
+                        "requestParameters": {
+                            "start": [5030000],
+                            "end": [5030847],
+                            "assembly_id": "hg37",
+                            "reference_name": "21"
+                        }
+                    },
+                    "meta": {
+                        "apiVersion": "v2"
+                    }
+                }, 6, 2
+            ),
+            (
+                # 5 variations, corresponding to 2 refs and 3 alts in test
+                # first variation has two cases
+                {
+                    "query": {
+                        "requestParameters": {
+                            "start": [16562322],
+                            "end": [16613564],
+                            "reference_name": "1"
+                        }
+                    },
+                    "meta": {
+                        "apiVersion": "v2"
+                    }
+                }, 5, 2
+            )
+        ]
+
+
+@pytest.mark.parametrize('body, count, cases', get_beacon_post_search())
+def test_beacon_post_search(body, count, cases):
+    url = f"{HOST}/beacon/v2/g_variants"
+
+    response = requests.post(url, json=body, headers=get_headers())
+    print(response.text)
+    assert len(response.json()['response']) == count
+    assert len(response.json()['response'][0]['caseLevelData']) == cases
+
+# if we search for NBPF1, we should find records in test.vcf that contain NBPF1 in their VEP annotations.
+def test_beacon_search_annotations():
+    url = f"{HOST}/beacon/v2/g_variants"
+    body = {
+        "query": {
+            "requestParameters": {
+                "gene_id": 'NBPF1'
+            }
+        },
+        "meta": {
+            "apiVersion": "v2"
+        }
+    }
+    response = requests.post(url, json=body, headers=get_headers())
+    found_gene = False
+    for var in response.json()['response']:
+        if 'molecularAttributes' in var:
+            if 'geneIds' in var['molecularAttributes']:
+                print(var['molecularAttributes']['geneIds'])
+                if 'NBPF1' in var['molecularAttributes']['geneIds']:
+                    found_gene = True
+    assert found_gene
+
 
 
 @pytest.fixture
@@ -702,6 +747,61 @@ def drs_objects():
             "self_uri": "drs://localhost/NA02102",
             "size": 0,
             "updated_time": "2021-09-27T18:58:56.663442",
+            "version": "v1"
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "created_time": "2021-09-27T18:40:00.538843",
+            "description": "",
+            "id": "test.vcf.gz.tbi",
+            "mime_type": "application/octet-stream",
+            "name": "test.vcf.gz.tbi",
+            "self_uri": "drs://localhost/test.vcf.gz.tbi",
+            "size": 0,
+            "updated_time": "2021-09-27T18:40:00.539022",
+            "version": "v1"
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "created_time": "2021-09-27T18:40:00.538843",
+            "description": "",
+            "id": "test.vcf.gz",
+            "mime_type": "application/octet-stream",
+            "name": "test.vcf.gz",
+            "self_uri": "drs://localhost/test.vcf.gz",
+            "size": 0,
+            "updated_time": "2021-09-27T18:40:00.539022",
+            "version": "v1"
+        },
+        {
+            "aliases": [],
+            "checksums": [],
+            "contents": [
+                {
+                    "drs_uri": [
+                        "drs://localhost/test.vcf.gz"
+                    ],
+                    "name": "test.vcf.gz",
+                    "id": "variant"
+                },
+                {
+                    "drs_uri": [
+                        "drs://localhost/test.vcf.gz.tbi"
+                    ],
+                    "name": "test.vcf.gz.tbi",
+                    "id": "index"
+                }
+            ],
+            "created_time": "2021-09-27T18:40:00.538843",
+            "description": "",
+            "id": "test",
+            "mime_type": "application/octet-stream",
+            "name": "test",
+            "self_uri": "drs://localhost/test",
+            "size": 0,
+            "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
         }
     ]
