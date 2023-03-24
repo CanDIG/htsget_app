@@ -271,9 +271,10 @@ def search(raw_req):
             # add handovers:
             response['beaconHandovers'] = []
             for drs_obj in variants_by_file.keys():
-                handover = htsget_operations._get_htsget_url(drs_obj, actual_params['reference_name'], actual_params['start'], actual_params['end'], 'variant', data=False)
-                handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
-                response['beaconHandovers'].append(handover)
+                handover, status_code = htsget_operations.get_variants(id_=drs_obj, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+                if handover is not None:
+                    handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
+                    response['beaconHandovers'].append(handover)
         else:
             meta['returnedGranularity'] = 'count'
     else:
