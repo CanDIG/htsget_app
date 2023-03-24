@@ -356,6 +356,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
             if 'samples' in variant and len(variant['samples']) > 0:
                 for k in variant['samples'].keys():
                     sample = variant['samples'][k]
+                    # Begin creating a Case Level Data object
                     cld = {
                         'genotype': {
                             'value': sample['GT']
