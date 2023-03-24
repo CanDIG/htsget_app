@@ -211,6 +211,8 @@ def search(raw_req):
             actual_params['start'] = allele_loc['start']
             actual_params['end'] = allele_loc['end']
             # actual_params['type'] = allele_loc['type']
+            if 'reference_genome' in allele_loc:
+                actual_params['reference_genome'] = allele_loc['reference_genome']
             if 'ref' in allele_loc:
                 actual_params['ref'] = allele_loc['ref']
             if 'alt' in allele_loc:
