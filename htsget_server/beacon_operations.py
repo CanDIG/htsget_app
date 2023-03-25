@@ -265,18 +265,17 @@ def search(raw_req):
             response['responseSummary']['exists'] = True
 
         # if the request granularity was "record", check to see that the user is actually authorized to see any datasets:
-        datasets, status_code = drs_operations.list_datasets()
-        if len(datasets) > 0 and raw_req['requestedGranularity'] == 'record':
+        response['beaconHandovers'] = []
+        for drs_obj in variants_by_file.keys():
+            handover, status_code = htsget_operations.get_variants(id_=drs_obj, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+            if handover is not None:
+                handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
+                response['beaconHandovers'].append(handover)
+        if len(response['beaconHandovers']) > 0:
             response['response'] = resultset
-            # add handovers:
-            response['beaconHandovers'] = []
-            for drs_obj in variants_by_file.keys():
-                handover, status_code = htsget_operations.get_variants(id_=drs_obj, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
-                if handover is not None:
-                    handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
-                    response['beaconHandovers'].append(handover)
         else:
             meta['returnedGranularity'] = 'count'
+            response.pop('beaconHandovers')
     else:
         response = {
             'error': {
