@@ -211,6 +211,8 @@ def search(raw_req):
             actual_params['start'] = allele_loc['start']
             actual_params['end'] = allele_loc['end']
             # actual_params['type'] = allele_loc['type']
+            if 'reference_genome' in allele_loc:
+                actual_params['reference_genome'] = allele_loc['reference_genome']
             if 'ref' in allele_loc:
                 actual_params['ref'] = allele_loc['ref']
             if 'alt' in allele_loc:
@@ -263,17 +265,17 @@ def search(raw_req):
             response['responseSummary']['exists'] = True
 
         # if the request granularity was "record", check to see that the user is actually authorized to see any datasets:
-        datasets, status_code = drs_operations.list_datasets()
-        if len(datasets) > 0 and raw_req['requestedGranularity'] == 'record':
-            response['response'] = resultset
-            # add handovers:
-            response['beaconHandovers'] = []
-            for drs_obj in variants_by_file.keys():
-                handover = htsget_operations._get_htsget_url(drs_obj, actual_params['reference_name'], actual_params['start'], actual_params['end'], 'variant', data=False)
+        response['beaconHandovers'] = []
+        for drs_obj in variants_by_file.keys():
+            handover, status_code = htsget_operations.get_variants(id_=drs_obj, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+            if handover is not None:
                 handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
                 response['beaconHandovers'].append(handover)
+        if len(response['beaconHandovers']) > 0:
+            response['response'] = resultset
         else:
             meta['returnedGranularity'] = 'count'
+            response.pop('beaconHandovers')
     else:
         response = {
             'error': {

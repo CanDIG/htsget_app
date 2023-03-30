@@ -260,8 +260,9 @@ def convert_hgvsid_to_location(hgvsid, reference_genome='hg38'):
                 result['start'] = int(gene['start']) + int(hgvs_parse.group(2))
                 break
         else:
-            # this is a chromosome
+            # this is a chromosome; these belong to only one reference genome
             result['reference_name'] = database.normalize_contig(genes[0]['contig'])
+            result['reference_genome'] = genes[0]['reference_genome']
             result['start'] = int(hgvs_parse.group(2))
 
         # parse allele bit, group(3):
