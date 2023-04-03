@@ -3,6 +3,7 @@ ARG alpine_version
 FROM python:${venv_python}-alpine${alpine_version}
 
 LABEL Maintainer="CanDIG Project"
+LABEL "candigv2"="htsget_app"
 
 USER root
 
