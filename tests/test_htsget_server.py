@@ -43,15 +43,7 @@ def test_remove_objects(drs_objects):
             assert response.status_code == 200
 
 
-def test_post_objects(drs_objects):
-    """
-    Install test objects. Will fail if any post request returns an error.
-    """
-    # clean up old objects in db:
-    url = f"{HOST}/ga4gh/drs/v1/objects"
-    headers = get_headers()
-    response = requests.request("GET", url, headers=headers)
-
+def get_client():
     # in case we're running on the container itself, which might have secrets
     try:
         with open("/run/secrets/minio-access-key", "r") as f:
@@ -82,13 +74,26 @@ def test_post_objects(drs_objects):
         assert False
         return {"message": str(e)}, 500
 
+    return client
+
+
+def test_post_objects(drs_objects):
+    """
+    Install test objects. Will fail if any post request returns an error.
+    """
+    # clean up old objects in db:
+    url = f"{HOST}/ga4gh/drs/v1/objects"
+    headers = get_headers()
+    response = requests.request("GET", url, headers=headers)
+
+    client = get_client()
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
         if "contents" not in obj:
             # create access_methods:
             access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
-            if VAULT_URL is None and minio_access_key and minio_secret_key:
-                access_id += f"?access={minio_access_key}&secret={minio_secret_key}"
+            if VAULT_URL is None and client['access'] and client['secret']:
+                access_id += f"?access={client['access']}&secret={client['secret']}"
             obj["access_methods"] = [
                 {
                     "type": "s3",
