@@ -43,6 +43,40 @@ def test_remove_objects(drs_objects):
             assert response.status_code == 200
 
 
+def get_client():
+    # in case we're running on the container itself, which might have secrets
+    try:
+        with open("/run/secrets/minio-access-key", "r") as f:
+            minio_access_key = f.read().strip()
+    except Exception as e:
+        minio_access_key = MINIO_ACCESS_KEY
+    try:
+        with open("/run/secrets/minio-secret-key", "r") as f:
+            minio_secret_key = f.read().strip()
+    except Exception as e:
+        minio_secret_key = MINIO_SECRET_KEY
+
+    client = None
+    try:
+        bucket = 'testhtsget'
+        if MINIO_URL and minio_access_key and minio_secret_key:
+            if VAULT_URL:
+                token = get_access_token(username=USERNAME, password=PASSWORD)
+                credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=minio_access_key, secret=minio_secret_key, vault_url=VAULT_URL)
+                if status_code == 200:
+                    client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
+            else:
+                client = get_minio_client(token=None, s3_endpoint=MINIO_URL, bucket=bucket, access_key=minio_access_key, secret_key=minio_secret_key)
+        if client is None:
+            client = get_minio_client(bucket=bucket)
+    except Exception as e:
+        print(str(e))
+        assert False
+        return {"message": str(e)}, 500
+
+    return client
+
+
 def test_post_objects(drs_objects):
     """
     Install test objects. Will fail if any post request returns an error.
@@ -52,32 +86,14 @@ def test_post_objects(drs_objects):
     headers = get_headers()
     response = requests.request("GET", url, headers=headers)
 
-    client = None
-
-    try:
-        bucket = 'testhtsget'
-        if MINIO_URL and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
-            if VAULT_URL:
-                token = get_access_token(username=USERNAME, password=PASSWORD)
-                credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=MINIO_ACCESS_KEY, secret=MINIO_SECRET_KEY, vault_url=VAULT_URL)
-                if status_code == 200:
-                    client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
-            else:
-                client = get_minio_client(token=None, s3_endpoint=MINIO_URL, bucket=bucket, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY)
-        if client is None:
-            client = get_minio_client(bucket=bucket)
-    except Exception as e:
-        print(str(e))
-        assert False
-        return {"message": str(e)}, 500
-
+    client = get_client()
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
         if "contents" not in obj:
             # create access_methods:
             access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
-            if VAULT_URL is None and MINIO_ACCESS_KEY and MINIO_SECRET_KEY:
-                access_id += f"?access={MINIO_ACCESS_KEY}&secret={MINIO_SECRET_KEY}"
+            if VAULT_URL is None and client['access'] and client['secret']:
+                access_id += f"?access={client['access']}&secret={client['secret']}"
             obj["access_methods"] = [
                 {
                     "type": "s3",
