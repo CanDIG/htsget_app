@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-    version: 1.1.0
+    version: 1.2.0
     title: candig htsget
 servers:
   - url: /htsget/v1
@@ -228,12 +228,6 @@ paths:
                 - $ref: '#/components/parameters/referenceNameParam'
                 - $ref: '#/components/parameters/startParam'
                 - $ref: '#/components/parameters/endParam'
-                # - $ref: '#/components/parameters/variantsFieldsParam'
-                # - $ref: '#/components/parameters/variantsTagsParam'
-                # - $ref: '#/components/parameters/variantsNoTagsParam'
-#                - $ref: '#/components/parameters/htsgetBlockClassHeaderParam'
-#                - $ref: '#/components/parameters/htsgetCurrentBlockHeaderParam'
-#                - $ref: '#/components/parameters/htsgetTotalBlocksHeaderParam'
             responses:
                 200:
                     description: Successfully streamed file part of large genomic variant file
@@ -242,6 +236,9 @@ paths:
                             schema:
                                 type: string
                                 format: binary
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/VcfJson"
                 400:
                     $ref: '#/components/responses/400BadRequestError'
                 404:
@@ -407,9 +404,6 @@ components:
             description: A listing of genomic intervals
             items:
                 $ref: '#/components/schemas/Region'
-        HeaderText:
-            type: string
-            description: Case-sensitive phrase to search for in vcf headers
         # SERVICE-INFO SCHEMAS
         ServiceInfo:
             '$ref': https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/v1.0.0/service-info.yaml#/components/schemas/Service
@@ -487,6 +481,141 @@ components:
                     $ref: '#/components/schemas/ReadsNoTags'
                 regions:
                     $ref: '#/components/schemas/Regions'
+
+        # VCF-JSON SCHEMA
+        VcfJson:
+          type: object
+          description: a VCF file parsed into a JSON format
+          properties:
+            id:
+              type: string
+              description: Name of VCF file (minus suffixes)
+            fileformat:
+              type: string
+              description: Value of the '##fileformat' header
+            assembly:
+              type: string
+              description: the location of a fasta file containing breakpoint assemblies referenced in the VCF records for structural variants via the BKPTID INFO key.
+            info:
+              type: array
+              description: The INFO meta-information lines in the VCF file
+              items:
+                $ref: "#/components/schemas/InfoHeader"
+            filter:
+              type: array
+              description: The FILTER meta-information lines in the VCF file
+              items:
+                $ref: "#/components/schemas/FilterHeader"
+            format:
+              type: array
+              description: The FORMAT meta-information lines in the VCF file
+              items:
+                $ref: "#/components/schemas/FormatHeader"
+            alt:
+              type: array
+              description: The ALT meta-information lines in the VCF file
+              items:
+                $ref: "#/components/schemas/AltHeader"
+            contigs:
+              type: array
+              description: contigs found in this VCF file
+              items:
+                $ref: "#/components/schemas/ContigHeader"
+            headers:
+              type: object
+              description: VCF headers that are not otherwise defined. Keys are the type of header, corresponding to parsed arrays of each type of header.
+            variants:
+              type: array
+              description: Variant records, listed in order of contig, then position (as in an indexed VCF file)
+              items:
+                $ref: "#/components/schemas/VariantRecord"
+        VariantRecord:
+          type: object
+          description: A single variant record in the VCF file
+          properties:
+            chrom:
+              type: string
+            pos:
+              type: number
+            id:
+              type: string
+            ref:
+              type: string
+            alt:
+              type: array
+              description: Array of alternate alleles, ordered as they appear in the VCF record.
+              items:
+                type: string
+            qual:
+              type: string
+            filter:
+              type: string
+            info:
+              type: array
+              items:
+                type: object
+            samples:
+              type: array
+              items:
+                type: object
+        InfoHeader:
+          type: object
+          description: Description of an INFO header from the VCF file
+          properties:
+            id:
+              type: string
+            number:
+              type: string
+            type:
+              type: string
+              enum: [Integer, Float, Flag, Character, String]
+            description:
+              type: string
+            source:
+              type: string
+            version:
+              type: string
+        FilterHeader:
+          type: object
+          description: Description of an INFO header from the VCF file
+          properties:
+            id:
+              type: string
+            description:
+              type: string
+        FormatHeader:
+          type: object
+          description: Description of an FORMAT header from the VCF file
+          properties:
+            id:
+              type: string
+            number:
+              type: string
+            type:
+              type: string
+              enum: [Integer, Float, Flag, Character, String]
+            description:
+              type: string
+        AltHeader:
+          type: object
+          description: Description of an ALT header from the VCF file
+          properties:
+            id:
+              type: string
+            description:
+              type: string
+        ContigHeader:
+          type: object
+          description: Description of a contig header from the VCF file
+          properties:
+            id:
+              type: string
+            length:
+              type: number
+            md5:
+              type: string
+            url:
+              type: string
 
         # HTSGET TICKET SCHEMAS
         HtsgetBlockClass:
@@ -704,7 +833,7 @@ components:
             required: false
             schema:
                 type: string
-                enum: [VCF, BCF]
+                enum: [VCF, BCF, VCF-JSON]
                 default: VCF
         classParam:
             in: query
