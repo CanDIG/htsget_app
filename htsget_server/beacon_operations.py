@@ -417,7 +417,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
     return final_resultset
 
 
-def compile_variations_from_record(ref="", alt="", chrom="", pos="", reference_genome="hg38"):
+def compile_variations_from_record(ref="", alt=[""], chrom="", pos="", reference_genome="hg38"):
     start = int(pos)
     end = int(pos)
     variations = [
@@ -452,9 +452,8 @@ def compile_variations_from_record(ref="", alt="", chrom="", pos="", reference_g
         variations[0]['location']['sequence_id'] = "refseq:" + seqid
         hgvsid_base = f"{seqid}:g.{start}"
 
-    # alt can be a comma-separated list
-    alts = alt.split(',')
-    for a in alts:
+    # alt is a list of alt alleles
+    for a in alt:
         # make a copy of the ref variation
         alt_variation = json.loads(json.dumps(variations[0]))
         variations.append(alt_variation)

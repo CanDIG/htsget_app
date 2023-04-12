@@ -83,7 +83,7 @@ def parse_variant_record(record, samples, info_headers_obj):
             'pos': vcf_parse.group(2),
             'id': vcf_parse.group(3),
             'ref': vcf_parse.group(4),
-            'alt': vcf_parse.group(5),
+            'alt': vcf_parse.group(5).split(','),
             'qual': vcf_parse.group(6),
             'filter': vcf_parse.group(7),
             'info': vcf_parse.group(8),
