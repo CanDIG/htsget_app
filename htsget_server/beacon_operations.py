@@ -223,7 +223,7 @@ def search(raw_req):
         if 'end' not in actual_params:
             actual_params['end'] = actual_params['start']
 
-        variants_by_file = variants.find_variants_in_region(reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'], reference_genome=actual_params['reference_genome'])
+        variants_by_file = variants.find_variants_in_region(reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
 
         resultset = compile_beacon_resultset(variants_by_file, reference_genome=actual_params['reference_genome'])
         # others are for filtering after:
@@ -327,7 +327,8 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
         # check to see if this drs_object is authorized:
         x, status_code = drs_operations.get_object(drs_obj)
         is_authed = (status_code == 200)
-
+        if database.get_variantfile(drs_obj)['reference_genome'] != reference_genome:
+            continue
         for variant in variants_by_obj[drs_obj]['variants']:
             # parse the variants beacon-style
             variant['variations'] = compile_variations_from_record(ref=variant.pop('ref'), alt=variant.pop('alt'), chrom=variant.pop('chrom'), pos=variant.pop('pos'), reference_genome=reference_genome)

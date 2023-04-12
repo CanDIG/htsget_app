@@ -4,7 +4,7 @@ import database
 import drs_operations
 
 
-def find_variants_in_region(reference_name=None, start=None, end=None, reference_genome="hg38"):
+def find_variants_in_region(reference_name=None, start=None, end=None):
     """
     finds variant records in vcf files, returns an array of VcfJson objects
     """
@@ -34,7 +34,6 @@ def find_variants_in_region(reference_name=None, start=None, end=None, reference
     return final_variants_by_file
 
 
-def parse_variant_record(record, samples, headers, reference_genome="hg38"):
 def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
     gen_obj = drs_operations._get_genomic_obj(drs_object_id)
     if "message" in gen_obj:
@@ -60,6 +59,7 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
     return variants_by_file
 
 
+def parse_variant_record(record, samples, headers):
     # chr21\t5030551\t.\tA\tC\t.\tPASS\tDP=100;SOMATIC;SS=2;SSC=3;GPV=1;SPV=0.5\tGT:GQ:DP:RD:AD:FREQ:DP4\t0/0:.:55:55:0:0%:25,14,0,0\t0/1:.:90:90:2:2.27%:48,38,1,1\n
     # CHROM POS ID REF ALT QUAL FILTER INFO
     vcf_parse = re.match(r'(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+)', record)
