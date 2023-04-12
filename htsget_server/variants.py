@@ -6,25 +6,7 @@ import drs_operations
 
 def find_variants_in_region(reference_name=None, start=None, end=None, reference_genome="hg38"):
     """
-    finds variant records in vcf files, returns in basic parsed format:
-    result = {
-      "headers": {
-        "filename": { parsed headers }
-      },
-      "filename": [
-        {
-          "alt": "G",
-          "chrom": "chr1",
-          "filter": "map_qual",
-          "id": ".",
-          "info": { info headers },
-          "pos": "14248",
-          "qual": ".",
-          "ref": "T",
-          "samples": { sample data }
-        }
-      ]
-    }
+    finds variant records in vcf files, returns an array of VcfJson objects
     """
 
     region = {'referenceName': database.normalize_contig(reference_name)}
@@ -42,25 +24,7 @@ def find_variants_in_region(reference_name=None, start=None, end=None, reference
     #   resultsets require more processing
     variants_by_file = {}
     for result in raw_result:
-        if result['reference_genome'] == reference_genome:
-            gen_obj = drs_operations._get_genomic_obj(result['drs_object_id'])
-            if "message" in gen_obj:
-                continue
-            ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': result['drs_object_id']})
-            records = gen_obj['file'].fetch(contig=ref_name, start=region['start'], end=region['end'])
-            headers = database.get_headers({'variantfile_id': result['drs_object_id'], 'parse': True})
-            #variants_by_file['headers'] = {result['drs_object_id']: headers}
-            if result['drs_object_id'] not in variants_by_file:
-                variants_by_file[result['drs_object_id']] = {
-                    "headers": headers,
-                    "variants": []
-                }
-            for r in records:
-                samples = []
-                for s in r.samples:
-                    samples.append(s)
-                variant_record = parse_variant_record(str(r), samples, headers, reference_genome=result['reference_genome'])
-                variants_by_file[result['drs_object_id']]['variants'].append(variant_record)
+        variants_by_file[result['drs_object_id']] = parse_vcf_file(result['drs_object_id'], reference_name=region['referenceName'], start=region['start'], end=region['end'])
 
     # if a file has no variants in it, we don't need to return it:
     final_variants_by_file = {}
@@ -71,6 +35,31 @@ def find_variants_in_region(reference_name=None, start=None, end=None, reference
 
 
 def parse_variant_record(record, samples, headers, reference_genome="hg38"):
+def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
+    gen_obj = drs_operations._get_genomic_obj(drs_object_id)
+    if "message" in gen_obj:
+        raise Exception(f"error parsing vcf file for {drs_object_id}: {gen_obj['message']}")
+    if reference_name is not None:
+        ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': drs_object_id})
+        records = gen_obj['file'].fetch(contig=ref_name, start=start, end=end)
+    else:
+        records = gen_obj['file'].fetch()
+    headers = parse_headers(database.get_headers({'variantfile_id': drs_object_id}))
+
+    variants_by_file = {
+        "id": drs_object_id,
+        "headers": headers,
+        "variants": []
+    }
+    for r in records:
+        samples = []
+        for s in r.samples:
+            samples.append(s)
+        variant_record = parse_variant_record(str(r), samples, headers)
+        variants_by_file['variants'].append(variant_record)
+    return variants_by_file
+
+
     # chr21\t5030551\t.\tA\tC\t.\tPASS\tDP=100;SOMATIC;SS=2;SSC=3;GPV=1;SPV=0.5\tGT:GQ:DP:RD:AD:FREQ:DP4\t0/0:.:55:55:0:0%:25,14,0,0\t0/1:.:90:90:2:2.27%:48,38,1,1\n
     # CHROM POS ID REF ALT QUAL FILTER INFO
     vcf_parse = re.match(r'(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+)', record)
@@ -83,7 +72,7 @@ def parse_variant_record(record, samples, headers, reference_genome="hg38"):
             'alt': vcf_parse.group(5),
             'qual': vcf_parse.group(6),
             'filter': vcf_parse.group(7),
-            'info': vcf_parse.group(8), #process_info_fields(vcf_parse.group(8), headers['INFO']),
+            'info': vcf_parse.group(8),
             'samples': {}
         }
         if vcf_parse.group(9) is not None and vcf_parse.group(9) != "":
