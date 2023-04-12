@@ -50,16 +50,30 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
         "headers": headers,
         "variants": []
     }
+    if 'fileformat' in headers:
+        variants_by_file['fileformat'] = headers.pop('fileformat').pop()
+    if 'assembly' in headers:
+        variants_by_file['assembly'] = headers.pop('assembly').pop()
+    if 'INFO' in headers:
+        variants_by_file['info'] = headers.pop('INFO')
+    if 'FILTER' in headers:
+        variants_by_file['filter'] = headers.pop('FILTER')
+    if 'FORMAT' in headers:
+        variants_by_file['format'] = headers.pop('FORMAT')
+    if 'ALT' in headers:
+        variants_by_file['alt'] = headers.pop('ALT')
+    if 'contig' in headers:
+        variants_by_file['contig'] = headers.pop('contig')
     for r in records:
         samples = []
         for s in r.samples:
             samples.append(s)
-        variant_record = parse_variant_record(str(r), samples, headers)
+        variant_record = parse_variant_record(str(r), samples, variants_by_file['info'])
         variants_by_file['variants'].append(variant_record)
     return variants_by_file
 
 
-def parse_variant_record(record, samples, headers):
+def parse_variant_record(record, samples, info_headers_obj):
     # chr21\t5030551\t.\tA\tC\t.\tPASS\tDP=100;SOMATIC;SS=2;SSC=3;GPV=1;SPV=0.5\tGT:GQ:DP:RD:AD:FREQ:DP4\t0/0:.:55:55:0:0%:25,14,0,0\t0/1:.:90:90:2:2.27%:48,38,1,1\n
     # CHROM POS ID REF ALT QUAL FILTER INFO
     vcf_parse = re.match(r'(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+?)\t(.+)', record)
@@ -83,7 +97,7 @@ def parse_variant_record(record, samples, headers):
                 sample_parts = sample_parse.pop(0).split(":")
                 for f in format:
                     variant['samples'][s][f] = sample_parts.pop(0)
-        variant['info'] = process_info_fields(variant['info'], headers['INFO'])
+        variant['info'] = process_info_fields(variant['info'], info_headers_obj)
         return variant
     return None
 
@@ -102,12 +116,15 @@ def parse_headers(headers):
     cleaned_obj = {}
     for type in new_obj.keys():
         for entry in new_obj[type]:
+            if type not in cleaned_obj:
+                cleaned_obj[type] = []
             if entry.pop('structured'):
-                if type not in cleaned_obj:
-                    cleaned_obj[type] = {}
-                cleaned_obj[type][entry.pop('ID')] = entry
+                new_entry = {}
+                for e in entry:
+                    new_entry[e.lower()] = entry[e]
+                cleaned_obj[type].append(new_entry)
             else:
-                cleaned_obj[type] = entry['value']
+                cleaned_obj[type].append(entry['value'])
     return cleaned_obj
 
 
@@ -151,7 +168,10 @@ def parse_header(text):
     return new_meta
 
 
-def process_info_fields(text, info_headers):
+def process_info_fields(text, info_headers_obj):
+    info_headers = {}
+    for h in info_headers_obj:
+        info_headers[h['id']] = h
     # reserved info headers (from VCF spec):
     reserved = [
         ["AA", "1", "String", "Ancestral allele"],
@@ -178,9 +198,9 @@ def process_info_fields(text, info_headers):
     ]
     for r in reserved:
         info_headers[r[0]] = {
-            "Number": r[1],
-            "Type": r[2],
-            "Description": r[3]
+            "number": r[1],
+            "type": r[2],
+            "description": r[3]
         }
     info_pieces = text.split(';')
     info_obj = {}
@@ -188,26 +208,26 @@ def process_info_fields(text, info_headers):
         kv = info.split('=', 2)
         if kv[0] in info_headers:
             info_obj[kv[0]] = {
-                'Type': info_headers[kv[0]]['Type'],
-                'Number': info_headers[kv[0]]['Number'],
-                'Description': info_headers[kv[0]]['Description'],
-                'Value': None
+                'type': info_headers[kv[0]]['type'],
+                'number': info_headers[kv[0]]['number'],
+                'description': info_headers[kv[0]]['description'],
+                'value': None
             }
             if len(kv) > 1:
                 vals = kv[1].split(',')
-                if info_obj[kv[0]]['Number'] == '1':
-                    info_obj[kv[0]]['Value'] = [kv[1]]
+                if info_obj[kv[0]]['number'] == '1':
+                    info_obj[kv[0]]['value'] = [kv[1]]
                 else:
-                    info_obj[kv[0]]['Value'] = vals
+                    info_obj[kv[0]]['value'] = vals
 
     # find a CSQ header, as a special case:
     csq_header = None
     if 'CSQ' in info_headers:
-        csq_header = info_headers['CSQ']['Description']
+        csq_header = info_headers['CSQ']['description']
     if 'CSQ' in text and csq_header is not None:
-        info_obj['CSQ']['Description'] = "Consequence annotations from Ensembl VEP."
-        info_obj['CSQ']['Value'] = parse_vep_annotation(info_obj['CSQ']['Value'], csq_header)
-        info_obj['CSQ']['Number'] = 'K' # obj keyed by allele
+        info_obj['CSQ']['description'] = "Consequence annotations from Ensembl VEP."
+        info_obj['CSQ']['value'] = parse_vep_annotation(info_obj['CSQ']['value'], csq_header)
+        info_obj['CSQ']['number'] = 'K' # obj keyed by allele
 
     return info_obj
 
