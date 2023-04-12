@@ -431,6 +431,13 @@ def test_beacon_search_annotations():
     assert found_gene
 
 
+def test_vcf_json():
+    params = {'format': 'VCF-JSON'}
+    url = f"{HOST}/htsget/v1/variants/data/test"
+    res = requests.request("GET", url, params=params, headers=get_headers())
+    assert res.json()['id'] == 'test'
+    assert len(res.json()['variants']) == 7
+
 
 @pytest.fixture
 def drs_objects():
