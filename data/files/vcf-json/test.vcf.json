@@ -1,0 +1,2420 @@
+{
+  "contig": [
+    {
+      "id": "chr1",
+      "length": "248956422"
+    }
+  ],
+  "fileformat": "VCFv4.2",
+  "filter": [
+    {
+      "description": "All filters passed",
+      "id": "PASS"
+    },
+    {
+      "description": "Fail the site if all alleles fail but for different reasons.",
+      "id": "FAIL"
+    },
+    {
+      "description": "alt median base quality",
+      "id": "base_qual"
+    },
+    {
+      "description": "Clustered events observed in the tumor",
+      "id": "clustered_events"
+    },
+    {
+      "description": "contamination",
+      "id": "contamination"
+    },
+    {
+      "description": "evidence for alt allele is overrepresented by apparent duplicates",
+      "id": "duplicate"
+    },
+    {
+      "description": "abs(ref - alt) median fragment length",
+      "id": "fragment"
+    },
+    {
+      "description": "Evidence indicates this site is germline, not somatic",
+      "id": "germline"
+    },
+    {
+      "description": "Variant near filtered variant on same haplotype.",
+      "id": "haplotype"
+    },
+    {
+      "description": "Allele fraction is below specified threshold",
+      "id": "low_allele_frac"
+    },
+    {
+      "description": "ref - alt median mapping quality",
+      "id": "map_qual"
+    },
+    {
+      "description": "Site filtered because too many alt alleles pass tumor LOD",
+      "id": "multiallelic"
+    },
+    {
+      "description": "Ratio of N to alt exceeds specified ratio",
+      "id": "n_ratio"
+    },
+    {
+      "description": "artifact_in_normal",
+      "id": "normal_artifact"
+    },
+    {
+      "description": "orientation bias detected by the orientation bias mixture model",
+      "id": "orientation"
+    },
+    {
+      "description": "Blacklisted site in panel of normals",
+      "id": "panel_of_normals"
+    },
+    {
+      "description": "median distance of alt variants from end of reads",
+      "id": "position"
+    },
+    {
+      "description": "Allele depth is below expected coverage of NuMT in autosome",
+      "id": "possible_numt"
+    },
+    {
+      "description": "Site filtered due to contraction of short tandem repeat region",
+      "id": "slippage"
+    },
+    {
+      "description": "Evidence for alt allele comes from one read direction only",
+      "id": "strand_bias"
+    },
+    {
+      "description": "Evidence for alt allele is not represented in both directions",
+      "id": "strict_strand"
+    },
+    {
+      "description": "Mutation does not meet likelihood threshold",
+      "id": "weak_evidence"
+    }
+  ],
+  "format": [
+    {
+      "description": "Genotype",
+      "id": "GT",
+      "number": "1",
+      "type": "String"
+    },
+    {
+      "description": "Genotype Quality",
+      "id": "GQ",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Allelic depths for the ref and alt alleles in the order listed",
+      "id": "AD",
+      "number": "R",
+      "type": "Integer"
+    },
+    {
+      "description": "Allele fractions of alternate alleles in the tumor",
+      "id": "AF",
+      "number": "A",
+      "type": "Float"
+    },
+    {
+      "description": "Approximate read depth (reads with MQ=255 or with bad mates are filtered)",
+      "id": "DP",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Count of reads in F1R2 pair orientation supporting each allele",
+      "id": "F1R2",
+      "number": "R",
+      "type": "Integer"
+    },
+    {
+      "description": "Count of reads in F2R1 pair orientation supporting each allele",
+      "id": "F2R1",
+      "number": "R",
+      "type": "Integer"
+    },
+    {
+      "description": "Physical phasing haplotype information, describing how the alternate alleles are phased in relation to one another; will always be heterozygous and is not intended to describe called alleles",
+      "id": "PGT",
+      "number": "1",
+      "type": "String"
+    },
+    {
+      "description": "Physical phasing ID information, where each unique ID within a given sample (but not across samples) connects records within a phasing group",
+      "id": "PID",
+      "number": "1",
+      "type": "String"
+    },
+    {
+      "description": "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification",
+      "id": "PL",
+      "number": "G",
+      "type": "Integer"
+    },
+    {
+      "description": "Phasing set (typically the position of the first variant in the set)",
+      "id": "PS",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Per-sample component statistics which comprise the Fisher's Exact Test to detect strand bias.",
+      "id": "SB",
+      "number": "4",
+      "type": "Integer"
+    }
+  ],
+  "headers": {
+    "MutectVersion": [
+      "2.2"
+    ],
+    "VEP": [
+      "\"v105\" time=\"2022-06-18 13:06:23\" cache=\"/.mounts/labs/gsi/modulator/sw/data/vep-hg38-cache-105/.vep/homo_sapiens/105_GRCh38\" ensembl=105.525fbcb ensembl-variation=105.ac8178e ensembl-funcgen=105.660df8f ensembl-io=105.2a0a40c 1000genomes=\"phase3\" COSMIC=\"92\" ClinVar=\"202106\" ESP=\"V2-SSA137\" HGMD-PUBLIC=\"20204\" assembly=\"GRCh38.p13\" dbSNP=\"154\" gencode=\"GENCODE 39\" genebuild=\"2014-07\" gnomAD=\"r2.1.1\" polyphen=\"2.2.2\" regbuild=\"1.0\" sift=\"sift5.2.2\""
+    ],
+    "bcftools_viewVersion": [
+      "1.9+htslib-1.9"
+    ],
+    "filtering_status": [
+      "These calls have been filtered by FilterMutectCalls to label false positives with a list of failed filters and true positives with PASS."
+    ],
+    "normal_sample": [
+      "sample_normal"
+    ],
+    "source": [
+      "FilterMutectCalls"
+    ],
+    "tumor_sample": [
+      "sample_tumour"
+    ]
+  },
+  "id": "test",
+  "info": [
+    {
+      "description": "Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.",
+      "id": "AS_FilterStatus",
+      "number": "A",
+      "type": "String"
+    },
+    {
+      "description": "Allele-specific forward/reverse read counts for strand bias tests. Includes the reference and alleles separated by |.",
+      "id": "AS_SB_TABLE",
+      "number": "1",
+      "type": "String"
+    },
+    {
+      "description": "Number of reads with unique start and mate end positions for each alt at a variant site",
+      "id": "AS_UNIQ_ALT_READ_COUNT",
+      "number": "A",
+      "type": "Integer"
+    },
+    {
+      "description": "Phred-scaled qualities that alt allele are not due to contamination",
+      "id": "CONTQ",
+      "number": "1",
+      "type": "Float"
+    },
+    {
+      "description": "Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|ALLELE_NUM|DISTANCE|STRAND|FLAGS|PICK|VARIANT_CLASS|SYMBOL_SOURCE|HGNC_ID|CANONICAL|MANE_SELECT|MANE_PLUS_CLINICAL|TSL|CCDS|ENSP|SWISSPROT|TREMBL|UNIPARC|UNIPROT_ISOFORM|RefSeq|GENE_PHENO|SIFT|PolyPhen|DOMAINS|HGVS_OFFSET|AF|AFR_AF|AMR_AF|EAS_AF|EUR_AF|SAS_AF|AA_AF|EA_AF|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|CLIN_SIG|SOMATIC|PHENO|PUBMED|MOTIF_NAME|MOTIF_POS|HIGH_INF_POS|MOTIF_SCORE_CHANGE|TRANSCRIPTION_FACTORS",
+      "id": "CSQ",
+      "number": ".",
+      "type": "String"
+    },
+    {
+      "description": "Approximate read depth; some reads may have been filtered",
+      "id": "DP",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Number of events in this haplotype",
+      "id": "ECNT",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Phred-scaled quality that alt alleles are not germline variants",
+      "id": "GERMQ",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "median base quality",
+      "id": "MBQ",
+      "number": "R",
+      "type": "Integer"
+    },
+    {
+      "description": "median fragment length",
+      "id": "MFRL",
+      "number": "R",
+      "type": "Integer"
+    },
+    {
+      "description": "median mapping quality",
+      "id": "MMQ",
+      "number": "R",
+      "type": "Integer"
+    },
+    {
+      "description": "median distance from end of read",
+      "id": "MPOS",
+      "number": "A",
+      "type": "Integer"
+    },
+    {
+      "description": "Negative log 10 odds of artifact in normal with same allele fraction as tumor",
+      "id": "NALOD",
+      "number": "A",
+      "type": "Float"
+    },
+    {
+      "description": "Count of N bases in the pileup",
+      "id": "NCount",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Normal log 10 likelihood ratio of diploid het or hom alt genotypes",
+      "id": "NLOD",
+      "number": "A",
+      "type": "Float"
+    },
+    {
+      "description": "Number of alt reads whose original alignment doesn't match the current contig.",
+      "id": "OCM",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "site found in panel of normals",
+      "id": "PON",
+      "number": "0",
+      "type": "Flag"
+    },
+    {
+      "description": "negative log 10 population allele frequencies of alt alleles",
+      "id": "POPAF",
+      "number": "A",
+      "type": "Float"
+    },
+    {
+      "description": "Phred-scaled qualities that alt allele are not due to read orientation artifact",
+      "id": "ROQ",
+      "number": "1",
+      "type": "Float"
+    },
+    {
+      "description": "Number of times tandem repeat unit is repeated, for each allele (including reference)",
+      "id": "RPA",
+      "number": "R",
+      "type": "Integer"
+    },
+    {
+      "description": "Tandem repeat unit (bases)",
+      "id": "RU",
+      "number": "1",
+      "type": "String"
+    },
+    {
+      "description": "Phred-scaled quality that alt alleles are not sequencing errors",
+      "id": "SEQQ",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Variant is a short tandem repeat",
+      "id": "STR",
+      "number": "0",
+      "type": "Flag"
+    },
+    {
+      "description": "Phred-scaled quality of strand bias artifact",
+      "id": "STRANDQ",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Phred-scaled quality that alt alleles in STRs are not polymerase slippage errors",
+      "id": "STRQ",
+      "number": "1",
+      "type": "Integer"
+    },
+    {
+      "description": "Log 10 likelihood ratio score of variant existing versus not existing",
+      "id": "TLOD",
+      "number": "A",
+      "type": "Float"
+    }
+  ],
+  "variants": [
+    {
+      "alt": "G",
+      "chrom": "chr1",
+      "filter": "map_qual",
+      "id": ".",
+      "info": {
+        "AS_FilterStatus": {
+          "description": "Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.",
+          "number": "A",
+          "type": "String",
+          "value": [
+            "map_qual"
+          ]
+        },
+        "AS_SB_TABLE": {
+          "description": "Allele-specific forward/reverse read counts for strand bias tests. Includes the reference and alleles separated by |.",
+          "number": "1",
+          "type": "String",
+          "value": [
+            "60,0|5,0"
+          ]
+        },
+        "CSQ": {
+          "description": "Consequence annotations from Ensembl VEP.",
+          "number": "K",
+          "type": "String",
+          "value": {
+            "G": [
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "G",
+                "BIOTYPE": "transcribed_unprocessed_pseudogene",
+                "CANONICAL": "YES",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "578",
+                "Existing_variation": "rs1258110102",
+                "Feature": "ENST00000450305",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000223972",
+                "HGNC_ID": "HGNC:37102",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "SYMBOL": "DDX11L1",
+                "SYMBOL_SOURCE": "HGNC",
+                "VARIANT_CLASS": "SNV"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "G",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "non_coding_transcript_exon_variant",
+                "EXON": "3/3",
+                "Existing_variation": "rs1258110102",
+                "Feature": "ENST00000456328",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000223972",
+                "HGNC_ID": "HGNC:37102",
+                "HGVSc": "ENST00000456328.2:n.1496T>G",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "SYMBOL": "DDX11L1",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "1",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "1496/1657"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "G",
+                "BIOTYPE": "unprocessed_pseudogene",
+                "CANONICAL": "YES",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "156",
+                "Existing_variation": "rs1258110102",
+                "Feature": "ENST00000488147",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000227232",
+                "HGNC_ID": "HGNC:38034",
+                "IMPACT": "MODIFIER",
+                "PICK": "1",
+                "STRAND": "-1",
+                "SYMBOL": "WASH7P",
+                "SYMBOL_SOURCE": "HGNC",
+                "VARIANT_CLASS": "SNV"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "G",
+                "BIOTYPE": "miRNA",
+                "CANONICAL": "YES",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "3121",
+                "Existing_variation": "rs1258110102",
+                "Feature": "ENST00000619216",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000278267",
+                "HGNC_ID": "HGNC:50039",
+                "IMPACT": "MODIFIER",
+                "STRAND": "-1",
+                "SYMBOL": "MIR6859-1",
+                "SYMBOL_SOURCE": "HGNC",
+                "VARIANT_CLASS": "SNV"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "G",
+                "BIOTYPE": "promoter_flanking_region",
+                "Consequence": "regulatory_region_variant",
+                "Existing_variation": "rs1258110102",
+                "Feature": "ENSR00001164745",
+                "Feature_type": "RegulatoryFeature",
+                "IMPACT": "MODIFIER",
+                "VARIANT_CLASS": "SNV"
+              }
+            ]
+          }
+        },
+        "DP": {
+          "description": "Combined depth across samples",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "37"
+          ]
+        },
+        "ECNT": {
+          "description": "Number of events in this haplotype",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "1"
+          ]
+        },
+        "GERMQ": {
+          "description": "Phred-scaled quality that alt alleles are not germline variants",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "51"
+          ]
+        },
+        "MBQ": {
+          "description": "median base quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "34",
+            "26"
+          ]
+        },
+        "MFRL": {
+          "description": "median fragment length",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "353",
+            "545"
+          ]
+        },
+        "MMQ": {
+          "description": "median mapping quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "40",
+            "25"
+          ]
+        },
+        "MPOS": {
+          "description": "median distance from end of read",
+          "number": "A",
+          "type": "Integer",
+          "value": [
+            "21"
+          ]
+        },
+        "NALOD": {
+          "description": "Negative log 10 odds of artifact in normal with same allele fraction as tumor",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "1.08"
+          ]
+        },
+        "NLOD": {
+          "description": "Normal log 10 likelihood ratio of diploid het or hom alt genotypes",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "3.26"
+          ]
+        },
+        "POPAF": {
+          "description": "negative log 10 population allele frequencies of alt alleles",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "6"
+          ]
+        },
+        "TLOD": {
+          "description": "Log 10 likelihood ratio score of variant existing versus not existing",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "8.64"
+          ]
+        }
+      },
+      "pos": "14248",
+      "qual": ".",
+      "ref": "T",
+      "samples": {
+        "sample_normal": {
+          "AD": "23,0",
+          "AF": "0.077",
+          "DP": "11",
+          "F1R2": "6,0",
+          "F2R1": "4,0",
+          "GT": "0/0",
+          "SB": "11,0,0,0"
+        },
+        "sample_tumour": {
+          "AD": "24,5",
+          "AF": "0.221",
+          "DP": "25",
+          "F1R2": "8,4",
+          "F2R1": "12,1",
+          "GT": "0/1",
+          "SB": "20,0,5,0"
+        }
+      }
+    },
+    {
+      "alt": "C",
+      "chrom": "chr1",
+      "filter": "PASS",
+      "id": ".",
+      "info": {
+        "AS_FilterStatus": {
+          "description": "Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.",
+          "number": "A",
+          "type": "String",
+          "value": [
+            "SITE"
+          ]
+        },
+        "AS_SB_TABLE": {
+          "description": "Allele-specific forward/reverse read counts for strand bias tests. Includes the reference and alleles separated by |.",
+          "number": "1",
+          "type": "String",
+          "value": [
+            "103,53|4,1"
+          ]
+        },
+        "CSQ": {
+          "description": "Consequence annotations from Ensembl VEP.",
+          "number": "K",
+          "type": "String",
+          "value": {
+            "-": [
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "protein_coding",
+                "CANONICAL": "YES",
+                "CCDS": "CCDS30551.1",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "513",
+                "ENSP": "ENSP00000368678",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000379370",
+                "Feature_type": "Transcript",
+                "GENE_PHENO": "1",
+                "Gene": "ENSG00000188157",
+                "HGNC_ID": "HGNC:329",
+                "IMPACT": "MODIFIER",
+                "MANE_SELECT": "NM_198576.4",
+                "PICK": "1",
+                "RefSeq": "NM_198576.4",
+                "STRAND": "1",
+                "SWISSPROT": "O00468.198",
+                "SYMBOL": "AGRN",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "1",
+                "UNIPARC": "UPI00001D7C8B",
+                "UNIPROT_ISOFORM": "O00468-6",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "2994",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000394517",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000217801",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "TSL": "5",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "lncRNA",
+                "CANONICAL": "YES",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "513",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000418300",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000242590",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "TSL": "3",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "3015",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000427998",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000217801",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "TSL": "1",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "2979",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000456409",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000217801",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "TSL": "2",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "retained_intron",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "517",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000461111",
+                "Feature_type": "Transcript",
+                "GENE_PHENO": "1",
+                "Gene": "ENSG00000188157",
+                "HGNC_ID": "HGNC:329",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "SYMBOL": "AGRN",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "1",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "protein_coding",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "511",
+                "ENSP": "ENSP00000484607",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000620552",
+                "Feature_type": "Transcript",
+                "GENE_PHENO": "1",
+                "Gene": "ENSG00000188157",
+                "HGNC_ID": "HGNC:329",
+                "IMPACT": "MODIFIER",
+                "RefSeq": "NM_001305275.2",
+                "STRAND": "1",
+                "SYMBOL": "AGRN",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "A0A087X208.56",
+                "TSL": "5",
+                "UNIPARC": "UPI0004E4CB7F",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "protein_coding",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "513",
+                "ENSP": "ENSP00000499046",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000651234",
+                "Feature_type": "Transcript",
+                "GENE_PHENO": "1",
+                "Gene": "ENSG00000188157",
+                "HGNC_ID": "HGNC:329",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "SYMBOL": "AGRN",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "A0A494C1I6.12",
+                "UNIPARC": "UPI000387B6E0",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "protein_coding",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "513",
+                "ENSP": "ENSP00000498543",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000652369",
+                "Feature_type": "Transcript",
+                "GENE_PHENO": "1",
+                "Gene": "ENSG00000188157",
+                "HGNC_ID": "HGNC:329",
+                "IMPACT": "MODIFIER",
+                "RefSeq": "NM_001364727.2",
+                "STRAND": "1",
+                "SYMBOL": "AGRN",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "A0A494C0G5.12",
+                "UNIPARC": "UPI0010872C9B",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "3016",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000685011",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000217801",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "2973",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000688131",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000217801",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "3020",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000692266",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000217801",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "VARIANT_CLASS": "deletion"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "-",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "2986",
+                "Existing_variation": "rs1557731169",
+                "Feature": "ENST00000692821",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000217801",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "VARIANT_CLASS": "deletion"
+              }
+            ]
+          }
+        },
+        "DP": {
+          "description": "Combined depth across samples",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "267"
+          ]
+        },
+        "ECNT": {
+          "description": "Number of events in this haplotype",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "1"
+          ]
+        },
+        "GERMQ": {
+          "description": "Phred-scaled quality that alt alleles are not germline variants",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "93"
+          ]
+        },
+        "MBQ": {
+          "description": "median base quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "27",
+            "20"
+          ]
+        },
+        "MFRL": {
+          "description": "median fragment length",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "275",
+            "188"
+          ]
+        },
+        "MMQ": {
+          "description": "median mapping quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "60",
+            "60"
+          ]
+        },
+        "MPOS": {
+          "description": "median distance from end of read",
+          "number": "A",
+          "type": "Integer",
+          "value": [
+            "60"
+          ]
+        },
+        "NALOD": {
+          "description": "Negative log 10 odds of artifact in normal with same allele fraction as tumor",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "1.62"
+          ]
+        },
+        "NLOD": {
+          "description": "Normal log 10 likelihood ratio of diploid het or hom alt genotypes",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "9.13"
+          ]
+        },
+        "POPAF": {
+          "description": "negative log 10 population allele frequencies of alt alleles",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "6"
+          ]
+        },
+        "TLOD": {
+          "description": "Log 10 likelihood ratio score of variant existing versus not existing",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "7.49"
+          ]
+        }
+      },
+      "pos": "1056628",
+      "qual": ".",
+      "ref": "CGTGTGCTTGCTCTCCGGCGTGCATGTGTGGGTGCATGTACGTGTGTGGGTGCGTGTGCCTGCTCTCCGGCGTGTATGTGTGGGTGT",
+      "samples": {
+        "sample_normal": {
+          "AD": "41,0",
+          "AF": "0.028",
+          "DP": "41",
+          "F1R2": "11,0",
+          "F2R1": "8,0",
+          "GT": "0/0",
+          "SB": "32,9,0,0"
+        },
+        "sample_tumour": {
+          "AD": "115,5",
+          "AF": "0.064",
+          "DP": "120",
+          "F1R2": "38,2",
+          "F2R1": "32,3",
+          "GT": "0/1",
+          "SB": "71,44,4,1"
+        }
+      }
+    },
+    {
+      "alt": "CC",
+      "chrom": "chr1",
+      "filter": "PASS",
+      "id": ".",
+      "info": {
+        "AS_FilterStatus": {
+          "description": "Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.",
+          "number": "A",
+          "type": "String",
+          "value": [
+            "SITE"
+          ]
+        },
+        "AS_SB_TABLE": {
+          "description": "Allele-specific forward/reverse read counts for strand bias tests. Includes the reference and alleles separated by |.",
+          "number": "1",
+          "type": "String",
+          "value": [
+            "133,107|1,1"
+          ]
+        },
+        "CSQ": {
+          "description": "Consequence annotations from Ensembl VEP.",
+          "number": "K",
+          "type": "String",
+          "value": {
+            "CC": [
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "protein_coding",
+                "CCDS": "CCDS7.2",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "1591",
+                "ENSP": "ENSP00000368623",
+                "Feature": "ENST00000379319",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "IMPACT": "MODIFIER",
+                "STRAND": "-1",
+                "SWISSPROT": "Q96HA4.131",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "A0A024R082.57",
+                "TSL": "5",
+                "UNIPARC": "UPI0000049DAC",
+                "UNIPROT_ISOFORM": "Q96HA4-4",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "nonsense_mediated_decay",
+                "Consequence": "intron_variant&NMD_transcript_variant",
+                "ENSP": "ENSP00000368629",
+                "Feature": "ENST00000379325",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000379325.7:c.-136+8341_-136+8342inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/10",
+                "STRAND": "-1",
+                "SWISSPROT": "Q96HA4.131",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "2",
+                "UNIPARC": "UPI0000048F44",
+                "UNIPROT_ISOFORM": "Q96HA4-3",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "protein_coding",
+                "CCDS": "CCDS81250.1",
+                "Consequence": "intron_variant",
+                "ENSP": "ENSP00000368644",
+                "Feature": "ENST00000379339",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000379339.5:c.-136+7303_-136+7304inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "2/11",
+                "RefSeq": "NM_001330306.2",
+                "STRAND": "-1",
+                "SWISSPROT": "Q96HA4.131",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "2",
+                "UNIPARC": "UPI000013EF85",
+                "UNIPROT_ISOFORM": "Q96HA4-1",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "protein_coding",
+                "CANONICAL": "YES",
+                "CCDS": "CCDS7.2",
+                "Consequence": "intron_variant",
+                "ENSP": "ENSP00000400736",
+                "Feature": "ENST00000421241",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000421241.7:c.-136+8341_-136+8342inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/9",
+                "MANE_SELECT": "NM_017891.5",
+                "PICK": "1",
+                "RefSeq": "NM_017891.5",
+                "STRAND": "-1",
+                "SWISSPROT": "Q96HA4.131",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "A0A024R082.57",
+                "TSL": "2",
+                "UNIPARC": "UPI0000049DAC",
+                "UNIPROT_ISOFORM": "Q96HA4-4",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "protein_coding",
+                "Consequence": "intron_variant",
+                "ENSP": "ENSP00000390635",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000434641",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000434641.5:c.-136+8341_-136+8342inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/10",
+                "STRAND": "-1",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "Q5T2W7.94",
+                "TSL": "5",
+                "UNIPARC": "UPI0003F47F17",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "protein_coding",
+                "Consequence": "intron_variant",
+                "ENSP": "ENSP00000464273",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000462097",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000462097.5:c.-229-1670_-229-1669inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/6",
+                "STRAND": "-1",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "J3QRL0.37",
+                "TSL": "3",
+                "UNIPARC": "UPI000268AE20",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "nonsense_mediated_decay",
+                "Consequence": "intron_variant&NMD_transcript_variant",
+                "ENSP": "ENSP00000463144",
+                "Feature": "ENST00000467751",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000467751.5:c.-136+8341_-136+8342inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/11",
+                "STRAND": "-1",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "J3QKM1.32",
+                "TSL": "2",
+                "UNIPARC": "UPI0000205ACB",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "retained_intron",
+                "Consequence": "intron_variant&non_coding_transcript_variant",
+                "Feature": "ENST00000472741",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000472741.5:n.28+8341_28+8342inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/2",
+                "STRAND": "-1",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "4",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "protein_coding",
+                "Consequence": "intron_variant",
+                "ENSP": "ENSP00000462517",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000475119",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000475119.5:c.-180+8341_-180+8342inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/5",
+                "STRAND": "-1",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "J3KSJ6.37",
+                "TSL": "3",
+                "UNIPARC": "UPI000268AE21",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "nonsense_mediated_decay",
+                "Consequence": "intron_variant&NMD_transcript_variant",
+                "ENSP": "ENSP00000462798",
+                "Feature": "ENST00000477196",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000477196.5:c.-136+8341_-136+8342inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/9",
+                "STRAND": "-1",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "J3KT48.32",
+                "TSL": "2",
+                "UNIPARC": "UPI000048B028",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "protein_coding",
+                "Consequence": "intron_variant",
+                "ENSP": "ENSP00000464657",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000480643",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000480643.1:c.-451-848_-451-847inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "2/5",
+                "STRAND": "-1",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "J3QSF0.29",
+                "TSL": "4",
+                "UNIPARC": "UPI0003F48015",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "processed_transcript",
+                "Consequence": "intron_variant&non_coding_transcript_variant",
+                "Feature": "ENST00000482816",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000131591",
+                "HGNC_ID": "HGNC:26062",
+                "HGVSc": "ENST00000482816.5:n.184+8341_184+8342inv",
+                "IMPACT": "MODIFIER",
+                "INTRON": "1/9",
+                "STRAND": "-1",
+                "SYMBOL": "C1orf159",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "5",
+                "VARIANT_CLASS": "substitution"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "CC",
+                "BIOTYPE": "lncRNA",
+                "CANONICAL": "YES",
+                "Consequence": "downstream_gene_variant",
+                "DISTANCE": "3120",
+                "Feature": "ENST00000648183",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000285812",
+                "IMPACT": "MODIFIER",
+                "STRAND": "1",
+                "VARIANT_CLASS": "substitution"
+              }
+            ]
+          }
+        },
+        "DP": {
+          "description": "Combined depth across samples",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "245"
+          ]
+        },
+        "ECNT": {
+          "description": "Number of events in this haplotype",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "1"
+          ]
+        },
+        "GERMQ": {
+          "description": "Phred-scaled quality that alt alleles are not germline variants",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "93"
+          ]
+        },
+        "MBQ": {
+          "description": "median base quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "26",
+            "20"
+          ]
+        },
+        "MFRL": {
+          "description": "median fragment length",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "334",
+            "170"
+          ]
+        },
+        "MMQ": {
+          "description": "median mapping quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "60",
+            "39"
+          ]
+        },
+        "MPOS": {
+          "description": "median distance from end of read",
+          "number": "A",
+          "type": "Integer",
+          "value": [
+            "18"
+          ]
+        },
+        "NALOD": {
+          "description": "Negative log 10 odds of artifact in normal with same allele fraction as tumor",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "1.78"
+          ]
+        },
+        "NLOD": {
+          "description": "Normal log 10 likelihood ratio of diploid het or hom alt genotypes",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "17.76"
+          ]
+        },
+        "POPAF": {
+          "description": "negative log 10 population allele frequencies of alt alleles",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "6"
+          ]
+        },
+        "TLOD": {
+          "description": "Log 10 likelihood ratio score of variant existing versus not existing",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "4.58"
+          ]
+        }
+      },
+      "pos": "1107718",
+      "qual": ".",
+      "ref": "GG",
+      "samples": {
+        "sample_normal": {
+          "AD": "65,0",
+          "AF": "0.016",
+          "DP": "65",
+          "F1R2": "35,0",
+          "F2R1": "29,0",
+          "GT": "0/0",
+          "SB": "31,34,0,0"
+        },
+        "sample_tumour": {
+          "AD": "175,2",
+          "AF": "0.012",
+          "DP": "177",
+          "F1R2": "76,0",
+          "F2R1": "93,2",
+          "GT": "0/1",
+          "SB": "102,73,1,1"
+        }
+      }
+    },
+    {
+      "alt": "GT",
+      "chrom": "chr1",
+      "filter": "PASS",
+      "id": ".",
+      "info": {
+        "AS_FilterStatus": {
+          "description": "Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.",
+          "number": "A",
+          "type": "String",
+          "value": [
+            "SITE"
+          ]
+        },
+        "AS_SB_TABLE": {
+          "description": "Allele-specific forward/reverse read counts for strand bias tests. Includes the reference and alleles separated by |.",
+          "number": "1",
+          "type": "String",
+          "value": [
+            "86,91|1,3"
+          ]
+        },
+        "CSQ": {
+          "description": "Consequence annotations from Ensembl VEP.",
+          "number": "K",
+          "type": "String",
+          "value": {
+            "T": [
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "Consequence": "intergenic_variant",
+                "IMPACT": "MODIFIER",
+                "PICK": "1",
+                "VARIANT_CLASS": "insertion"
+              }
+            ]
+          }
+        },
+        "DP": {
+          "description": "Combined depth across samples",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "190"
+          ]
+        },
+        "ECNT": {
+          "description": "Number of events in this haplotype",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "1"
+          ]
+        },
+        "GERMQ": {
+          "description": "Phred-scaled quality that alt alleles are not germline variants",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "93"
+          ]
+        },
+        "MBQ": {
+          "description": "median base quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "31",
+            "24"
+          ]
+        },
+        "MFRL": {
+          "description": "median fragment length",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "326",
+            "180"
+          ]
+        },
+        "MMQ": {
+          "description": "median mapping quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "60",
+            "60"
+          ]
+        },
+        "MPOS": {
+          "description": "median distance from end of read",
+          "number": "A",
+          "type": "Integer",
+          "value": [
+            "17"
+          ]
+        },
+        "NALOD": {
+          "description": "Negative log 10 odds of artifact in normal with same allele fraction as tumor",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "1.68"
+          ]
+        },
+        "NLOD": {
+          "description": "Normal log 10 likelihood ratio of diploid het or hom alt genotypes",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "13.83"
+          ]
+        },
+        "POPAF": {
+          "description": "negative log 10 population allele frequencies of alt alleles",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "6"
+          ]
+        },
+        "RPA": {
+          "description": "Number of times tandem repeat unit is repeated, for each allele (including reference)",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "2",
+            "3"
+          ]
+        },
+        "RU": {
+          "description": "Tandem repeat unit (bases)",
+          "number": "1",
+          "type": "String",
+          "value": [
+            "T"
+          ]
+        },
+        "STR": {
+          "description": "Variant is a short tandem repeat",
+          "number": "0",
+          "type": "Flag",
+          "value": null
+        },
+        "STRQ": {
+          "description": "Phred-scaled quality that alt alleles in STRs are not polymerase slippage errors",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "93"
+          ]
+        },
+        "TLOD": {
+          "description": "Log 10 likelihood ratio score of variant existing versus not existing",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "7.38"
+          ]
+        }
+      },
+      "pos": "4404404",
+      "qual": ".",
+      "ref": "G",
+      "samples": {
+        "sample_normal": {
+          "AD": "48,0",
+          "AF": "0.02",
+          "DP": "48",
+          "F1R2": "26,0",
+          "F2R1": "22,0",
+          "GT": "0/0",
+          "SB": "26,22,0,0"
+        },
+        "sample_tumour": {
+          "AD": "129,4",
+          "AF": "0.032",
+          "DP": "133",
+          "F1R2": "72,2",
+          "F2R1": "55,1",
+          "GT": "0/1",
+          "SB": "60,69,1,3"
+        }
+      }
+    },
+    {
+      "alt": "T",
+      "chrom": "chr1",
+      "filter": "PASS",
+      "id": ".",
+      "info": {
+        "AS_FilterStatus": {
+          "description": "Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.",
+          "number": "A",
+          "type": "String",
+          "value": [
+            "SITE"
+          ]
+        },
+        "AS_SB_TABLE": {
+          "description": "Allele-specific forward/reverse read counts for strand bias tests. Includes the reference and alleles separated by |.",
+          "number": "1",
+          "type": "String",
+          "value": [
+            "84,110|7,9"
+          ]
+        },
+        "CSQ": {
+          "description": "Consequence annotations from Ensembl VEP.",
+          "number": "K",
+          "type": "String",
+          "value": {
+            "T": [
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "Amino_acids": "V/I",
+                "BIOTYPE": "protein_coding",
+                "CCDS": "CCDS44054.1",
+                "CDS_position": "436/735",
+                "Codons": "Gtc/Atc",
+                "Consequence": "missense_variant",
+                "DOMAINS": "PROSITE_profiles:PS50850&PANTHER:PTHR23503:SF32&PANTHER:PTHR23503&PROSITE_patterns:PS00217&Pfam:PF00083&Gene3D:1.20.1250.20&Superfamily:SSF103473&Prints:PR00171&Transmembrane_helices:TMhelix",
+                "ENSP": "ENSP00000366631",
+                "EXON": "5/5",
+                "Feature": "ENST00000377414",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000142583",
+                "HGNC_ID": "HGNC:11010",
+                "HGVSc": "ENST00000377414.7:c.436G>A",
+                "HGVSp": "ENSP00000366631.3:p.Val146Ile",
+                "IMPACT": "MODERATE",
+                "PolyPhen": "possibly_damaging(0.793)",
+                "Protein_position": "146/244",
+                "RefSeq": "NM_001135585.2",
+                "SIFT": "deleterious(0.03)",
+                "STRAND": "-1",
+                "SWISSPROT": "P22732.204",
+                "SYMBOL": "SLC2A5",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "A0A140VJK5.25",
+                "TSL": "1",
+                "UNIPARC": "UPI0000074665",
+                "UNIPROT_ISOFORM": "P22732-2",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "504/2344"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "Amino_acids": "V/I",
+                "BIOTYPE": "protein_coding",
+                "CANONICAL": "YES",
+                "CCDS": "CCDS99.1",
+                "CDS_position": "436/1506",
+                "Codons": "Gtc/Atc",
+                "Consequence": "missense_variant",
+                "DOMAINS": "PROSITE_profiles:PS50850&CDD:cd17432&PANTHER:PTHR23503:SF32&PANTHER:PTHR23503&PROSITE_patterns:PS00217&Pfam:PF00083&TIGRFAM:TIGR00879&Gene3D:1.20.1250.20&Superfamily:SSF103473&Prints:PR00171&Transmembrane_helices:TMhelix",
+                "ENSP": "ENSP00000366641",
+                "EXON": "5/12",
+                "Feature": "ENST00000377424",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000142583",
+                "HGNC_ID": "HGNC:11010",
+                "HGVSc": "ENST00000377424.9:c.436G>A",
+                "HGVSp": "ENSP00000366641.4:p.Val146Ile",
+                "IMPACT": "MODERATE",
+                "MANE_SELECT": "NM_003039.3",
+                "PICK": "1",
+                "PolyPhen": "possibly_damaging(0.844)",
+                "Protein_position": "146/501",
+                "RefSeq": "NM_001328619.2&NM_001328621.2&NM_001328620.2&NM_003039.3",
+                "SIFT": "deleterious(0.01)",
+                "STRAND": "-1",
+                "SWISSPROT": "P22732.204",
+                "SYMBOL": "SLC2A5",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "1",
+                "UNIPARC": "UPI00000532AC",
+                "UNIPROT_ISOFORM": "P22732-1",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "535/4085"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "Amino_acids": "V/I",
+                "BIOTYPE": "protein_coding",
+                "CDS_position": "436/571",
+                "Codons": "Gtc/Atc",
+                "Consequence": "missense_variant",
+                "DOMAINS": "PROSITE_profiles:PS50850&PANTHER:PTHR23503&PANTHER:PTHR23503:SF32&PROSITE_patterns:PS00217&Pfam:PF00083&Gene3D:1.20.1250.20&Superfamily:SSF103473&Prints:PR00171&Transmembrane_helices:TMhelix",
+                "ENSP": "ENSP00000464880",
+                "EXON": "6/6",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000474145",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000142583",
+                "HGNC_ID": "HGNC:11010",
+                "HGVSc": "ENST00000474145.5:c.436G>A",
+                "HGVSp": "ENSP00000464880.1:p.Val146Ile",
+                "IMPACT": "MODERATE",
+                "PolyPhen": "possibly_damaging(0.844)",
+                "Protein_position": "146/190",
+                "SIFT": "deleterious(0.01)",
+                "STRAND": "-1",
+                "SYMBOL": "SLC2A5",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "K7EIT1.63",
+                "TSL": "2",
+                "UNIPARC": "UPI0002841258",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "711/846"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "Amino_acids": "V/I",
+                "BIOTYPE": "protein_coding",
+                "CDS_position": "436/571",
+                "Codons": "Gtc/Atc",
+                "Consequence": "missense_variant",
+                "DOMAINS": "PROSITE_profiles:PS50850&PANTHER:PTHR23503&PANTHER:PTHR23503:SF32&PROSITE_patterns:PS00217&Pfam:PF00083&Gene3D:1.20.1250.20&Superfamily:SSF103473&Prints:PR00171&Transmembrane_helices:TMhelix",
+                "ENSP": "ENSP00000468590",
+                "EXON": "7/7",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000479813",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000142583",
+                "HGNC_ID": "HGNC:11010",
+                "HGVSc": "ENST00000479813.5:c.436G>A",
+                "HGVSp": "ENSP00000468590.1:p.Val146Ile",
+                "IMPACT": "MODERATE",
+                "PolyPhen": "possibly_damaging(0.844)",
+                "Protein_position": "146/190",
+                "SIFT": "deleterious(0.01)",
+                "STRAND": "-1",
+                "SYMBOL": "SLC2A5",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "K7EIT1.63",
+                "TSL": "3",
+                "UNIPARC": "UPI0002841258",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "623/758"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "Amino_acids": "V/I",
+                "BIOTYPE": "protein_coding",
+                "CDS_position": "436/571",
+                "Codons": "Gtc/Atc",
+                "Consequence": "missense_variant",
+                "DOMAINS": "PROSITE_profiles:PS50850&PANTHER:PTHR23503&PANTHER:PTHR23503:SF32&PROSITE_patterns:PS00217&Pfam:PF00083&Gene3D:1.20.1250.20&Superfamily:SSF103473&Prints:PR00171&Transmembrane_helices:TMhelix",
+                "ENSP": "ENSP00000467039",
+                "EXON": "6/6",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000484798",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000142583",
+                "HGNC_ID": "HGNC:11010",
+                "HGVSc": "ENST00000484798.5:c.436G>A",
+                "HGVSp": "ENSP00000467039.1:p.Val146Ile",
+                "IMPACT": "MODERATE",
+                "PolyPhen": "possibly_damaging(0.844)",
+                "Protein_position": "146/190",
+                "SIFT": "deleterious(0.01)",
+                "STRAND": "-1",
+                "SYMBOL": "SLC2A5",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "K7EIT1.63",
+                "TSL": "3",
+                "UNIPARC": "UPI0002841258",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "549/684"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "Amino_acids": "V/I",
+                "BIOTYPE": "protein_coding",
+                "CDS_position": "436/571",
+                "Codons": "Gtc/Atc",
+                "Consequence": "missense_variant",
+                "DOMAINS": "PROSITE_profiles:PS50850&PANTHER:PTHR23503&PANTHER:PTHR23503:SF32&PROSITE_patterns:PS00217&Pfam:PF00083&Gene3D:1.20.1250.20&Superfamily:SSF103473&Prints:PR00171&Transmembrane_helices:TMhelix",
+                "ENSP": "ENSP00000465507",
+                "EXON": "7/7",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000486632",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000142583",
+                "HGNC_ID": "HGNC:11010",
+                "HGVSc": "ENST00000486632.5:c.436G>A",
+                "HGVSp": "ENSP00000465507.1:p.Val146Ile",
+                "IMPACT": "MODERATE",
+                "PolyPhen": "possibly_damaging(0.844)",
+                "Protein_position": "146/190",
+                "SIFT": "deleterious(0.01)",
+                "STRAND": "-1",
+                "SYMBOL": "SLC2A5",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "K7EIT1.63",
+                "TSL": "5",
+                "UNIPARC": "UPI0002841258",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "754/889"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "BIOTYPE": "retained_intron",
+                "Consequence": "upstream_gene_variant",
+                "DISTANCE": "2025",
+                "Feature": "ENST00000487492",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000142583",
+                "HGNC_ID": "HGNC:11010",
+                "IMPACT": "MODIFIER",
+                "STRAND": "-1",
+                "SYMBOL": "SLC2A5",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "3",
+                "VARIANT_CLASS": "SNV"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "T",
+                "Amino_acids": "V/I",
+                "BIOTYPE": "protein_coding",
+                "CDS_position": "436/498",
+                "Codons": "Gtc/Atc",
+                "Consequence": "missense_variant",
+                "DOMAINS": "PROSITE_profiles:PS50850&PANTHER:PTHR23503:SF32&PANTHER:PTHR23503&PROSITE_patterns:PS00217&Gene3D:1.20.1250.20&Pfam:PF00083&Superfamily:SSF103473&Prints:PR00171&Transmembrane_helices:TMhelix",
+                "ENSP": "ENSP00000465382",
+                "EXON": "7/7",
+                "FLAGS": "cds_end_NF",
+                "Feature": "ENST00000487835",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000142583",
+                "HGNC_ID": "HGNC:11010",
+                "HGVSc": "ENST00000487835.5:c.436G>A",
+                "HGVSp": "ENSP00000465382.1:p.Val146Ile",
+                "IMPACT": "MODERATE",
+                "PolyPhen": "possibly_damaging(0.844)",
+                "Protein_position": "146/166",
+                "SIFT": "deleterious(0.03)",
+                "STRAND": "-1",
+                "SYMBOL": "SLC2A5",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "K7EJZ0.55",
+                "TSL": "3",
+                "UNIPARC": "UPI0002841259",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "693/755"
+              }
+            ]
+          }
+        },
+        "DP": {
+          "description": "Combined depth across samples",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "220"
+          ]
+        },
+        "ECNT": {
+          "description": "Number of events in this haplotype",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "1"
+          ]
+        },
+        "GERMQ": {
+          "description": "Phred-scaled quality that alt alleles are not germline variants",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "93"
+          ]
+        },
+        "MBQ": {
+          "description": "median base quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "31",
+            "31"
+          ]
+        },
+        "MFRL": {
+          "description": "median fragment length",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "306",
+            "331"
+          ]
+        },
+        "MMQ": {
+          "description": "median mapping quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "60",
+            "60"
+          ]
+        },
+        "MPOS": {
+          "description": "median distance from end of read",
+          "number": "A",
+          "type": "Integer",
+          "value": [
+            "36"
+          ]
+        },
+        "NALOD": {
+          "description": "Negative log 10 odds of artifact in normal with same allele fraction as tumor",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "1.75"
+          ]
+        },
+        "NLOD": {
+          "description": "Normal log 10 likelihood ratio of diploid het or hom alt genotypes",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "16.55"
+          ]
+        },
+        "POPAF": {
+          "description": "negative log 10 population allele frequencies of alt alleles",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "6"
+          ]
+        },
+        "TLOD": {
+          "description": "Log 10 likelihood ratio score of variant existing versus not existing",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "28.35"
+          ]
+        }
+      },
+      "pos": "9041920",
+      "qual": ".",
+      "ref": "C",
+      "samples": {
+        "sample_normal": {
+          "AD": "43,0",
+          "AF": "0.018",
+          "DP": "63",
+          "F1R2": "33,0",
+          "F2R1": "29,0",
+          "GT": "0/0",
+          "SB": "24,39,0,0"
+        },
+        "sample_tumour": {
+          "AD": "143,16",
+          "AF": "0.105",
+          "DP": "152",
+          "F1R2": "65,10",
+          "F2R1": "69,4",
+          "GT": "0/1",
+          "SB": "60,76,7,9"
+        }
+      }
+    },
+    {
+      "alt": "A",
+      "chrom": "chr1",
+      "filter": "PASS",
+      "id": ".",
+      "info": {
+        "AS_FilterStatus": {
+          "description": "Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.",
+          "number": "A",
+          "type": "String",
+          "value": [
+            "SITE"
+          ]
+        },
+        "AS_SB_TABLE": {
+          "description": "Allele-specific forward/reverse read counts for strand bias tests. Includes the reference and alleles separated by |.",
+          "number": "1",
+          "type": "String",
+          "value": [
+            "3,63|10,6"
+          ]
+        },
+        "CSQ": {
+          "description": "Consequence annotations from Ensembl VEP.",
+          "number": "K",
+          "type": "String",
+          "value": {
+            "A": [
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "A",
+                "BIOTYPE": "nonsense_mediated_decay",
+                "Consequence": "3_prime_UTR_variant&NMD_transcript_variant",
+                "ENSP": "ENSP00000473795",
+                "EXON": "18/19",
+                "Existing_variation": "rs773153392&COSV55320978&COSV55321179&COSV55326510",
+                "Feature": "ENST00000392963",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000219481",
+                "HGNC_ID": "HGNC:26088",
+                "HGVSc": "ENST00000392963.5:c.*1783C>T",
+                "IMPACT": "MODIFIER",
+                "PHENO": "0&1&1&1",
+                "SOMATIC": "0&1&1&1",
+                "STRAND": "-1",
+                "SYMBOL": "NBPF1",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "S4R2Z6.21",
+                "TSL": "5",
+                "UNIPARC": "UPI00006C03A5",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "2457/2672",
+                "gnomAD_AF": "0.05058",
+                "gnomAD_AFR_AF": "0.04548",
+                "gnomAD_AMR_AF": "0.03801",
+                "gnomAD_ASJ_AF": "0.09465",
+                "gnomAD_EAS_AF": "0.004779",
+                "gnomAD_FIN_AF": "0.03862",
+                "gnomAD_NFE_AF": "0.0643",
+                "gnomAD_OTH_AF": "0.05204",
+                "gnomAD_SAS_AF": "0.05889"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "A",
+                "Amino_acids": "A/V",
+                "BIOTYPE": "protein_coding",
+                "CANONICAL": "YES",
+                "CDS_position": "2915/3420",
+                "Codons": "gCa/gTa",
+                "Consequence": "missense_variant",
+                "DOMAINS": "Pfam:PF06758&PROSITE_profiles:PS51316&PANTHER:PTHR14199&PANTHER:PTHR14199&PANTHER:PTHR14199:SF35&PANTHER:PTHR14199:SF35&SMART:SM01148",
+                "ENSP": "ENSP00000474456",
+                "EXON": "27/29",
+                "Existing_variation": "rs773153392&COSV55320978&COSV55321179&COSV55326510",
+                "Feature": "ENST00000430580",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000219481",
+                "HGNC_ID": "HGNC:26088",
+                "HGVSc": "ENST00000430580.6:c.2915C>T",
+                "HGVSp": "ENSP00000474456.1:p.Ala972Val",
+                "IMPACT": "MODERATE",
+                "PHENO": "0&1&1&1",
+                "PICK": "1",
+                "PolyPhen": "benign(0.001)",
+                "Protein_position": "972/1139",
+                "RefSeq": "NM_017940.6",
+                "SIFT": "tolerated(0.5)",
+                "SOMATIC": "0&1&1&1",
+                "STRAND": "-1",
+                "SWISSPROT": "Q3BBV0.108",
+                "SYMBOL": "NBPF1",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "5",
+                "UNIPARC": "UPI0000E04FDF",
+                "UNIPROT_ISOFORM": "Q3BBV0-2",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "3803/5932",
+                "gnomAD_AF": "0.05058",
+                "gnomAD_AFR_AF": "0.04548",
+                "gnomAD_AMR_AF": "0.03801",
+                "gnomAD_ASJ_AF": "0.09465",
+                "gnomAD_EAS_AF": "0.004779",
+                "gnomAD_FIN_AF": "0.03862",
+                "gnomAD_NFE_AF": "0.0643",
+                "gnomAD_OTH_AF": "0.05204",
+                "gnomAD_SAS_AF": "0.05889"
+              }
+            ]
+          }
+        },
+        "DP": {
+          "description": "Combined depth across samples",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "95"
+          ]
+        },
+        "ECNT": {
+          "description": "Number of events in this haplotype",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "1"
+          ]
+        },
+        "GERMQ": {
+          "description": "Phred-scaled quality that alt alleles are not germline variants",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "93"
+          ]
+        },
+        "MBQ": {
+          "description": "median base quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "30",
+            "20"
+          ]
+        },
+        "MFRL": {
+          "description": "median fragment length",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "353",
+            "200"
+          ]
+        },
+        "MMQ": {
+          "description": "median mapping quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "27",
+            "44"
+          ]
+        },
+        "MPOS": {
+          "description": "median distance from end of read",
+          "number": "A",
+          "type": "Integer",
+          "value": [
+            "49"
+          ]
+        },
+        "NALOD": {
+          "description": "Negative log 10 odds of artifact in normal with same allele fraction as tumor",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "1.27"
+          ]
+        },
+        "NLOD": {
+          "description": "Normal log 10 likelihood ratio of diploid het or hom alt genotypes",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "5.11"
+          ]
+        },
+        "POPAF": {
+          "description": "negative log 10 population allele frequencies of alt alleles",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "6"
+          ]
+        },
+        "TLOD": {
+          "description": "Log 10 likelihood ratio score of variant existing versus not existing",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "32.92"
+          ]
+        }
+      },
+      "pos": "16565782",
+      "qual": ".",
+      "ref": "G",
+      "samples": {
+        "sample_normal": {
+          "AD": "16,0",
+          "AF": "0.052",
+          "DP": "17",
+          "F1R2": "11,0",
+          "F2R1": "6,0",
+          "GT": "0/0",
+          "SB": "0,17,0,0"
+        },
+        "sample_tumour": {
+          "AD": "53,15",
+          "AF": "0.171",
+          "DP": "75",
+          "F1R2": "32,7",
+          "F2R1": "27,9",
+          "GT": "0/1",
+          "SB": "3,56,10,6"
+        }
+      }
+    },
+    {
+      "alt": "A,T",
+      "chrom": "chr1",
+      "filter": "PASS",
+      "id": ".",
+      "info": {
+        "AS_FilterStatus": {
+          "description": "Filter status for each allele, as assessed by ApplyRecalibration. Note that the VCF filter field will reflect the most lenient/sensitive status across all alleles.",
+          "number": "A",
+          "type": "String",
+          "value": [
+            "SITE"
+          ]
+        },
+        "AS_SB_TABLE": {
+          "description": "Allele-specific forward/reverse read counts for strand bias tests. Includes the reference and alleles separated by |.",
+          "number": "1",
+          "type": "String",
+          "value": [
+            "3,63|10,6"
+          ]
+        },
+        "CSQ": {
+          "description": "Consequence annotations from Ensembl VEP.",
+          "number": "K",
+          "type": "String",
+          "value": {
+            "A": [
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "A",
+                "BIOTYPE": "nonsense_mediated_decay",
+                "Consequence": "3_prime_UTR_variant&NMD_transcript_variant",
+                "ENSP": "ENSP00000473795",
+                "EXON": "18/19",
+                "Existing_variation": "rs773153392&COSV55320978&COSV55321179&COSV55326510",
+                "Feature": "ENST00000392963",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000219481",
+                "HGNC_ID": "HGNC:26088",
+                "HGVSc": "ENST00000392963.5:c.*1783C>T",
+                "IMPACT": "MODIFIER",
+                "PHENO": "0&1&1&1",
+                "SOMATIC": "0&1&1&1",
+                "STRAND": "-1",
+                "SYMBOL": "NBPF1",
+                "SYMBOL_SOURCE": "HGNC",
+                "TREMBL": "S4R2Z6.21",
+                "TSL": "5",
+                "UNIPARC": "UPI00006C03A5",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "2457/2672",
+                "gnomAD_AF": "0.05058",
+                "gnomAD_AFR_AF": "0.04548",
+                "gnomAD_AMR_AF": "0.03801",
+                "gnomAD_ASJ_AF": "0.09465",
+                "gnomAD_EAS_AF": "0.004779",
+                "gnomAD_FIN_AF": "0.03862",
+                "gnomAD_NFE_AF": "0.0643",
+                "gnomAD_OTH_AF": "0.05204",
+                "gnomAD_SAS_AF": "0.05889"
+              },
+              {
+                "ALLELE_NUM": "1",
+                "Allele": "A",
+                "Amino_acids": "A/V",
+                "BIOTYPE": "protein_coding",
+                "CANONICAL": "YES",
+                "CDS_position": "2915/3420",
+                "Codons": "gCa/gTa",
+                "Consequence": "missense_variant",
+                "DOMAINS": "Pfam:PF06758&PROSITE_profiles:PS51316&PANTHER:PTHR14199&PANTHER:PTHR14199&PANTHER:PTHR14199:SF35&PANTHER:PTHR14199:SF35&SMART:SM01148",
+                "ENSP": "ENSP00000474456",
+                "EXON": "27/29",
+                "Existing_variation": "rs773153392&COSV55320978&COSV55321179&COSV55326510",
+                "Feature": "ENST00000430580",
+                "Feature_type": "Transcript",
+                "Gene": "ENSG00000219481",
+                "HGNC_ID": "HGNC:26088",
+                "HGVSc": "ENST00000430580.6:c.2915C>T",
+                "HGVSp": "ENSP00000474456.1:p.Ala972Val",
+                "IMPACT": "MODERATE",
+                "PHENO": "0&1&1&1",
+                "PICK": "1",
+                "PolyPhen": "benign(0.001)",
+                "Protein_position": "972/1139",
+                "RefSeq": "NM_017940.6",
+                "SIFT": "tolerated(0.5)",
+                "SOMATIC": "0&1&1&1",
+                "STRAND": "-1",
+                "SWISSPROT": "Q3BBV0.108",
+                "SYMBOL": "NBPF1",
+                "SYMBOL_SOURCE": "HGNC",
+                "TSL": "5",
+                "UNIPARC": "UPI0000E04FDF",
+                "UNIPROT_ISOFORM": "Q3BBV0-2",
+                "VARIANT_CLASS": "SNV",
+                "cDNA_position": "3803/5932",
+                "gnomAD_AF": "0.05058",
+                "gnomAD_AFR_AF": "0.04548",
+                "gnomAD_AMR_AF": "0.03801",
+                "gnomAD_ASJ_AF": "0.09465",
+                "gnomAD_EAS_AF": "0.004779",
+                "gnomAD_FIN_AF": "0.03862",
+                "gnomAD_NFE_AF": "0.0643",
+                "gnomAD_OTH_AF": "0.05204",
+                "gnomAD_SAS_AF": "0.05889"
+              }
+            ]
+          }
+        },
+        "DP": {
+          "description": "Combined depth across samples",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "95"
+          ]
+        },
+        "ECNT": {
+          "description": "Number of events in this haplotype",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "1"
+          ]
+        },
+        "GERMQ": {
+          "description": "Phred-scaled quality that alt alleles are not germline variants",
+          "number": "1",
+          "type": "Integer",
+          "value": [
+            "93"
+          ]
+        },
+        "MBQ": {
+          "description": "median base quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "30",
+            "20"
+          ]
+        },
+        "MFRL": {
+          "description": "median fragment length",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "353",
+            "200"
+          ]
+        },
+        "MMQ": {
+          "description": "median mapping quality",
+          "number": "R",
+          "type": "Integer",
+          "value": [
+            "27",
+            "44"
+          ]
+        },
+        "MPOS": {
+          "description": "median distance from end of read",
+          "number": "A",
+          "type": "Integer",
+          "value": [
+            "49"
+          ]
+        },
+        "NALOD": {
+          "description": "Negative log 10 odds of artifact in normal with same allele fraction as tumor",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "1.27"
+          ]
+        },
+        "NLOD": {
+          "description": "Normal log 10 likelihood ratio of diploid het or hom alt genotypes",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "5.11"
+          ]
+        },
+        "POPAF": {
+          "description": "negative log 10 population allele frequencies of alt alleles",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "6"
+          ]
+        },
+        "TLOD": {
+          "description": "Log 10 likelihood ratio score of variant existing versus not existing",
+          "number": "A",
+          "type": "Float",
+          "value": [
+            "32.92"
+          ]
+        }
+      },
+      "pos": "16565784",
+      "qual": ".",
+      "ref": "G",
+      "samples": {
+        "sample_normal": {
+          "AD": "16,0",
+          "AF": "0.052",
+          "DP": "17",
+          "F1R2": "11,0",
+          "F2R1": "6,0",
+          "GT": "0/0",
+          "SB": "0,17,0,0"
+        },
+        "sample_tumour": {
+          "AD": "53,15",
+          "AF": "0.171",
+          "DP": "75",
+          "F1R2": "32,7",
+          "F2R1": "27,9",
+          "GT": "1/2",
+          "SB": "3,56,10,6"
+        }
+      }
+    }
+  ]
+}

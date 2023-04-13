@@ -8,6 +8,7 @@ import authz
 from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT
 from markupsafe import escape
 import connexion
+import variants
 
 
 app = Flask(__name__)
@@ -100,6 +101,8 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
     if id_ is not None:
         auth_code = authz.is_authed(escape(id_), request)
         if auth_code == 200:
+            if format_ == "VCF-JSON":
+                return variants.parse_vcf_file(id_, reference_name=reference_name, start=start, end=end)
             return _get_data(escape(id_), reference_name, start, end, class_, format_)
     else:
         return None, 404

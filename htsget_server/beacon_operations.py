@@ -223,7 +223,7 @@ def search(raw_req):
         if 'end' not in actual_params:
             actual_params['end'] = actual_params['start']
 
-        variants_by_file = variants.find_variants_in_region(reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'], reference_genome=actual_params['reference_genome'])
+        variants_by_file = variants.find_variants_in_region(reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
 
         resultset = compile_beacon_resultset(variants_by_file, reference_genome=actual_params['reference_genome'])
         # others are for filtering after:
@@ -327,7 +327,8 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
         # check to see if this drs_object is authorized:
         x, status_code = drs_operations.get_object(drs_obj)
         is_authed = (status_code == 200)
-
+        if database.get_variantfile(drs_obj)['reference_genome'] != reference_genome:
+            continue
         for variant in variants_by_obj[drs_obj]['variants']:
             # parse the variants beacon-style
             variant['variations'] = compile_variations_from_record(ref=variant.pop('ref'), alt=variant.pop('alt'), chrom=variant.pop('chrom'), pos=variant.pop('pos'), reference_genome=reference_genome)
@@ -416,7 +417,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
     return final_resultset
 
 
-def compile_variations_from_record(ref="", alt="", chrom="", pos="", reference_genome="hg38"):
+def compile_variations_from_record(ref="", alt=[""], chrom="", pos="", reference_genome="hg38"):
     start = int(pos)
     end = int(pos)
     variations = [
@@ -451,9 +452,8 @@ def compile_variations_from_record(ref="", alt="", chrom="", pos="", reference_g
         variations[0]['location']['sequence_id'] = "refseq:" + seqid
         hgvsid_base = f"{seqid}:g.{start}"
 
-    # alt can be a comma-separated list
-    alts = alt.split(',')
-    for a in alts:
+    # alt is a list of alt alleles
+    for a in alt:
         # make a copy of the ref variation
         alt_variation = json.loads(json.dumps(variations[0]))
         variations.append(alt_variation)
@@ -490,24 +490,24 @@ def assign_info_to_variations(variant):
         keys = list(info_obj.keys())
         for k in keys:
             info = info_obj[k]
-            if 'Number' in info:
-                if info['Number'] == 'R' or info['Number'] == 'A':
-                    vals = info['Value']
+            if 'number' in info:
+                if info['number'] == 'R' or info['number'] == 'A':
+                    vals = info['value']
                     offset = 0
-                    if info['Number'] == 'A':
+                    if info['number'] == 'A':
                         offset = 1
                     for i in range(len(vals)):
                         if 'info' not in variant['variations'][i+offset]:
                             variant['variations'][i+offset]['info'] = {}
                         variant['variations'][i+offset]['info'][k] = {
-                            'Description': info['Description'],
-                            'Value': vals[i]
+                            'description': info['description'],
+                            'value': vals[i]
                         }
                     info_obj.pop(k)
-                elif info['Number'] == 'K':
+                elif info['number'] == 'K':
                     # find the variation matching the key:
                     variation_alleles = list(map(lambda x: x['state']['sequence'], variant['variations']))
-                    alleles = list(info['Value'].keys())
+                    alleles = list(info['value'].keys())
                     for a in alleles:
                         #index = variation_alleles.index(a)
                         if a == '-': # vep doesn't label alleles for deletions: it's gotta be the alt allele
@@ -516,13 +516,13 @@ def assign_info_to_variations(variant):
                             index = variation_alleles.index(f"{variation_alleles[0]}{a}")
                         else:
                             if a not in variation_alleles:
-                                raise Exception(f"{a} not in {variation_alleles} {info['Value']}")
+                                raise Exception(f"{a} not in {variation_alleles} {info['value']}")
                             index = variation_alleles.index(a)
                         if 'info' not in variant['variations'][index]:
                             variant['variations'][index]['info'] = {}
                         variant['variations'][index]['info'][k] = {
-                            'Description': info['Description'],
-                            'Value': info['Value'].pop(a)
+                            'description': info['description'],
+                            'value': info['value'].pop(a)
                         }
                     info_obj.pop(k)
 
@@ -532,7 +532,7 @@ def compile_molecular_attributes_from_csq(g_variant, csq_list):
     gene_ids = set()
     mol_effects = set()
     genomic_features = set()
-    for csq in csq_list['Value']:
+    for csq in csq_list['value']:
         if 'HGNC_ID' in csq:
             gene_ids.add(csq['HGNC_ID'])
         if 'SYMBOL' in csq:
