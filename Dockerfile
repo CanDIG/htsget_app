@@ -22,10 +22,12 @@ RUN apk add --no-cache \
 	bzip2-dev \
 	xz-dev \
 	libcurl \
+	linux-headers \
 	curl \
 	curl-dev \
 	yaml-dev \
 	libressl-dev \
+	pcre-dev \
 	git \
 	sqlite
 
