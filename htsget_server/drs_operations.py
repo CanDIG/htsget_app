@@ -2,6 +2,7 @@ import connexion
 import database
 from flask import request, Flask
 import os
+import os.path
 import re
 import authz
 from markupsafe import escape
@@ -231,9 +232,13 @@ def _get_file_path(drs_file_obj_id):
             url_pieces = urlparse(method["access_url"]["url"])
             if url_pieces.scheme == "file":
                 if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
-                    result["path"] = url_pieces.path.lstrip("/")
+                    result["path"] = os.path.abspath(url_pieces.path)
+                    if not os.path.exists(result["path"]):
+                        result['message'] = f"No file exists at {result['path']} on the server."
+                        result['status_code'] = 404
     if result['path'] is None:
         result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {url}"
+        result['status_code'] = 404
         result.pop('path')
     return result
 

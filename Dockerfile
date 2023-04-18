@@ -7,6 +7,8 @@ LABEL "candigv2"="htsget_app"
 
 USER root
 
+RUN addgroup -S candig && adduser -S candig -G candig
+
 RUN apk update
 
 RUN apk add --no-cache \
@@ -22,10 +24,12 @@ RUN apk add --no-cache \
 	bzip2-dev \
 	xz-dev \
 	libcurl \
+	linux-headers \
 	curl \
 	curl-dev \
 	yaml-dev \
 	libressl-dev \
+	pcre-dev \
 	git \
 	sqlite
 
