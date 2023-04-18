@@ -9,6 +9,7 @@ from authx.auth import get_minio_client, get_access_token, store_aws_credential
 REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
 sys.path.insert(0, os.path.abspath(f"{REPO_DIR}/htsget_server"))
 LOCAL_FILE_PATH = os.path.abspath(f"{REPO_DIR}/data/files")
+SERVER_LOCAL_DATA = os.getenv("SERVER_LOCAL_DATA", "/app/htsget_server/data")
 from config import PORT
 
 HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
@@ -126,7 +127,7 @@ def test_post_update():
     obj = response.json()
 
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    access_url = f"file:////app/htsget_server/data/files/NA18537.vcf.gz" # this is local within the htsget server container, not from where we're running pytest
+    access_url = f"file:///{SERVER_LOCAL_DATA}/files/NA18537.vcf.gz" # this is local within the htsget server container, not from where we're running pytest
     obj["access_methods"] = [
         {
             "type": "file",
