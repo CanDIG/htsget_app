@@ -12,6 +12,7 @@ sqlite3 -bail $db "SELECT * from ncbiRefSeq limit 1"
 if [[ $? -eq 1 ]]; then
     echo "initializing database..."
     sqlite3 $db -init data/files.sql "SELECT * from variantfile"
+    chown -R candig:candig $(dirname $db)
     echo "...done"
 fi
 

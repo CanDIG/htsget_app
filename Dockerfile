@@ -7,6 +7,8 @@ LABEL "candigv2"="htsget_app"
 
 USER root
 
+RUN addgroup -S candig && adduser -S candig -G candig
+
 RUN apk update
 
 RUN apk add --no-cache \
