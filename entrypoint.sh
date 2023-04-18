@@ -34,4 +34,9 @@ if [[ -f "initial_setup" ]]; then
 fi
 
 crond
-python3 htsget_server/server.py $@
+
+# use the following for development
+#python3 htsget_server/server.py
+
+# use the following instead for production deployment
+uwsgi uwsgi.ini
