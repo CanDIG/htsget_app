@@ -126,7 +126,7 @@ def test_post_update():
     obj = response.json()
 
     url = f"{HOST}/ga4gh/drs/v1/objects"
-    access_url = f"file:///./data/files/NA18537.vcf.gz" # this is local within the htsget server container, not from where we're running pytest
+    access_url = f"file:////app/htsget_server/data/files/NA18537.vcf.gz" # this is local within the htsget server container, not from where we're running pytest
     obj["access_methods"] = [
         {
             "type": "file",
