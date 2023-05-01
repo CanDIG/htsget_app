@@ -7,6 +7,7 @@ import database
 import json
 import re
 import connexion
+from functools import reduce
 
 
 app = Flask(__name__)
@@ -125,6 +126,12 @@ def post_search():
     #   $ref: '#/components/schemas/TestMode'
     if 'requestedGranularity' not in req:
         req['requestedGranularity'] = 'record'
+
+    params = list(req['query']['requestParameters'].keys())
+    for param in params:
+        # change all names of parameters to snake case from camel case
+        new_param = reduce(lambda x, y: x + ('_' if y.isupper() else '') + y, param).lower()
+        req['query']['requestParameters'][new_param] = req['query']['requestParameters'].pop(param)
 
     try:
         result = search(req)
