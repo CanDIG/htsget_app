@@ -371,8 +371,8 @@ def get_beacon_post_search():
                         "requestParameters": {
                             "start": [5030000],
                             "end": [5030847],
-                            "assembly_id": "hg37",
-                            "reference_name": "21"
+                            "assemblyId": "hg37",
+                            "referenceName": "21"
                         }
                     },
                     "meta": {
@@ -388,7 +388,7 @@ def get_beacon_post_search():
                         "requestParameters": {
                             "start": [16562322],
                             "end": [16613564],
-                            "reference_name": "1"
+                            "referenceName": "1"
                         }
                     },
                     "meta": {
