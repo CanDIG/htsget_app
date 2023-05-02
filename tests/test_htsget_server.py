@@ -24,6 +24,7 @@ CWD = os.getcwd()
 
 
 def get_headers(username=USERNAME, password=PASSWORD):
+    headers = {}
     try:
         token = get_access_token(username=username, password=password)
         headers["Authorization"] = f"Bearer {token}"
