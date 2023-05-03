@@ -24,12 +24,12 @@ CWD = os.getcwd()
 
 
 def get_headers(username=USERNAME, password=PASSWORD):
-    headers={"Test_Key": TEST_KEY}
+    headers = {}
     try:
         token = get_access_token(username=username, password=password)
         headers["Authorization"] = f"Bearer {token}"
     except Exception as e:
-        headers["Authorization"] = "Bearer testtest"
+        headers["Authorization"] = f"Bearer {TEST_KEY}"
     return headers
 
 
@@ -354,7 +354,7 @@ def test_beacon_get_search():
 
     # for an unauthorized user, the request should not contain a full response, just a count
     headers = get_headers(username="test", password="test")
-    headers.pop("Test_Key")
+    headers["Authorization"] = "Bearer unauthorized"
     response = requests.get(url, headers=headers)
     print(response.text)
     assert 'response' not in response.json()
@@ -371,8 +371,8 @@ def get_beacon_post_search():
                         "requestParameters": {
                             "start": [5030000],
                             "end": [5030847],
-                            "assembly_id": "hg37",
-                            "reference_name": "21"
+                            "assemblyId": "hg37",
+                            "referenceName": "21"
                         }
                     },
                     "meta": {
@@ -388,7 +388,7 @@ def get_beacon_post_search():
                         "requestParameters": {
                             "start": [16562322],
                             "end": [16613564],
-                            "reference_name": "1"
+                            "referenceName": "1"
                         }
                     },
                     "meta": {

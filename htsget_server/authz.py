@@ -11,7 +11,7 @@ app = Flask(__name__)
 def is_authed(id_, request):
     if request is None:
         return 401
-    if request.headers.get("Test_Key") == TEST_KEY:
+    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return 200 # no auth
@@ -30,7 +30,7 @@ def is_authed(id_, request):
 
 
 def is_testing(request):
-    if request.headers.get("Test_Key") == TEST_KEY:
+    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return True
@@ -49,7 +49,7 @@ def is_site_admin(request):
     """
     Is the user associated with the token a site admin?
     """
-    if request.headers.get("Test_Key") == TEST_KEY:
+    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return True # no auth
