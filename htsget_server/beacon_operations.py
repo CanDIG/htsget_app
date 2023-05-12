@@ -81,6 +81,9 @@ def get_search(
         },
         "query": {
             "requestParameters": {}
+        },
+        "meta": {
+            "requestedGranularity": "record"
         }
     }
     if alternate_bases is not None:
@@ -104,7 +107,6 @@ def get_search(
     if variant_min_length is not None:
         req['query']['requestParameters']['variant_min_length'] = variant_min_length
 
-    req['requestedGranularity'] = 'record'
     try:
         result = search(req)
         return result, 200
@@ -124,8 +126,8 @@ def post_search():
     #   $ref: '#/components/schemas/Granularity'
     # testMode:
     #   $ref: '#/components/schemas/TestMode'
-    if 'requestedGranularity' not in req:
-        req['requestedGranularity'] = 'record'
+    if 'requestedGranularity' not in req['meta']:
+        req['meta']['requestedGranularity'] = 'record'
 
     params = list(req['query']['requestParameters'].keys())
     for param in params:
@@ -157,9 +159,9 @@ def search(raw_req):
     }
     if 'pagination' in raw_req:
         meta['receivedRequestSummary']['pagination'] = raw_req['pagination']
-    if 'requestedGranularity' in raw_req:
-        meta['receivedRequestSummary']['requestedGranularity'] = raw_req['requestedGranularity']
-        meta['returnedGranularity'] = raw_req['requestedGranularity']
+    if 'requestedGranularity' in raw_req['meta']:
+        meta['receivedRequestSummary']['requestedGranularity'] = raw_req['meta']['requestedGranularity']
+        meta['returnedGranularity'] = raw_req['meta']['requestedGranularity']
     ## not using includeResultsetResponses for now:
     # if 'includeResultsetResponses' in raw_req:
     #     meta['receivedRequestSummary']['includeResultsetResponses'] = raw_req['includeResultsetResponses']
@@ -278,11 +280,12 @@ def search(raw_req):
             if handover is not None:
                 handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
                 response['beaconHandovers'].append(handover)
-        if len(response['beaconHandovers']) > 0:
+        if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
             response['response'] = resultset
         else:
-            meta['returnedGranularity'] = 'count'
             response.pop('beaconHandovers')
+            if meta['returnedGranularity'] == 'boolean':
+                response['responseSummary'].pop('numTotalResults')
     else:
         response = {
             'error': {
