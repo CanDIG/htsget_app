@@ -177,7 +177,7 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
-            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
+            "self_uri": f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "size": 0,
             "version": "v1",
             "access_methods": [
@@ -194,7 +194,7 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
-            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
+            "self_uri": f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "size": 0,
             "version": "v1",
             "access_methods": [
@@ -210,14 +210,14 @@ def test_install_public_object():
             "contents": [
               {
                 "drs_uri": [
-                  "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+                  f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
                 ],
                 "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
                 "id": "variant"
               },
               {
                 "drs_uri": [
-                  "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi"
+                  f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi"
                 ],
                 "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
                 "id": "index"
@@ -227,7 +227,7 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
-            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
+            "self_uri": f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "size": 0,
             "version": "v1"
         }
@@ -451,7 +451,7 @@ def drs_objects():
             "id": "NA18537.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "NA18537.vcf.gz.tbi",
-            "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
+            "self_uri": f"drs://{HOST}/NA18537.vcf.gz.tbi",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -464,7 +464,7 @@ def drs_objects():
             "id": "NA18537.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "NA18537.vcf.gz",
-            "self_uri": "drs://localhost/NA18537.vcf.gz",
+            "self_uri": f"drs://{HOST}/NA18537.vcf.gz",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -475,14 +475,14 @@ def drs_objects():
             "contents": [
                 {
                     "drs_uri": [
-                        "drs://localhost/NA18537.vcf.gz"
+                        f"drs://{HOST}/NA18537.vcf.gz"
                     ],
                     "name": "NA18537.vcf.gz",
                     "id": "variant"
                 },
                 {
                     "drs_uri": [
-                        "drs://localhost/NA18537.vcf.gz.tbi"
+                        f"drs://{HOST}/NA18537.vcf.gz.tbi"
                     ],
                     "name": "NA18537.vcf.gz.tbi",
                     "id": "index"
@@ -493,7 +493,7 @@ def drs_objects():
             "id": "NA18537",
             "mime_type": "application/octet-stream",
             "name": "NA18537",
-            "self_uri": "drs://localhost/NA18537",
+            "self_uri": f"drs://{HOST}/NA18537",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -506,7 +506,7 @@ def drs_objects():
             "id": "multisample_1.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "multisample_1.vcf.gz.tbi",
-            "self_uri": "drs://localhost/multisample_1.vcf.gz.tbi",
+            "self_uri": f"drs://{HOST}/multisample_1.vcf.gz.tbi",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -519,7 +519,7 @@ def drs_objects():
             "id": "multisample_1.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "multisample_1.vcf.gz",
-            "self_uri": "drs://localhost/multisample_1.vcf.gz",
+            "self_uri": f"drs://{HOST}/multisample_1.vcf.gz",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -530,14 +530,14 @@ def drs_objects():
             "contents": [
                 {
                     "drs_uri": [
-                        "drs://localhost/multisample_1.vcf.gz"
+                        f"drs://{HOST}/multisample_1.vcf.gz"
                     ],
                     "name": "multisample_1.vcf.gz",
                     "id": "variant"
                 },
                 {
                     "drs_uri": [
-                        "drs://localhost/multisample_1.vcf.gz.tbi"
+                        f"drs://{HOST}/multisample_1.vcf.gz.tbi"
                     ],
                     "name": "multisample_1.vcf.gz.tbi",
                     "id": "index"
@@ -548,7 +548,7 @@ def drs_objects():
             "id": "multisample_1",
             "mime_type": "application/octet-stream",
             "name": "multisample_1",
-            "self_uri": "drs://localhost/multisample_1",
+            "self_uri": f"drs://{HOST}/multisample_1",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -561,7 +561,7 @@ def drs_objects():
             "id": "multisample_2.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "multisample_2.vcf.gz.tbi",
-            "self_uri": "drs://localhost/multisample_2.vcf.gz.tbi",
+            "self_uri": f"drs://{HOST}/multisample_2.vcf.gz.tbi",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -574,7 +574,7 @@ def drs_objects():
             "id": "multisample_2.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "multisample_2.vcf.gz",
-            "self_uri": "drs://localhost/multisample_2.vcf.gz",
+            "self_uri": f"drs://{HOST}/multisample_2.vcf.gz",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -585,14 +585,14 @@ def drs_objects():
             "contents": [
                 {
                     "drs_uri": [
-                        "drs://localhost/multisample_2.vcf.gz"
+                        f"drs://{HOST}/multisample_2.vcf.gz"
                     ],
                     "name": "multisample_2.vcf.gz",
                     "id": "variant"
                 },
                 {
                     "drs_uri": [
-                        "drs://localhost/multisample_2.vcf.gz.tbi"
+                        f"drs://{HOST}/multisample_2.vcf.gz.tbi"
                     ],
                     "name": "multisample_2.vcf.gz.tbi",
                     "id": "index"
@@ -603,7 +603,7 @@ def drs_objects():
             "id": "multisample_2",
             "mime_type": "application/octet-stream",
             "name": "multisample_2",
-            "self_uri": "drs://localhost/multisample_2",
+            "self_uri": f"drs://{HOST}/multisample_2",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -616,7 +616,7 @@ def drs_objects():
             "id": "sample.compressed.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "sample.compressed.vcf.gz.tbi",
-            "self_uri": "drs://localhost/sample.compressed.vcf.gz.tbi",
+            "self_uri": f"drs://{HOST}/sample.compressed.vcf.gz.tbi",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -629,7 +629,7 @@ def drs_objects():
             "id": "sample.compressed.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "sample.compressed.vcf.gz",
-            "self_uri": "drs://localhost/sample.compressed.vcf.gz",
+            "self_uri": f"drs://{HOST}/sample.compressed.vcf.gz",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -640,14 +640,14 @@ def drs_objects():
             "contents": [
                 {
                     "drs_uri": [
-                        "drs://localhost/sample.compressed.vcf.gz"
+                        f"drs://{HOST}/sample.compressed.vcf.gz"
                     ],
                     "name": "sample.compressed.vcf.gz",
                     "id": "variant"
                 },
                 {
                     "drs_uri": [
-                        "drs://localhost/sample.compressed.vcf.gz.tbi"
+                        f"drs://{HOST}/sample.compressed.vcf.gz.tbi"
                     ],
                     "name": "sample.compressed.vcf.gz.tbi",
                     "id": "index"
@@ -658,7 +658,7 @@ def drs_objects():
             "id": "sample.compressed",
             "mime_type": "application/octet-stream",
             "name": "sample.compressed",
-            "self_uri": "drs://localhost/sample.compressed",
+            "self_uri": f"drs://{HOST}/sample.compressed",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -671,7 +671,7 @@ def drs_objects():
             "id": "NA20787.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "NA20787.vcf.gz.tbi",
-            "self_uri": "drs://localhost/NA20787.vcf.gz.tbi",
+            "self_uri": f"drs://{HOST}/NA20787.vcf.gz.tbi",
             "size": 0,
             "updated_time": "2021-09-27T18:58:56.663442",
             "version": "v1"
@@ -684,7 +684,7 @@ def drs_objects():
             "id": "NA20787.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "NA20787.vcf.gz",
-            "self_uri": "drs://localhost/NA20787.vcf.gz",
+            "self_uri": f"drs://{HOST}/NA20787.vcf.gz",
             "size": 0,
             "updated_time": "2021-09-27T18:58:56.663442",
             "version": "v1"
@@ -695,14 +695,14 @@ def drs_objects():
             "contents": [
                 {
                     "drs_uri": [
-                        "drs://localhost/NA20787.vcf.gz"
+                        f"drs://{HOST}/NA20787.vcf.gz"
                     ],
                     "name": "NA20787.vcf.gz",
                     "id": "variant"
                 },
                 {
                     "drs_uri": [
-                        "drs://localhost/NA20787.vcf.gz.tbi"
+                        f"drs://{HOST}/NA20787.vcf.gz.tbi"
                     ],
                     "name": "NA20787.vcf.gz.tbi",
                     "id": "index"
@@ -713,7 +713,7 @@ def drs_objects():
             "id": "NA20787",
             "mime_type": "application/octet-stream",
             "name": "NA20787",
-            "self_uri": "drs://localhost/NA20787",
+            "self_uri": f"drs://{HOST}/NA20787",
             "size": 0,
             "updated_time": "2021-09-27T18:58:56.663442",
             "version": "v1"
@@ -726,7 +726,7 @@ def drs_objects():
             "id": "NA02102.bam.bai",
             "mime_type": "application/octet-stream",
             "name": "NA02102.bam.bai",
-            "self_uri": "drs://localhost/NA02102.bam.bai",
+            "self_uri": f"drs://{HOST}/NA02102.bam.bai",
             "size": 0,
             "updated_time": "2021-09-27T18:58:56.663442",
             "version": "v1"
@@ -739,7 +739,7 @@ def drs_objects():
             "id": "NA02102.bam",
             "mime_type": "application/octet-stream",
             "name": "NA02102.bam",
-            "self_uri": "drs://localhost/NA02102.bam",
+            "self_uri": f"drs://{HOST}/NA02102.bam",
             "size": 0,
             "updated_time": "2021-09-27T18:58:56.663442",
             "version": "v1"
@@ -750,14 +750,14 @@ def drs_objects():
             "contents": [
                 {
                     "drs_uri": [
-                        "drs://localhost/NA02102.bam"
+                        f"drs://{HOST}/NA02102.bam"
                     ],
                     "name": "NA02102.bam",
                     "id": "read"
                 },
                 {
                     "drs_uri": [
-                        "drs://localhost/NA02102.bam.bai"
+                        f"drs://{HOST}/NA02102.bam.bai"
                     ],
                     "name": "NA02102.bam.bai",
                     "id": "index"
@@ -768,7 +768,7 @@ def drs_objects():
             "id": "NA02102",
             "mime_type": "application/octet-stream",
             "name": "NA02102",
-            "self_uri": "drs://localhost/NA02102",
+            "self_uri": f"drs://{HOST}/NA02102",
             "size": 0,
             "updated_time": "2021-09-27T18:58:56.663442",
             "version": "v1"
@@ -781,7 +781,7 @@ def drs_objects():
             "id": "test.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "test.vcf.gz.tbi",
-            "self_uri": "drs://localhost/test.vcf.gz.tbi",
+            "self_uri": f"drs://{HOST}/test.vcf.gz.tbi",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -794,7 +794,7 @@ def drs_objects():
             "id": "test.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "test.vcf.gz",
-            "self_uri": "drs://localhost/test.vcf.gz",
+            "self_uri": f"drs://{HOST}/test.vcf.gz",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
@@ -805,14 +805,14 @@ def drs_objects():
             "contents": [
                 {
                     "drs_uri": [
-                        "drs://localhost/test.vcf.gz"
+                        f"drs://{HOST}/test.vcf.gz"
                     ],
                     "name": "test.vcf.gz",
                     "id": "variant"
                 },
                 {
                     "drs_uri": [
-                        "drs://localhost/test.vcf.gz.tbi"
+                        f"drs://{HOST}/test.vcf.gz.tbi"
                     ],
                     "name": "test.vcf.gz.tbi",
                     "id": "index"
@@ -823,7 +823,7 @@ def drs_objects():
             "id": "test",
             "mime_type": "application/octet-stream",
             "name": "test",
-            "self_uri": "drs://localhost/test",
+            "self_uri": f"drs://{HOST}/test",
             "size": 0,
             "updated_time": "2021-09-27T18:40:00.539022",
             "version": "v1"
