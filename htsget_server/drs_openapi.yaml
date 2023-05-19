@@ -262,6 +262,88 @@ components:
           items:
             type: string
             description: a DRS object's self_uri
+    SampleDrsObject:
+      type: object
+      description: A DrsObject that describes the clinical sample used for genomic analysis.
+      required:
+        - id
+        - contents
+#        - self_uri
+#        - size
+#        - created_time
+#        - checksums
+      properties:
+        id:
+          type: string
+          description: The identifier for the sample, as defined in sample_registration in the MOHCCN data model.
+        self_uri:
+          type: string
+          description: |-
+            A drs:// hostname-based URI, as defined in the DRS documentation, that tells clients how to access this object.
+            The intent of this field is to make DRS objects self-contained, and therefore easier for clients to store and pass around.  For example, if you arrive at this DRS JSON by resolving a compact identifier-based DRS URI, the `self_uri` presents you with a hostname and properly encoded DRS ID for use in subsequent `access` endpoint calls.
+          example:
+            drs://drs.example.org/314159
+        size:
+          type: integer
+          format: int64
+          description: The cumulative size, in bytes, of items in the `contents` field.
+        created_time:
+          type: string
+          format: date-time
+          description: |-
+            Timestamp of content creation in RFC3339.
+            (This is the creation time of the underlying content, not of the JSON object.)
+        updated_time:
+          type: string
+          format: date-time
+          description: >-
+            Timestamp of content update in RFC3339, identical to `created_time` in systems
+            that do not support updates.
+            (This is the update time of the underlying content, not of the JSON object.)
+        version:
+          type: string
+          description: >-
+            A string representing a version.
+            (Some systems may use checksum, a RFC3339 timestamp, or an incrementing version number.)
+        checksums:
+          type: array
+          # minItems: 1
+          items:
+            $ref: '#/components/schemas/Checksum'
+          description: >-
+            The checksum of the `DrsObject`. At least one checksum must be provided.
+            For blobs, the checksum is computed over the bytes in the blob.
+            For bundles, the checksum is computed over a sorted concatenation of the
+            checksums of its top-level contained objects (not recursive, names not included).
+            The list of checksums is sorted alphabetically (hex-code) before concatenation
+            and a further checksum is performed on the concatenated checksum value.
+            For example, if a bundle contains blobs with the following checksums:
+            md5(blob1) = 72794b6d
+            md5(blob2) = 5e089d29
+            Then the checksum of the bundle is:
+            md5( concat( sort( md5(blob1), md5(blob2) ) ) )
+            = md5( concat( sort( 72794b6d, 5e089d29 ) ) )
+            = md5( concat( 5e089d29, 72794b6d ) )
+            = md5( 5e089d2972794b6d )
+            = f7a29a04
+        contents:
+          type: array
+          description: The specific genomic contents objects that were generated from this sample.
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/GenomicContentsObject'
+        description:
+          type: string
+          description: A human readable description of the `DrsObject`.
+        aliases:
+          type: array
+          items:
+            type: string
+          description: >-
+            A list of strings that can be used to find other metadata
+            about this `DrsObject` from external metadata sources. These
+            aliases can be used to represent secondary
+            accession numbers or external GUIDs.
     GenomicDrsObject:
       type: object
       description: A DrsObject that describes a bundled genomic data entity. It usually will consist of a genomic data file, e.g. a variant or read file, and its associated index file.
@@ -594,6 +676,24 @@ components:
       anyOf:
         - $ref: '#/components/schemas/LocalFileAccessMethod'
         - $ref: '#/components/schemas/S3AccessMethod'
+    GenomicContentsObject:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+          description: The identifier of the genomic object
+        id:
+          type: string
+          enum:
+            - genomic
+        drs_uri:
+          type: array
+          description: The DRS uri(s) to the GenomicDrsObject
+          items:
+            type: string
     GenomicDataContentsObject:
       type: object
       required:
@@ -610,11 +710,7 @@ components:
             - read
         drs_uri:
           type: array
-          description: >-
-            A list of full DRS identifier URI paths
-            that may be used to obtain the object.
-            These URIs may be external to this DRS instance.
-          example: drs://drs.example.org/314159
+          description: The DRS uri(s) to the GenomicDataDrsObject
           items:
             type: string
     GenomicIndexContentsObject:
@@ -632,10 +728,6 @@ components:
             - index
         drs_uri:
           type: array
-          description: >-
-            A list of full DRS identifier URI paths
-            that may be used to obtain the object.
-            These URIs may be external to this DRS instance.
-          example: drs://drs.example.org/314159
+          description: The DRS uri(s) to the GenomicIndexDrsObject
           items:
             type: string
