@@ -116,6 +116,7 @@ def test_install_public_object():
         token = None
     client = get_minio_client(token=token, s3_endpoint="http://s3.us-east-1.amazonaws.com", bucket="1000genomes", access_key=None, secret_key=None, public=True)
     access_id = f"{client['endpoint']}/{client['bucket']}"
+    drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     pieces = [
         {
             "aliases": [],
@@ -124,7 +125,6 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
-            "self_uri": f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "size": 0,
             "version": "v1",
             "access_methods": [
@@ -141,7 +141,6 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
-            "self_uri": f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "size": 0,
             "version": "v1",
             "access_methods": [
@@ -157,14 +156,14 @@ def test_install_public_object():
             "contents": [
               {
                 "drs_uri": [
-                  f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+                  f"{drs_url}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
                 ],
                 "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
                 "id": "variant"
               },
               {
                 "drs_uri": [
-                  f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi"
+                  f"{drs_url}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi"
                 ],
                 "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
                 "id": "index"
@@ -174,7 +173,6 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
-            "self_uri": f"drs://{HOST}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "size": 0,
             "version": "v1"
         }
@@ -407,13 +405,13 @@ def drs_objects():
                     drs_objects[genomic_id][key] = name_match.group(0)
         break
     result = []
+    drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for drs_obj in drs_objects:
         # make a genomicdrsobj:
         genomic_drs_obj = {
             "id": drs_obj,
             "mime_type": "application/octet-stream",
             "name": drs_obj,
-            "self_uri": f"drs://{HOST}/{drs_obj}",
             "contents": [],
             "version": "v1"
         }
@@ -425,13 +423,12 @@ def drs_objects():
             "id": index_file,
             "mime_type": "application/octet-stream",
             "name": index_file,
-            "self_uri": f"drs://{HOST}/{index_file}",
             "version": "v1"
         })
         # add it to the contents of the genomic_drs_obj:
         genomic_drs_obj['contents'].append({
             "drs_uri": [
-                f"drs://{HOST}/{index_file}"
+                f"{drs_url}/{index_file}"
             ],
             "name": index_file,
             "id": "index"
@@ -444,13 +441,12 @@ def drs_objects():
             "id": data_file,
             "mime_type": "application/octet-stream",
             "name": data_file,
-            "self_uri": f"drs://{HOST}/{data_file}",
             "version": "v1"
         })
         # add it to the contents of the genomic_drs_obj:
         genomic_drs_obj['contents'].append({
             "drs_uri": [
-                f"drs://{HOST}/{data_file}"
+                f"{drs_url}/{data_file}"
             ],
             "name": data_file,
             "id": type
