@@ -42,6 +42,7 @@ paths:
                 type: array
                 items:
                   anyOf:
+                    - $ref: '#/components/schemas/SampleDrsObject'
                     - $ref: '#/components/schemas/GenomicDrsObject'
                     - $ref: '#/components/schemas/GenomicDataDrsObject'
                     - $ref: '#/components/schemas/GenomicIndexDrsObject'
@@ -242,8 +243,10 @@ components:
         'application/json':
           schema:
             anyOf:
+              - $ref: "#/components/schemas/SampleDrsObject"
               - $ref: "#/components/schemas/GenomicDrsObject"
               - $ref: "#/components/schemas/GenomicDataDrsObject"
+              - $ref: "#/components/schemas/GenomicIndexDrsObject"
     DatasetRequest:
       content:
         'application/json':
