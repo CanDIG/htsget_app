@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String, Boolean, MetaData, ForeignKey, T
 import json
 import re
 from datetime import datetime
-from config import DB_PATH, BUCKET_SIZE
+from config import DB_PATH, BUCKET_SIZE, HTSGET_URL
 
 
 engine = create_engine(DB_PATH, echo=False)
@@ -401,8 +401,7 @@ def create_drs_object(obj):
             new_object.name = obj['id']
 
         # optional string fields
-        if 'self_uri' in obj:
-            new_object.self_uri = obj['self_uri']
+        new_object.self_uri = f'{HTSGET_URL.replace("http://", "drs://").replace("https://", "drs://")}/{new_object.name}'
         if 'created_time' in obj:
             new_object.created_time = obj['created_time']
         if 'updated_time' in obj:
