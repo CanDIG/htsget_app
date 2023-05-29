@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import sys
 import pytest
 import requests
@@ -44,40 +46,6 @@ def test_remove_objects(drs_objects):
             assert response.status_code == 200
 
 
-def get_client():
-    # in case we're running on the container itself, which might have secrets
-    try:
-        with open("/run/secrets/minio-access-key", "r") as f:
-            minio_access_key = f.read().strip()
-    except Exception as e:
-        minio_access_key = MINIO_ACCESS_KEY
-    try:
-        with open("/run/secrets/minio-secret-key", "r") as f:
-            minio_secret_key = f.read().strip()
-    except Exception as e:
-        minio_secret_key = MINIO_SECRET_KEY
-
-    client = None
-    try:
-        bucket = 'testhtsget'
-        if MINIO_URL and minio_access_key and minio_secret_key:
-            if VAULT_URL:
-                token = get_access_token(username=USERNAME, password=PASSWORD)
-                credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=minio_access_key, secret=minio_secret_key, vault_url=VAULT_URL)
-                if status_code == 200:
-                    client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
-            else:
-                client = get_minio_client(token=None, s3_endpoint=MINIO_URL, bucket=bucket, access_key=minio_access_key, secret_key=minio_secret_key)
-        if client is None:
-            client = get_minio_client(bucket=bucket)
-    except Exception as e:
-        print(str(e))
-        assert False
-        return {"message": str(e)}, 500
-
-    return client
-
-
 def test_post_objects(drs_objects):
     """
     Install test objects. Will fail if any post request returns an error.
@@ -87,28 +55,7 @@ def test_post_objects(drs_objects):
     headers = get_headers()
     response = requests.request("GET", url, headers=headers)
 
-    client = get_client()
     for obj in drs_objects:
-        url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
-        if "contents" not in obj:
-            # create access_methods:
-            access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
-            if VAULT_URL is None and client['access'] and client['secret']:
-                access_id += f"?access={client['access']}&secret={client['secret']}"
-            obj["access_methods"] = [
-                {
-                    "type": "s3",
-                    "access_id": access_id
-                }
-            ]
-            try:
-                file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
-                with Path.open(file, "rb") as fp:
-                    result = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
-            except Exception as e:
-                print(str(e))
-                assert False
-                return {"message": str(e)}, 500
         url = f"{HOST}/ga4gh/drs/v1/objects"
         response = requests.request("POST", url, json=obj, headers=headers)
         print(f"POST {obj['name']}: {response.text}")
@@ -169,6 +116,7 @@ def test_install_public_object():
         token = None
     client = get_minio_client(token=token, s3_endpoint="http://s3.us-east-1.amazonaws.com", bucket="1000genomes", access_key=None, secret_key=None, public=True)
     access_id = f"{client['endpoint']}/{client['bucket']}"
+    drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     pieces = [
         {
             "aliases": [],
@@ -177,7 +125,6 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
-            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "size": 0,
             "version": "v1",
             "access_methods": [
@@ -194,7 +141,6 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
-            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "size": 0,
             "version": "v1",
             "access_methods": [
@@ -210,14 +156,14 @@ def test_install_public_object():
             "contents": [
               {
                 "drs_uri": [
-                  "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+                  f"{drs_url}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
                 ],
                 "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
                 "id": "variant"
               },
               {
                 "drs_uri": [
-                  "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi"
+                  f"{drs_url}/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi"
                 ],
                 "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
                 "id": "index"
@@ -227,7 +173,6 @@ def test_install_public_object():
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
-            "self_uri": "drs://localhost/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "size": 0,
             "version": "v1"
         }
@@ -442,390 +387,126 @@ def test_vcf_json():
 
 @pytest.fixture
 def drs_objects():
-    return [
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "NA18537.vcf.gz.tbi",
+    drs_objects = {}
+    for root, dirs, files in os.walk(LOCAL_FILE_PATH):
+        for f in files:
+            print(f)
+            name_match = re.match(r"^(.+?)\.(vcf|vcf\.gz|bcf|bcf\.gz|sam|bam)(\.tbi|\.bai)*$", f)
+            if name_match is not None:
+                genomic_id = name_match.group(1)
+                if genomic_id not in drs_objects:
+                    drs_objects[genomic_id] = {}
+                if name_match.group(3) is not None:
+                    drs_objects[genomic_id]["index"] = name_match.group(0)
+                else:
+                    key = "variant"
+                    if name_match.group(2) in ["sam", "bam"]:
+                        key = "read"
+                    drs_objects[genomic_id][key] = name_match.group(0)
+        break
+    result = []
+    drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
+    for drs_obj in drs_objects:
+        # make a genomicdrsobj:
+        genomic_drs_obj = {
+            "id": drs_obj,
             "mime_type": "application/octet-stream",
-            "name": "NA18537.vcf.gz.tbi",
-            "self_uri": "drs://localhost/NA18537.vcf.gz.tbi",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "NA18537.vcf.gz",
-            "mime_type": "application/octet-stream",
-            "name": "NA18537.vcf.gz",
-            "self_uri": "drs://localhost/NA18537.vcf.gz",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "contents": [
-                {
-                    "drs_uri": [
-                        "drs://localhost/NA18537.vcf.gz"
-                    ],
-                    "name": "NA18537.vcf.gz",
-                    "id": "variant"
-                },
-                {
-                    "drs_uri": [
-                        "drs://localhost/NA18537.vcf.gz.tbi"
-                    ],
-                    "name": "NA18537.vcf.gz.tbi",
-                    "id": "index"
-                }
-            ],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "NA18537",
-            "mime_type": "application/octet-stream",
-            "name": "NA18537",
-            "self_uri": "drs://localhost/NA18537",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "multisample_1.vcf.gz.tbi",
-            "mime_type": "application/octet-stream",
-            "name": "multisample_1.vcf.gz.tbi",
-            "self_uri": "drs://localhost/multisample_1.vcf.gz.tbi",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "multisample_1.vcf.gz",
-            "mime_type": "application/octet-stream",
-            "name": "multisample_1.vcf.gz",
-            "self_uri": "drs://localhost/multisample_1.vcf.gz",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "contents": [
-                {
-                    "drs_uri": [
-                        "drs://localhost/multisample_1.vcf.gz"
-                    ],
-                    "name": "multisample_1.vcf.gz",
-                    "id": "variant"
-                },
-                {
-                    "drs_uri": [
-                        "drs://localhost/multisample_1.vcf.gz.tbi"
-                    ],
-                    "name": "multisample_1.vcf.gz.tbi",
-                    "id": "index"
-                }
-            ],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "multisample_1",
-            "mime_type": "application/octet-stream",
-            "name": "multisample_1",
-            "self_uri": "drs://localhost/multisample_1",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "multisample_2.vcf.gz.tbi",
-            "mime_type": "application/octet-stream",
-            "name": "multisample_2.vcf.gz.tbi",
-            "self_uri": "drs://localhost/multisample_2.vcf.gz.tbi",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "multisample_2.vcf.gz",
-            "mime_type": "application/octet-stream",
-            "name": "multisample_2.vcf.gz",
-            "self_uri": "drs://localhost/multisample_2.vcf.gz",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "contents": [
-                {
-                    "drs_uri": [
-                        "drs://localhost/multisample_2.vcf.gz"
-                    ],
-                    "name": "multisample_2.vcf.gz",
-                    "id": "variant"
-                },
-                {
-                    "drs_uri": [
-                        "drs://localhost/multisample_2.vcf.gz.tbi"
-                    ],
-                    "name": "multisample_2.vcf.gz.tbi",
-                    "id": "index"
-                }
-            ],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "multisample_2",
-            "mime_type": "application/octet-stream",
-            "name": "multisample_2",
-            "self_uri": "drs://localhost/multisample_2",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "sample.compressed.vcf.gz.tbi",
-            "mime_type": "application/octet-stream",
-            "name": "sample.compressed.vcf.gz.tbi",
-            "self_uri": "drs://localhost/sample.compressed.vcf.gz.tbi",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "sample.compressed.vcf.gz",
-            "mime_type": "application/octet-stream",
-            "name": "sample.compressed.vcf.gz",
-            "self_uri": "drs://localhost/sample.compressed.vcf.gz",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "contents": [
-                {
-                    "drs_uri": [
-                        "drs://localhost/sample.compressed.vcf.gz"
-                    ],
-                    "name": "sample.compressed.vcf.gz",
-                    "id": "variant"
-                },
-                {
-                    "drs_uri": [
-                        "drs://localhost/sample.compressed.vcf.gz.tbi"
-                    ],
-                    "name": "sample.compressed.vcf.gz.tbi",
-                    "id": "index"
-                }
-            ],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "sample.compressed",
-            "mime_type": "application/octet-stream",
-            "name": "sample.compressed",
-            "self_uri": "drs://localhost/sample.compressed",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:58:56.663378",
-            "description": "",
-            "id": "NA20787.vcf.gz.tbi",
-            "mime_type": "application/octet-stream",
-            "name": "NA20787.vcf.gz.tbi",
-            "self_uri": "drs://localhost/NA20787.vcf.gz.tbi",
-            "size": 0,
-            "updated_time": "2021-09-27T18:58:56.663442",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:58:56.663378",
-            "description": "",
-            "id": "NA20787.vcf.gz",
-            "mime_type": "application/octet-stream",
-            "name": "NA20787.vcf.gz",
-            "self_uri": "drs://localhost/NA20787.vcf.gz",
-            "size": 0,
-            "updated_time": "2021-09-27T18:58:56.663442",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "contents": [
-                {
-                    "drs_uri": [
-                        "drs://localhost/NA20787.vcf.gz"
-                    ],
-                    "name": "NA20787.vcf.gz",
-                    "id": "variant"
-                },
-                {
-                    "drs_uri": [
-                        "drs://localhost/NA20787.vcf.gz.tbi"
-                    ],
-                    "name": "NA20787.vcf.gz.tbi",
-                    "id": "index"
-                }
-            ],
-            "created_time": "2021-09-27T18:58:56.663378",
-            "description": "",
-            "id": "NA20787",
-            "mime_type": "application/octet-stream",
-            "name": "NA20787",
-            "self_uri": "drs://localhost/NA20787",
-            "size": 0,
-            "updated_time": "2021-09-27T18:58:56.663442",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:58:56.663378",
-            "description": "",
-            "id": "NA02102.bam.bai",
-            "mime_type": "application/octet-stream",
-            "name": "NA02102.bam.bai",
-            "self_uri": "drs://localhost/NA02102.bam.bai",
-            "size": 0,
-            "updated_time": "2021-09-27T18:58:56.663442",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:58:56.663378",
-            "description": "",
-            "id": "NA02102.bam",
-            "mime_type": "application/octet-stream",
-            "name": "NA02102.bam",
-            "self_uri": "drs://localhost/NA02102.bam",
-            "size": 0,
-            "updated_time": "2021-09-27T18:58:56.663442",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "contents": [
-                {
-                    "drs_uri": [
-                        "drs://localhost/NA02102.bam"
-                    ],
-                    "name": "NA02102.bam",
-                    "id": "read"
-                },
-                {
-                    "drs_uri": [
-                        "drs://localhost/NA02102.bam.bai"
-                    ],
-                    "name": "NA02102.bam.bai",
-                    "id": "index"
-                }
-            ],
-            "created_time": "2021-09-27T18:58:56.663378",
-            "description": "",
-            "id": "NA02102",
-            "mime_type": "application/octet-stream",
-            "name": "NA02102",
-            "self_uri": "drs://localhost/NA02102",
-            "size": 0,
-            "updated_time": "2021-09-27T18:58:56.663442",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "test.vcf.gz.tbi",
-            "mime_type": "application/octet-stream",
-            "name": "test.vcf.gz.tbi",
-            "self_uri": "drs://localhost/test.vcf.gz.tbi",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "test.vcf.gz",
-            "mime_type": "application/octet-stream",
-            "name": "test.vcf.gz",
-            "self_uri": "drs://localhost/test.vcf.gz",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
-            "version": "v1"
-        },
-        {
-            "aliases": [],
-            "checksums": [],
-            "contents": [
-                {
-                    "drs_uri": [
-                        "drs://localhost/test.vcf.gz"
-                    ],
-                    "name": "test.vcf.gz",
-                    "id": "variant"
-                },
-                {
-                    "drs_uri": [
-                        "drs://localhost/test.vcf.gz.tbi"
-                    ],
-                    "name": "test.vcf.gz.tbi",
-                    "id": "index"
-                }
-            ],
-            "created_time": "2021-09-27T18:40:00.538843",
-            "description": "",
-            "id": "test",
-            "mime_type": "application/octet-stream",
-            "name": "test",
-            "self_uri": "drs://localhost/test",
-            "size": 0,
-            "updated_time": "2021-09-27T18:40:00.539022",
+            "name": drs_obj,
+            "contents": [],
             "version": "v1"
         }
-    ]
+        result.append(genomic_drs_obj)
+
+        # make a genomicindexdrsobj:
+        index_file = drs_objects[drs_obj].pop("index")
+        result.append({
+            "id": index_file,
+            "mime_type": "application/octet-stream",
+            "name": index_file,
+            "version": "v1"
+        })
+        # add it to the contents of the genomic_drs_obj:
+        genomic_drs_obj['contents'].append({
+            "drs_uri": [
+                f"{drs_url}/{index_file}"
+            ],
+            "name": index_file,
+            "id": "index"
+        })
+
+        # make a genomicdatadrsobj:
+        type = list(drs_objects[drs_obj].keys()).pop()
+        data_file = drs_objects[drs_obj].pop(type)
+        result.append({
+            "id": data_file,
+            "mime_type": "application/octet-stream",
+            "name": data_file,
+            "version": "v1"
+        })
+        # add it to the contents of the genomic_drs_obj:
+        genomic_drs_obj['contents'].append({
+            "drs_uri": [
+                f"{drs_url}/{data_file}"
+            ],
+            "name": data_file,
+            "id": type
+        })
+
+    client = get_client()
+
+    for obj in result:
+        if "contents" not in obj:
+            # create access_methods:
+            access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
+            if VAULT_URL is None and client['access'] and client['secret']:
+                access_id += f"?access={client['access']}&secret={client['secret']}"
+            obj["access_methods"] = [
+                {
+                    "type": "s3",
+                    "access_id": access_id
+                }
+            ]
+            try:
+                file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
+                obj['size'] = file.stat().st_size
+                with Path.open(file, "rb") as fp:
+                    res = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
+            except Exception as e:
+                print(str(e))
+                assert False
+                return {"message": str(e)}, 500
+    return result
+
+
+def get_client():
+        # in case we're running on the container itself, which might have secrets
+        try:
+            with open("/run/secrets/minio-access-key", "r") as f:
+                minio_access_key = f.read().strip()
+        except Exception as e:
+            minio_access_key = MINIO_ACCESS_KEY
+        try:
+            with open("/run/secrets/minio-secret-key", "r") as f:
+                minio_secret_key = f.read().strip()
+        except Exception as e:
+            minio_secret_key = MINIO_SECRET_KEY
+
+        client = None
+        try:
+            bucket = 'testhtsget'
+            if MINIO_URL and minio_access_key and minio_secret_key:
+                if VAULT_URL:
+                    token = get_access_token(username=USERNAME, password=PASSWORD)
+                    credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=minio_access_key, secret=minio_secret_key, vault_url=VAULT_URL)
+                    if status_code == 200:
+                        client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
+                else:
+                    client = get_minio_client(token=None, s3_endpoint=MINIO_URL, bucket=bucket, access_key=minio_access_key, secret_key=minio_secret_key)
+            if client is None:
+                client = get_minio_client(bucket=bucket)
+        except Exception as e:
+            print(str(e))
+            assert False
+            return {"message": str(e)}, 500
+
+        return client

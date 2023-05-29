@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String, Boolean, MetaData, ForeignKey, T
 import json
 import re
 from datetime import datetime
-from config import DB_PATH, BUCKET_SIZE
+from config import DB_PATH, BUCKET_SIZE, HTSGET_URL
 
 
 engine = create_engine(DB_PATH, echo=False)
@@ -347,11 +347,13 @@ class ContentsObject(ObjectDBBase):
     drs_object_id = Column(Integer, ForeignKey('drs_object.id'))
     drs_object = relationship("DrsObject", back_populates="contents")
     name = Column(String, default='') # like a filename
+    contents_id = Column(String)
     drs_uri = Column(String, default='[]') # JSON array of strings of DRS id URIs
     contents = Column(String, default='[]') # JSON array of ContentsObject.ids
     def __repr__(self):
         result = {
             'name': self.name,
+            'id': self.contents_id,
             'drs_uri': json.loads(self.drs_uri)
         }
         if len(json.loads(self.contents)) > 0:
@@ -399,8 +401,7 @@ def create_drs_object(obj):
             new_object.name = obj['id']
 
         # optional string fields
-        if 'self_uri' in obj:
-            new_object.self_uri = obj['self_uri']
+        new_object.self_uri = f'{HTSGET_URL.replace("http://", "drs://").replace("https://", "drs://")}/{new_object.name}'
         if 'created_time' in obj:
             new_object.created_time = obj['created_time']
         if 'updated_time' in obj:
@@ -456,6 +457,8 @@ def create_drs_object(obj):
                 new_contents.drs_uri = json.dumps(contents['drs_uri'])
             if 'contents' in contents:
                 new_contents.contents = json.dumps(contents['contents'])
+            if 'id' in contents:
+                new_contents.contents_id = contents['id']
             session.add(new_contents)
         session.add(new_object)
         session.commit()

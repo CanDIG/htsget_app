@@ -29,6 +29,7 @@ CREATE TABLE content_object (
         id INTEGER NOT NULL,
         drs_object_id INTEGER,
         name VARCHAR,
+        contents_id VARCHAR,
         drs_uri VARCHAR,
         contents VARCHAR,
         PRIMARY KEY (id),
