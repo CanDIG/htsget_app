@@ -111,7 +111,7 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 
 @app.route('/variants/<path:id_>/index')
 def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
-    if not authz.is_site_admin(request):
+    if not authz.is_authed(id_, request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
         params = {"id": id_, "reference_genome": genome}

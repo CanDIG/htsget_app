@@ -88,7 +88,7 @@ def get_access_url(object_id, access_id):
 
 
 def post_object():
-    if not authz.is_site_admin(request):
+    if not authz.is_authed(None, request):
         return {"message": "User is not authorized to POST"}, 403
     new_object = database.create_drs_object(connexion.request.json)
     return new_object, 200
@@ -96,7 +96,7 @@ def post_object():
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def delete_object(object_id):
-    if not authz.is_site_admin(request):
+    if not authz.is_authed(object_id, request):
         return {"message": "User is not authorized to POST"}, 403
     try:
         new_object = database.delete_drs_object(escape(object_id))
@@ -110,8 +110,6 @@ def list_datasets():
     if datasets is None:
         return [], 404
     try:
-        if authz.is_site_admin(request):
-            return list(map(lambda x: x['id'], datasets)), 200
         authorized_datasets = authz.get_authorized_datasets(request)
         return list(set(map(lambda x: x['id'], datasets)).intersection(set(authorized_datasets))), 200
     except Exception as e:
@@ -119,7 +117,7 @@ def list_datasets():
 
 
 def post_dataset():
-    if not authz.is_site_admin(request):
+    if not authz.is_authed(None, request):
         return {"message": "User is not authorized to POST"}, 403
     new_dataset = database.create_dataset(connexion.request.json)
     return new_dataset, 200
@@ -129,8 +127,6 @@ def get_dataset(dataset_id):
     new_dataset = database.get_dataset(dataset_id)
     if new_dataset is None:
         return {"message": "No matching dataset found"}, 404
-    if authz.is_site_admin(request):
-        return new_dataset, 200
     authorized_datasets = authz.get_authorized_datasets(request)
     if new_dataset["id"] in authorized_datasets:
         return new_dataset, 200
@@ -138,7 +134,7 @@ def get_dataset(dataset_id):
 
 
 def delete_dataset(dataset_id):
-    if not authz.is_site_admin(request):
+    if not authz.is_authed(None, request):
         return {"message": "User is not authorized to POST"}, 403
     try:
         new_dataset = database.delete_dataset(dataset_id)
