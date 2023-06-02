@@ -10,7 +10,6 @@ engine = create_engine(DB_PATH, echo=False)
 
 ObjectDBBase = declarative_base()
 
-
 ## Variant search entities
 
 ## relationships
