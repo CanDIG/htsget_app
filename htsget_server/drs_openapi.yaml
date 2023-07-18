@@ -422,6 +422,7 @@ components:
           minItems: 1
           items:
             anyOf:
+              - $ref: '#/components/schemas/SampleContentsObject'
               - $ref: '#/components/schemas/GenomicDataContentsObject'
               - $ref: '#/components/schemas/GenomicIndexContentsObject'
         description:
@@ -695,6 +696,24 @@ components:
         drs_uri:
           type: array
           description: The DRS uri(s) to the GenomicDrsObject
+          items:
+            type: string
+    SampleContentsObject:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+          description: The submitter_sample_id of the sample in the MoH model
+        id:
+          type: string
+          enum:
+            - sample
+        drs_uri:
+          type: array
+          description: The DRS uri(s) to the SampleDrsObject
           items:
             type: string
     GenomicDataContentsObject:
