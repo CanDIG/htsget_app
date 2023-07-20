@@ -442,6 +442,15 @@ def test_beacon_post_search(body, count, cases):
     assert len(response.json()['response']) == count
     assert len(response.json()['response'][0]['caseLevelData']) == cases
 
+    # check to see if the sample names got in:
+    samples = get_ingest_sample_names('multisample_1')
+    for cld in response.json()['response'][0]['caseLevelData']:
+        if cld['analysisId'] == 'multisample_1':
+            assert cld['biosampleId'] in samples.values()
+        else:
+            assert cld['biosampleId'] not in samples.values()
+
+
 # if we search for NBPF1, we should find records in test.vcf that contain NBPF1 in their VEP annotations.
 def test_beacon_search_annotations():
     url = f"{HOST}/beacon/v2/g_variants"
