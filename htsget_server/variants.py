@@ -67,7 +67,10 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
     for r in records:
         samples = []
         for s in r.samples:
-            samples.append(s)
+            if "samples" in gen_obj and s in gen_obj['samples']:
+                samples.append(gen_obj['samples'][s])
+            else:
+                samples.append(s)
         variant_record = parse_variant_record(str(r), samples, variants_by_file['info'])
         variants_by_file['variants'].append(variant_record)
     return variants_by_file
