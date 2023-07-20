@@ -307,41 +307,41 @@ def test_beacon_get_search():
 
 
 def get_beacon_post_search():
-        return [
-            (
-                # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
-                # first variation, corresponding to "NC_000021.8:g.5030551=", should contain two cases
-                {
-                    "query": {
-                        "requestParameters": {
-                            "start": [5030000],
-                            "end": [5030847],
-                            "assemblyId": "hg37",
-                            "referenceName": "21"
-                        }
-                    },
-                    "meta": {
-                        "apiVersion": "v2"
+    return [
+        (
+            # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
+            # first variation, corresponding to "NC_000021.8:g.5030551=", should contain two cases
+            {
+                "query": {
+                    "requestParameters": {
+                        "start": [5030000],
+                        "end": [5030847],
+                        "assemblyId": "hg37",
+                        "referenceName": "21"
                     }
-                }, 6, 2
-            ),
-            (
-                # 5 variations, corresponding to 2 refs and 3 alts in test
-                # first variation has two cases
-                {
-                    "query": {
-                        "requestParameters": {
-                            "start": [16562322],
-                            "end": [16613564],
-                            "referenceName": "1"
-                        }
-                    },
-                    "meta": {
-                        "apiVersion": "v2"
+                },
+                "meta": {
+                    "apiVersion": "v2"
+                }
+            }, 6, 2
+        ),
+        (
+            # 5 variations, corresponding to 2 refs and 3 alts in test
+            # first variation has two cases
+            {
+                "query": {
+                    "requestParameters": {
+                        "start": [16562322],
+                        "end": [16613564],
+                        "referenceName": "1"
                     }
-                }, 5, 2
-            )
-        ]
+                },
+                "meta": {
+                    "apiVersion": "v2"
+                }
+            }, 5, 2
+        )
+    ]
 
 
 @pytest.mark.parametrize('body, count, cases', get_beacon_post_search())
