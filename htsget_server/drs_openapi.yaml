@@ -709,8 +709,7 @@ components:
           description: The submitter_sample_id of the sample in the MoH model
         id:
           type: string
-          enum:
-            - sample
+          description: The id corresponding to the SampleDrsObject
         drs_uri:
           type: array
           description: The DRS uri(s) to the SampleDrsObject
