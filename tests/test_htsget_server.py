@@ -184,6 +184,95 @@ def test_install_public_object():
         assert response.status_code == 200
 
 
+def get_ingest_file():
+    return [
+        (
+            {
+                "genomic_id": "multisample_1",
+                "samples": [
+                    {
+                        "sample_registration_id": "SAMPLE_REGISTRATION_3",
+                        "sample_name_in_file": "TUMOR"
+                    },
+                    {
+                        "sample_registration_id": "SAMPLE_REGISTRATION_4",
+                        "sample_name_in_file": "NORMAL"
+                    }
+                ]
+            }, "SYNTHETIC-2"
+        )
+    ]
+
+
+def get_ingest_sample_names(genomic_id):
+    result = {}
+    for item in get_ingest_file():
+        ingest_map, program_id = item
+        if ingest_map["genomic_id"] == genomic_id:
+            for sample in ingest_map["samples"]:
+                result[sample['sample_name_in_file']] = f"{program_id}/{sample['sample_registration_id']}"
+    return result
+
+
+@pytest.mark.parametrize('input, program_id', get_ingest_file())
+def test_add_sample_drs(input, program_id):
+    post_url = f"{HOST}/ga4gh/drs/v1/objects"
+    headers = get_headers()
+
+    # look for the main genomic drs object
+    get_url = f"{HOST}/ga4gh/drs/v1/objects/{input['genomic_id']}"
+    response = requests.request("GET", get_url, headers=headers)
+    if response.status_code == 200:
+        assert response.status_code == 200
+    genomic_drs_obj = response.json()
+
+    drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
+    for sample in input['samples']:
+        sample_id = f"{program_id}/{sample['sample_registration_id']}"
+        # remove any existing objects:
+        sample_url = f"{HOST}/ga4gh/drs/v1/objects/{sample_id}"
+        response = requests.request("GET", sample_url, headers=headers)
+        if response.status_code == 200:
+            response = requests.request("DELETE", sample_url, headers=headers)
+            print(f"DELETE {sample_id}: {response.text}")
+            assert response.status_code == 200
+
+        # create a sampledrsobject to correspond to each sample:
+        sample_drs_object = {
+            "id": sample_id,
+            "contents": [
+                {
+                    "drs_uri": [
+                        f"{drs_url}/{input['genomic_id']}"
+                    ],
+                    "name": sample['sample_name_in_file'],
+                    "id": input['genomic_id']
+                }
+            ],
+            "version": "v1"
+        }
+        response = requests.request("POST", post_url, json=sample_drs_object, headers=headers)
+        print(f"POST {sample_drs_object['id']}: {response.text}")
+        assert response.status_code == 200
+
+        # add the sample contents to the genomic_drs_object's contents
+        sample_contents = {
+            "drs_uri": [
+                f"{drs_url}/{sample_id}"
+            ],
+            "name": sample_id,
+            "id": sample['sample_name_in_file']
+        }
+        genomic_drs_obj["contents"].append(sample_contents)
+
+    response = requests.post(post_url, json=genomic_drs_obj, headers=get_headers())
+    print(response.text)
+    response = requests.request("GET", get_url, headers=headers)
+    if response.status_code == 200:
+        assert response.status_code == 200
+    assert len(genomic_drs_obj["contents"]) == 4
+
+
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]
 
