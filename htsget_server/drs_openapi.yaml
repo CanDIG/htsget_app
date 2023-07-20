@@ -418,13 +418,13 @@ components:
             = f7a29a04
         contents:
           type: array
-          description: The specific genomic contents objects that comprise this genomic DRS entity. Should contain a GenomicDataContentsObject and an optional GenomicIndexContentsObject.
+          description: The specific genomic contents objects that comprise this genomic DRS entity. Should contain a GenomicDataContentsObject, an optional GenomicIndexContentsObject, and SampleContentsObjects corresponding to the samples analyzed in the genomic data object.
           minItems: 1
           items:
             anyOf:
-              - $ref: '#/components/schemas/SampleContentsObject'
               - $ref: '#/components/schemas/GenomicDataContentsObject'
               - $ref: '#/components/schemas/GenomicIndexContentsObject'
+              - $ref: '#/components/schemas/SampleContentsObject'
         description:
           type: string
           description: A human readable description of the `DrsObject`.
@@ -709,7 +709,7 @@ components:
           description: The submitter_sample_id of the sample in the MoH model
         id:
           type: string
-          description: The id corresponding to the SampleDrsObject
+          description: The id of the SampleDrsObject, corresponding to the sample's name in the VCF file
         drs_uri:
           type: array
           description: The DRS uri(s) to the SampleDrsObject
