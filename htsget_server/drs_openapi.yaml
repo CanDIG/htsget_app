@@ -349,7 +349,7 @@ components:
             accession numbers or external GUIDs.
     GenomicDrsObject:
       type: object
-      description: A DrsObject that describes a bundled genomic data entity. It usually will consist of a genomic data file, e.g. a variant or read file, and its associated index file.
+      description: A DrsObject that describes a bundled genomic data entity. It usually will consist of a genomic data file, e.g. a variant or read file, and its associated index file. Its contents should also include any associated Samples (as SampleContentObjects), ordered in order of appearance in the associated variant/read files.
       required:
         - id
         - contents
