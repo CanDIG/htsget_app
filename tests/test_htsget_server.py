@@ -210,7 +210,7 @@ def get_ingest_sample_names(genomic_id):
         ingest_map, program_id = item
         if ingest_map["genomic_id"] == genomic_id:
             for sample in ingest_map["samples"]:
-                result[sample['sample_name_in_file']] = f"{program_id}/{sample['sample_registration_id']}"
+                result[sample['sample_name_in_file']] = f"{program_id}~{sample['sample_registration_id']}"
     return result
 
 
@@ -228,7 +228,7 @@ def test_add_sample_drs(input, program_id):
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for sample in input['samples']:
-        sample_id = f"{program_id}/{sample['sample_registration_id']}"
+        sample_id = f"{program_id}~{sample['sample_registration_id']}"
         # remove any existing objects:
         sample_url = f"{HOST}/ga4gh/drs/v1/objects/{sample_id}"
         response = requests.request("GET", sample_url, headers=headers)
