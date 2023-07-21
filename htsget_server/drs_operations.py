@@ -163,6 +163,8 @@ def _get_genomic_obj(object_id):
         if 'message' in main_result:
             result = main_result
         else:
+            if "samples" in drs_obj:
+                result['samples'] = drs_obj['samples']
             try:
                 result['file_format'] = drs_obj['format']
                 if drs_obj['type'] == 'read':
@@ -182,7 +184,7 @@ def _describe_drs_object(object_id):
     result = {
         "name": object_id
     }
-    # drs_obj should have two contents objects
+    # drs_obj should have a main contents, index contents, and sample contents
     if "contents" in drs_obj:
         for contents in drs_obj["contents"]:
             # get each drs object (should be the genomic file and its index)
@@ -205,6 +207,11 @@ def _describe_drs_object(object_id):
                 result['main'] = contents['name']
             elif index_match is not None:
                 result['index'] = contents['name']
+            else:
+                if "samples" not in result:
+                    result['samples'] = {}
+                result['samples'][contents['id']] = contents['name']
+
     if 'type' not in result:
         return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
     return result

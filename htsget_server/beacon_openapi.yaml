@@ -864,7 +864,7 @@ components:
                 description: Reference to the bioinformatics analysis ID (`analysis.id`)
                 type: string
               biosampleId:
-                description: Reference to biosample ID (`biosample.id`)
+                description: Reference to biosample ID (`biosample.id`). For MoH, this will be `{program_id}~{submitter_sample_id}`, delimited with a tilde. If this is not available, it will be the name of the sample as listed in the variant file.
                 type: string
               clinicalInterpretations:
                 items:
