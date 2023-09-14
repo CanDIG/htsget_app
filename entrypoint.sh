@@ -33,7 +33,7 @@ if [[ -f "initial_setup" ]]; then
     rm initial_setup
 fi
 
-crond
+cron
 
 # use the following for development
 #python3 htsget_server/server.py
