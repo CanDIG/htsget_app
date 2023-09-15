@@ -8,3 +8,4 @@ MarkupSafe==2.1.1
 candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@v1.0.0
 pytest==7.2.0
 uwsgi==2.0.21
+connexion[swagger-ui]
