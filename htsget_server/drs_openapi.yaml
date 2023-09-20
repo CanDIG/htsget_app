@@ -168,7 +168,7 @@ paths:
     delete:
       summary: Delete a dataset.
       description: >-
-        Returns object metadata, and a list of access methods that can be used to fetch object bytes.
+        Delete a dataset, and all associated DRS objects.
       operationId: drs_operations.delete_dataset
       responses:
           200:

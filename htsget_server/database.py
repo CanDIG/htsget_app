@@ -512,10 +512,13 @@ def create_dataset(obj):
 
 def delete_dataset(dataset_id):
     with Session() as session:
-        new_object = session.query(Dataset).filter_by(id=dataset_id).one()
-        session.delete(new_object)
+        dataset_objs = session.query(Dataset).filter_by(id=dataset_id).all()
+        for dataset_obj in dataset_objs:
+            for drs_obj in dataset_obj.associated_drs:
+                session.delete(drs_obj)
+            session.delete(dataset_obj)
         session.commit()
-        return json.loads(str(new_object))
+        return json.loads(str(dataset_objs))
 
 
 def list_refseqs(reference_genome="hg38"):
