@@ -225,7 +225,7 @@ class NCBIRefSeq(ObjectDBBase):
     transcript_name = Column(String)
     contig = Column(String)
     start = Column(Integer)
-    end = Column(Integer)
+    endpos = Column(Integer)
 
     def __repr__(self):
         result = {
@@ -235,7 +235,7 @@ class NCBIRefSeq(ObjectDBBase):
             'transcript_name': self.transcript_name,
             'contig': self.contig,
             'start': self.start,
-            'end': self.end
+            'end': self.endpos
         }
         return json.dumps(result)
 

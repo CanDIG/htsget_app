@@ -13,7 +13,7 @@ Thank you to [gel-htsget](https://github.com/genomicsengland/gel-htsget) for bei
 
 ## Stack
 - [Connexion](https://github.com/zalando/connexion) for implementing the API
-- [Sqlite3](https://www.sqlite.org/index.html)
+- [PostgreSQL](https://www.postgresql.org/)
 - [ga4gh Data-Repository-Service(DRS)](https://github.com/ga4gh/data-repository-service-schemas)
 - [minio-py](https://github.com/minio/minio-py)
 - [Flask](http://flask.pocoo.org/)
