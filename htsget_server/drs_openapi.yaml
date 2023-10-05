@@ -691,8 +691,6 @@ components:
           description: The identifier of the genomic object
         id:
           type: string
-          enum:
-            - genomic
         drs_uri:
           type: array
           description: The DRS uri(s) to the GenomicDrsObject
