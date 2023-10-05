@@ -201,9 +201,10 @@ def search(raw_req):
             for gene in genes:
                 if gene['reference_genome'] == actual_params['reference_genome']:
                     actual_params['reference_name'] = database.normalize_contig(gene['contig'])
-                    actual_params['start'] = gene['start']
-                    actual_params['end'] = gene['end']
-                    break
+                    if actual_params['reference_name'] is not None:
+                        actual_params['start'] = gene['start']
+                        actual_params['end'] = gene['end']
+                        break
         else:
             response = {
                     'error': {

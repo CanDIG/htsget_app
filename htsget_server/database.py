@@ -6,7 +6,7 @@ from datetime import datetime
 from config import DB_PATH, BUCKET_SIZE, HTSGET_URL
 
 
-engine = create_engine(DB_PATH, echo=False)
+engine = create_engine(DB_PATH, echo=True)
 
 ObjectDBBase = declarative_base()
 
@@ -218,7 +218,7 @@ class Header(ObjectDBBase):
 ## gene search entities
 
 class NCBIRefSeq(ObjectDBBase):
-    __tablename__ = 'ncbiRefSeq'
+    __tablename__ = 'ncbirefseq'
     id = Column(Integer, primary_key=True)
     reference_genome = Column(String)
     gene_name = Column(String)

@@ -58,7 +58,7 @@ def test_post_objects(drs_objects):
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects"
         response = requests.request("POST", url, json=obj, headers=headers)
-        print(f"POST {obj['name']}: {response.text}")
+        print(f"POST {obj}: {response.text}")
         assert response.status_code == 200
 
 
@@ -466,6 +466,7 @@ def test_beacon_search_annotations():
     }
     response = requests.post(url, json=body, headers=get_headers())
     found_gene = False
+    print(response.json())
     for var in response.json()['response']:
         if 'molecularAttributes' in var:
             if 'geneIds' in var['molecularAttributes']:
