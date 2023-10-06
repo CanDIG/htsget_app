@@ -271,6 +271,7 @@ components:
       required:
         - id
         - contents
+        - description
 #        - self_uri
 #        - size
 #        - created_time
@@ -337,7 +338,8 @@ components:
             $ref: '#/components/schemas/GenomicContentsObject'
         description:
           type: string
-          description: A human readable description of the `DrsObject`.
+          enum:
+            - sample
         aliases:
           type: array
           items:
@@ -353,6 +355,7 @@ components:
       required:
         - id
         - contents
+        - description
 #        - self_uri
 #        - size
 #        - created_time
@@ -427,7 +430,10 @@ components:
               - $ref: '#/components/schemas/SampleContentsObject'
         description:
           type: string
-          description: A human readable description of the `DrsObject`.
+          description: type of sequencing data
+          enum:
+            - wgs
+            - wts
         aliases:
           type: array
           items:
@@ -443,6 +449,7 @@ components:
       required:
         - id
         - access_methods
+        - description
 #        - self_uri
 #        - size
 #        - created_time
@@ -515,7 +522,9 @@ components:
             The list of access methods that can be used to fetch the `DrsObject`.
         description:
           type: string
-          description: A description of this genomic data file
+          enum:
+            - variant
+            - read
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.
@@ -534,6 +543,7 @@ components:
       required:
         - id
         - access_methods
+        - description
 #        - self_uri
 #        - size
 #        - created_time
@@ -605,7 +615,8 @@ components:
             The list of access methods that can be used to fetch the `DrsObject`.
         description:
           type: string
-          description: A description of this genomic data file
+          enum:
+            - index
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.
@@ -691,6 +702,7 @@ components:
           description: The identifier of the genomic object
         id:
           type: string
+          description: The identifier of the genomic object
         drs_uri:
           type: array
           description: The DRS uri(s) to the GenomicDrsObject
