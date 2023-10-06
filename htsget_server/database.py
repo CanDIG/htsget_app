@@ -6,7 +6,7 @@ from datetime import datetime
 from config import DB_PATH, BUCKET_SIZE, HTSGET_URL
 
 
-engine = create_engine(DB_PATH, echo=True)
+engine = create_engine(DB_PATH, echo=False)
 
 ObjectDBBase = declarative_base()
 
