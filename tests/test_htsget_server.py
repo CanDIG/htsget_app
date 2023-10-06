@@ -121,7 +121,7 @@ def test_install_public_object():
         {
             "aliases": [],
             "checksums": [],
-            "description": "",
+            "description": "index",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
@@ -137,7 +137,7 @@ def test_install_public_object():
         {
             "aliases": [],
             "checksums": [],
-            "description": "",
+            "description": "variant",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
@@ -169,7 +169,7 @@ def test_install_public_object():
                 "id": "index"
               }
             ],
-            "description": "",
+            "description": "wgs",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
@@ -240,6 +240,7 @@ def test_add_sample_drs(input, program_id):
         # create a sampledrsobject to correspond to each sample:
         sample_drs_object = {
             "id": sample_id,
+            "description": "sample",
             "contents": [
                 {
                     "drs_uri": [
@@ -509,6 +510,7 @@ def drs_objects():
         # make a genomicdrsobj:
         genomic_drs_obj = {
             "id": drs_obj,
+            "description": "wgs",
             "mime_type": "application/octet-stream",
             "name": drs_obj,
             "contents": [],
@@ -520,6 +522,7 @@ def drs_objects():
         index_file = drs_objects[drs_obj].pop("index")
         result.append({
             "id": index_file,
+            "description": "index",
             "mime_type": "application/octet-stream",
             "name": index_file,
             "version": "v1"
@@ -538,6 +541,7 @@ def drs_objects():
         data_file = drs_objects[drs_obj].pop(type)
         result.append({
             "id": data_file,
+            "description": type,
             "mime_type": "application/octet-stream",
             "name": data_file,
             "version": "v1"
