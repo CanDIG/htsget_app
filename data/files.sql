@@ -32,15 +32,16 @@ CREATE TABLE content_object (
         contents VARCHAR,
         FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
-CREATE TABLE dataset (
+CREATE TABLE cohort (
 	id VARCHAR NOT NULL,
-	PRIMARY KEY (id)
+	PRIMARY KEY (id),
+	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
-CREATE TABLE dataset_association (
-	dataset_id VARCHAR NOT NULL,
+CREATE TABLE cohort_association (
+	cohort_id VARCHAR NOT NULL,
 	drs_object_id VARCHAR NOT NULL,
-	PRIMARY KEY (dataset_id, drs_object_id),
-	FOREIGN KEY(dataset_id) REFERENCES dataset (id),
+	PRIMARY KEY (cohort_id, drs_object_id),
+	FOREIGN KEY(cohort_id) REFERENCES cohort (id),
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 CREATE TABLE contig (

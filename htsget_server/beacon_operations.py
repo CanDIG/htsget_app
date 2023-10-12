@@ -274,7 +274,7 @@ def search(raw_req):
             response['responseSummary']['numTotalResults'] = len(resultset)
             response['responseSummary']['exists'] = True
 
-        # if the request granularity was "record", check to see that the user is actually authorized to see any datasets:
+        # if the request granularity was "record", check to see that the user is actually authorized to see any cohorts:
         response['beaconHandovers'] = []
         for drs_obj in variants_by_file.keys():
             handover, status_code = htsget_operations.get_variants(id_=drs_obj, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])

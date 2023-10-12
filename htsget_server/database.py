@@ -240,20 +240,20 @@ class NCBIRefSeq(ObjectDBBase):
         return json.dumps(result)
 
 
-## CanDIG datasets entities
-dataset_association = Table(
-    'dataset_association', ObjectDBBase.metadata,
-    Column('dataset_id', ForeignKey('dataset.id'), primary_key=True),
+## CanDIG cohorts entities
+cohort_association = Table(
+    'cohort_association', ObjectDBBase.metadata,
+    Column('cohort_id', ForeignKey('cohort.id'), primary_key=True),
     Column('drs_object_id', ForeignKey('drs_object.id'), primary_key=True)
 )
 
 
-class Dataset(ObjectDBBase):
-    __tablename__ = 'dataset'
+class Cohort(ObjectDBBase):
+    __tablename__ = 'cohort'
     id = Column(String, primary_key=True)
     associated_drs = relationship("DrsObject",
-        secondary=dataset_association,
-        back_populates="associated_datasets"
+        secondary=cohort_association,
+        back_populates="associated_cohorts"
     )
     def __repr__(self):
         result = {
@@ -282,9 +282,9 @@ class DrsObject(ObjectDBBase):
     description = Column(String, default='')
     aliases = Column(String, default='[]') # JSON array of strings of aliases
     contents = relationship("ContentsObject")
-    associated_datasets = relationship(
-        'Dataset',
-        secondary=dataset_association,
+    associated_cohorts = relationship(
+        'Cohort',
+        secondary=cohort_association,
         back_populates='associated_drs'
     )
     variantfile = relationship("VariantFile", back_populates="drs_object")
@@ -302,14 +302,14 @@ class DrsObject(ObjectDBBase):
             'description': self.description,
             'mime_type': self.mime_type,
             'aliases': json.loads(self.aliases),
-            'datasets': []
+            'cohorts': []
         }
         if len(list(self.contents)) > 0:
             result['contents'] = json.loads(self.contents.__repr__())
         if len(list(self.access_methods)) > 0:
             result['access_methods'] = json.loads(self.access_methods.__repr__())
-        for drs_assoc in self.associated_datasets:
-            result['datasets'].append(drs_assoc.id)
+        for drs_assoc in self.associated_cohorts:
+            result['cohorts'].append(drs_assoc.id)
         return json.dumps(result)
 
 
@@ -474,51 +474,51 @@ def delete_drs_object(obj_id):
         return json.loads(str(new_object))
 
 
-def get_dataset(dataset_id):
+def get_cohort(cohort_id):
     with Session() as session:
-        result = session.query(Dataset).filter_by(id=dataset_id).one_or_none()
+        result = session.query(Cohort).filter_by(id=cohort_id).one_or_none()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
         return None
 
 
-def list_datasets():
+def list_cohorts():
     with Session() as session:
-        result = session.query(Dataset).all()
+        result = session.query(Cohort).all()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
         return None
 
 
-def create_dataset(obj):
+def create_cohort(obj):
     with Session() as session:
-        new_dataset = session.query(Dataset).filter_by(id=obj['id']).one_or_none()
-        if new_dataset is None:
-            new_dataset = Dataset()
-        new_dataset.id = obj['id']
+        new_cohort = session.query(Cohort).filter_by(id=obj['id']).one_or_none()
+        if new_cohort is None:
+            new_cohort = Cohort()
+        new_cohort.id = obj['id']
         for drs_uri in obj['drsobjects']:
             new_drs = session.query(DrsObject).filter_by(self_uri=drs_uri).one_or_none()
             if new_drs is not None:
-                new_dataset.associated_drs.append(new_drs)
-        session.add(new_dataset)
+                new_cohort.associated_drs.append(new_drs)
+        session.add(new_cohort)
         session.commit()
-        result = session.query(Dataset).filter_by(id=obj['id']).one_or_none()
+        result = session.query(Cohort).filter_by(id=obj['id']).one_or_none()
         if result is not None:
             return json.loads(str(result))
         return None
 
 
-def delete_dataset(dataset_id):
+def delete_cohort(cohort_id):
     with Session() as session:
-        dataset_objs = session.query(Dataset).filter_by(id=dataset_id).all()
-        for dataset_obj in dataset_objs:
-            for drs_obj in dataset_obj.associated_drs:
+        cohort_objs = session.query(Cohort).filter_by(id=cohort_id).all()
+        for cohort_obj in cohort_objs:
+            for drs_obj in cohort_obj.associated_drs:
                 session.delete(drs_obj)
-            session.delete(dataset_obj)
+            session.delete(cohort_obj)
         session.commit()
-        return json.loads(str(dataset_objs))
+        return json.loads(str(cohort_objs))
 
 
 def list_refseqs(reference_genome="hg38"):
