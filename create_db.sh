@@ -10,7 +10,7 @@ export PGPASSWORD=${PGPASSWORD:-`cat /run/secrets/metadata-db-secret`}
 export PGUSER=${PGUSER:-`cat /run/secrets/metadata-db-user`}
 
 until pg_isready -h "$db" -p 5432 -U $PGUSER; do
-  echo "Waiting for the database to be ready..."
+  echo "Waiting for the database at $db to be ready..."
   sleep 1
 done
 
