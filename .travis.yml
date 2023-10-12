@@ -7,11 +7,13 @@ services:
   - docker
 
 env:
-  - MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin MINIO_URL=http://localhost:9000 MINIO_ACCESS_KEY=minioadmin MINIO_SECRET_KEY=minioadmin HTSGET_TEST_KEY=thisisatest USE_MINIO_SANDBOX=True DB_PATH=data/files.db SERVER_LOCAL_DATA=/home/travis/build/CanDIG/htsget_app/data
+  - MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin MINIO_URL=http://localhost:9000 MINIO_ACCESS_KEY=minioadmin MINIO_SECRET_KEY=minioadmin HTSGET_TEST_KEY=thisisatest USE_MINIO_SANDBOX=True DB_PATH=data/files.db SERVER_LOCAL_DATA=/home/travis/build/CanDIG/htsget_app/data PGPASSWORD=OG0pjmnQDWUTvLotYrxPrg PGUSER=admin
 
 before_install:
   - docker pull minio/minio
   - docker create -p9090:9090 -p9000:9000 -p9001:9001 minio/minio minio server /data | xargs -I{} docker start {}
+  - docker pull postgres:15-alpine
+  - docker create -p5433:5432  --env POSTGRES_USER=admin --env POSTGRES_DB=metadata --env PGPASSWORD=OG0pjmnQDWUTvLotYrxPrg --env POSTGRES_HOST_AUTH_METHOD=password postgres:15-alpine --name metadata-db | xargs -I{} docker start {}
   - docker ps -a
 
 cache: pip
