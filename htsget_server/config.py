@@ -18,7 +18,7 @@ else:
     raise Exception("Could not determine how to get PostGres password")
 
 DB_PATH = re.sub("PASSWORD", password, config['paths']['PGPath'])
-DB_PATH = re.sub("HOST", "DB_PATH", DB_PATH)
+DB_PATH = re.sub("HOST", os.environ.get("DB_PATH"), DB_PATH)
 print(f"Password is: {password}")
 
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
