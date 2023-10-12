@@ -1,4 +1,4 @@
-import sqlite3
+# import sqlite3
 import os.path
 
 # conn = sqlite3.connect('files.db')

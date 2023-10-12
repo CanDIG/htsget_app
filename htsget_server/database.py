@@ -218,14 +218,14 @@ class Header(ObjectDBBase):
 ## gene search entities
 
 class NCBIRefSeq(ObjectDBBase):
-    __tablename__ = 'ncbiRefSeq'
+    __tablename__ = 'ncbirefseq'
     id = Column(Integer, primary_key=True)
     reference_genome = Column(String)
     gene_name = Column(String)
     transcript_name = Column(String)
     contig = Column(String)
     start = Column(Integer)
-    end = Column(Integer)
+    endpos = Column(Integer)
 
     def __repr__(self):
         result = {
@@ -235,7 +235,7 @@ class NCBIRefSeq(ObjectDBBase):
             'transcript_name': self.transcript_name,
             'contig': self.contig,
             'start': self.start,
-            'end': self.end
+            'end': self.endpos
         }
         return json.dumps(result)
 
@@ -512,10 +512,13 @@ def create_dataset(obj):
 
 def delete_dataset(dataset_id):
     with Session() as session:
-        new_object = session.query(Dataset).filter_by(id=dataset_id).one()
-        session.delete(new_object)
+        dataset_objs = session.query(Dataset).filter_by(id=dataset_id).all()
+        for dataset_obj in dataset_objs:
+            for drs_obj in dataset_obj.associated_drs:
+                session.delete(drs_obj)
+            session.delete(dataset_obj)
         session.commit()
-        return json.loads(str(new_object))
+        return json.loads(str(dataset_objs))
 
 
 def list_refseqs(reference_genome="hg38"):

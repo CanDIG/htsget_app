@@ -12,7 +12,9 @@ RUN apt-get update && apt-get -y install \
 	cron \
 	libpcre3  \
 	libpcre3-dev \
-	sqlite3
+	sqlite3 \
+	postgresql-client \
+    postgresql
 
 COPY requirements.txt /app/htsget_server/requirements.txt
 
