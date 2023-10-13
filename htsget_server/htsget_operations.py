@@ -228,7 +228,7 @@ def get_sample(id_=None):
     # Get the SampleDrsObject. It will have a contents array of GenomicContentsObjects > GenomicDrsObjects.
     # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
     sample_drs_obj, result_code = drs_operations.get_object(id_)
-    if result_code == 200 and "contents" in sample_drs_obj:
+    if result_code == 200 and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
         for contents_obj in sample_drs_obj["contents"]:
             drs_obj = database.get_drs_object(contents_obj["id"])
             if drs_obj is not None:
