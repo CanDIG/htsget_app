@@ -188,18 +188,14 @@ def get_ingest_file():
     return [
         (
             {
-                "genomic_id": "multisample_1",
+                "genomic_id": "NA18537",
                 "samples": [
                     {
-                        "sample_registration_id": "SAMPLE_REGISTRATION_3",
-                        "sample_name_in_file": "TUMOR"
-                    },
-                    {
-                        "sample_registration_id": "SAMPLE_REGISTRATION_4",
-                        "sample_name_in_file": "NORMAL"
+                        "sample_registration_id": "NA18537-wgs",
+                        "sample_name_in_file": "NA18537"
                     }
                 ]
-            }, "SYNTHETIC-2"
+            }, "1000Genomes"
         )
     ]
 
@@ -225,6 +221,7 @@ def test_add_sample_drs(input, program_id):
     if response.status_code == 200:
         assert response.status_code == 200
     genomic_drs_obj = response.json()
+    contents_count = len(genomic_drs_obj["contents"])
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for sample in input['samples']:
@@ -271,7 +268,7 @@ def test_add_sample_drs(input, program_id):
     response = requests.request("GET", get_url, headers=headers)
     if response.status_code == 200:
         assert response.status_code == 200
-    assert len(genomic_drs_obj["contents"]) == 4
+    assert len(genomic_drs_obj["contents"]) == contents_count + 1
 
 
 def invalid_start_end_data():
