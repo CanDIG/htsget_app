@@ -271,6 +271,21 @@ def test_add_sample_drs(input, program_id):
     assert len(genomic_drs_obj["contents"]) == contents_count + 1
 
 
+@pytest.mark.parametrize('input, program_id', get_ingest_file())
+def test_sample_stats(input, program_id):
+    headers = get_headers()
+
+    sample = get_ingest_sample_names(input['genomic_id'])
+    print(sample)
+    # look for the sample
+    get_url = f"{HOST}/htsget/v1/samples/{sample[list(sample.keys()).pop()]}"
+    response = requests.request("GET", get_url, headers=headers)
+    if response.status_code == 200:
+        assert response.status_code == 200
+
+    assert input['genomic_id'] in response.json()['genomes']
+
+
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]
 
