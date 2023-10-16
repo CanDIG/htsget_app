@@ -37,13 +37,6 @@ CREATE TABLE cohort (
 	PRIMARY KEY (id),
 	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
-CREATE TABLE cohort_association (
-	cohort_id VARCHAR NOT NULL,
-	drs_object_id VARCHAR NOT NULL,
-	PRIMARY KEY (cohort_id, drs_object_id),
-	FOREIGN KEY(cohort_id) REFERENCES cohort (id),
-	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
-);
 CREATE TABLE contig (
 	id VARCHAR NOT NULL,
 	PRIMARY KEY (id)

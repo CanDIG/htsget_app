@@ -241,20 +241,10 @@ class NCBIRefSeq(ObjectDBBase):
 
 
 ## CanDIG cohorts entities
-cohort_association = Table(
-    'cohort_association', ObjectDBBase.metadata,
-    Column('cohort_id', ForeignKey('cohort.id'), primary_key=True),
-    Column('drs_object_id', ForeignKey('drs_object.id'), primary_key=True)
-)
-
-
 class Cohort(ObjectDBBase):
     __tablename__ = 'cohort'
     id = Column(String, primary_key=True)
-    associated_drs = relationship("DrsObject",
-        secondary=cohort_association,
-        back_populates="associated_cohorts"
-    )
+    associated_drs = relationship("DrsObject", back_populates="cohort", cascade="all, delete, delete-orphan")
     def __repr__(self):
         result = {
             'id': self.id,
@@ -282,11 +272,8 @@ class DrsObject(ObjectDBBase):
     description = Column(String, default='')
     aliases = Column(String, default='[]') # JSON array of strings of aliases
     contents = relationship("ContentsObject")
-    associated_cohorts = relationship(
-        'Cohort',
-        secondary=cohort_association,
-        back_populates='associated_drs'
-    )
+    cohort_id = Column(Integer, ForeignKey('cohort.id'))
+    cohort = relationship("Cohort", back_populates="associated_drs")
     variantfile = relationship("VariantFile", back_populates="drs_object")
 
     def __repr__(self):
@@ -301,15 +288,14 @@ class DrsObject(ObjectDBBase):
             'checksums': json.loads(self.checksums),
             'description': self.description,
             'mime_type': self.mime_type,
-            'aliases': json.loads(self.aliases),
-            'cohorts': []
+            'aliases': json.loads(self.aliases)
         }
         if len(list(self.contents)) > 0:
             result['contents'] = json.loads(self.contents.__repr__())
         if len(list(self.access_methods)) > 0:
             result['access_methods'] = json.loads(self.access_methods.__repr__())
-        for drs_assoc in self.associated_cohorts:
-            result['cohorts'].append(drs_assoc.id)
+        if self.cohort is not None:
+            result['cohort'] = self.cohort
         return json.dumps(result)
 
 
