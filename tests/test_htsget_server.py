@@ -121,7 +121,7 @@ def test_install_public_object():
         {
             "aliases": [],
             "checksums": [],
-            "description": "",
+            "description": "index",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
@@ -137,7 +137,7 @@ def test_install_public_object():
         {
             "aliases": [],
             "checksums": [],
-            "description": "",
+            "description": "variant",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
@@ -169,7 +169,7 @@ def test_install_public_object():
                 "id": "index"
               }
             ],
-            "description": "",
+            "description": "wgs",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
@@ -188,18 +188,14 @@ def get_ingest_file():
     return [
         (
             {
-                "genomic_id": "multisample_1",
+                "genomic_id": "NA18537",
                 "samples": [
                     {
-                        "sample_registration_id": "SAMPLE_REGISTRATION_3",
-                        "sample_name_in_file": "TUMOR"
-                    },
-                    {
-                        "sample_registration_id": "SAMPLE_REGISTRATION_4",
-                        "sample_name_in_file": "NORMAL"
+                        "sample_registration_id": "NA18537-wgs",
+                        "sample_name_in_file": "NA18537"
                     }
                 ]
-            }, "SYNTHETIC-2"
+            }, "1000Genomes"
         )
     ]
 
@@ -225,6 +221,7 @@ def test_add_sample_drs(input, program_id):
     if response.status_code == 200:
         assert response.status_code == 200
     genomic_drs_obj = response.json()
+    contents_count = len(genomic_drs_obj["contents"])
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for sample in input['samples']:
@@ -240,6 +237,7 @@ def test_add_sample_drs(input, program_id):
         # create a sampledrsobject to correspond to each sample:
         sample_drs_object = {
             "id": sample_id,
+            "description": "sample",
             "contents": [
                 {
                     "drs_uri": [
@@ -270,7 +268,22 @@ def test_add_sample_drs(input, program_id):
     response = requests.request("GET", get_url, headers=headers)
     if response.status_code == 200:
         assert response.status_code == 200
-    assert len(genomic_drs_obj["contents"]) == 4
+    assert len(genomic_drs_obj["contents"]) == contents_count + 1
+
+
+@pytest.mark.parametrize('input, program_id', get_ingest_file())
+def test_sample_stats(input, program_id):
+    headers = get_headers()
+
+    sample = get_ingest_sample_names(input['genomic_id'])
+    print(sample)
+    # look for the sample
+    get_url = f"{HOST}/htsget/v1/samples/{sample[list(sample.keys()).pop()]}"
+    response = requests.request("GET", get_url, headers=headers)
+    if response.status_code == 200:
+        assert response.status_code == 200
+
+    assert input['genomic_id'] in response.json()['genomes']
 
 
 def invalid_start_end_data():
@@ -442,14 +455,6 @@ def test_beacon_post_search(body, count, cases):
     assert len(response.json()['response']) == count
     assert len(response.json()['response'][0]['caseLevelData']) == cases
 
-    # check to see if the sample names got in:
-    samples = get_ingest_sample_names('multisample_1')
-    for cld in response.json()['response'][0]['caseLevelData']:
-        if cld['analysisId'] == 'multisample_1':
-            assert cld['biosampleId'] in samples.values()
-        else:
-            assert cld['biosampleId'] not in samples.values()
-
 
 # if we search for NBPF1, we should find records in test.vcf that contain NBPF1 in their VEP annotations.
 def test_beacon_search_annotations():
@@ -509,6 +514,7 @@ def drs_objects():
         # make a genomicdrsobj:
         genomic_drs_obj = {
             "id": drs_obj,
+            "description": "wgs",
             "mime_type": "application/octet-stream",
             "name": drs_obj,
             "contents": [],
@@ -520,6 +526,7 @@ def drs_objects():
         index_file = drs_objects[drs_obj].pop("index")
         result.append({
             "id": index_file,
+            "description": "index",
             "mime_type": "application/octet-stream",
             "name": index_file,
             "version": "v1"
@@ -538,6 +545,7 @@ def drs_objects():
         data_file = drs_objects[drs_obj].pop(type)
         result.append({
             "id": data_file,
+            "description": type,
             "mime_type": "application/octet-stream",
             "name": data_file,
             "version": "v1"
