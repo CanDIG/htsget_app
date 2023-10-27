@@ -30,6 +30,8 @@ paths:
       - $ref: '#/components/parameters/BearerAuth'
     get:
       summary: List all DRS objects
+      parameters:
+      - $ref: '#/components/parameters/CohortIdQuery'
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.list_objects
@@ -122,12 +124,12 @@ paths:
                     description: array of strings that need to be passed with the URL to get bytes
       tags:
         - Objects
-  /datasets:
+  /cohorts:
     parameters:
       - $ref: '#/components/parameters/BearerAuth'
     get:
-      description: List all datasets available
-      operationId: drs_operations.list_datasets
+      description: List all cohorts available
+      operationId: drs_operations.list_cohorts
       responses:
         200:
           description: ok
@@ -137,42 +139,42 @@ paths:
                 type: array
                 items:
                   type: string
-                description: array of datasets
+                description: array of cohorts
     post:
-      description: Create a dataset
-      operationId: drs_operations.post_dataset
+      description: Create a cohort
+      operationId: drs_operations.post_cohort
       requestBody:
-          $ref: '#/components/requestBodies/DatasetRequest'
+          $ref: '#/components/requestBodies/CohortRequest'
       responses:
           200:
-            description: The `Dataset` was created successfully
+            description: The `Cohort` was created successfully
             content:
               application/json:
                   schema:
                     type: object
 
-  /datasets/{dataset_id}:
+  /cohorts/{cohort_id}:
     parameters:
-      - $ref: "#/components/parameters/DatasetId"
+      - $ref: "#/components/parameters/CohortId"
       - $ref: '#/components/parameters/BearerAuth'
     get:
-      description: Describe a dataset
-      operationId: drs_operations.get_dataset
+      description: Describe a cohort
+      operationId: drs_operations.get_cohort
       responses:
         200:
           description: ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Dataset'
+                $ref: '#/components/schemas/Cohort'
     delete:
-      summary: Delete a dataset.
+      summary: Delete a cohort.
       description: >-
-        Delete a dataset, and all associated DRS objects.
-      operationId: drs_operations.delete_dataset
+        Delete a cohort, and all associated DRS objects.
+      operationId: drs_operations.delete_cohort
       responses:
           200:
-            description: The dataset was deleted successfully
+            description: The cohort was deleted successfully
             content:
               application/json:
                 schema:
@@ -185,13 +187,19 @@ components:
       schema:
         type: string
         description: A string of the format 'Bearer <token>'
-    DatasetId:
+    CohortId:
       in: path
-      name: dataset_id
+      name: cohort_id
       required: true
-      description: DatasetId
+      description: CohortId
       schema:
         type: string
+    CohortIdQuery:
+        in: query
+        name: cohort_id
+        description: CohortId
+        schema:
+          type: string
     ObjectId:
       in: path
       name: object_id
@@ -247,19 +255,19 @@ components:
               - $ref: "#/components/schemas/GenomicDrsObject"
               - $ref: "#/components/schemas/GenomicDataDrsObject"
               - $ref: "#/components/schemas/GenomicIndexDrsObject"
-    DatasetRequest:
+    CohortRequest:
       content:
         'application/json':
           schema:
-            $ref: '#/components/schemas/Dataset'
+            $ref: '#/components/schemas/Cohort'
 
   schemas:
-    Dataset:
+    Cohort:
       type: object
       properties:
         id:
           type: string
-          description: name of dataset
+          description: name of cohort
         drsobjects:
           type: array
           items:
@@ -272,6 +280,7 @@ components:
         - id
         - contents
         - description
+        - cohort
 #        - self_uri
 #        - size
 #        - created_time
@@ -340,6 +349,9 @@ components:
           type: string
           enum:
             - sample
+        cohort:
+          type: string
+          description: The cohort this object was ingested as part of
         aliases:
           type: array
           items:
@@ -356,6 +368,7 @@ components:
         - id
         - contents
         - description
+        - cohort
 #        - self_uri
 #        - size
 #        - created_time
@@ -434,6 +447,9 @@ components:
           enum:
             - wgs
             - wts
+        cohort:
+            type: string
+            description: The cohort this object was ingested as part of
         aliases:
           type: array
           items:
@@ -450,6 +466,7 @@ components:
         - id
         - access_methods
         - description
+        - cohort
 #        - self_uri
 #        - size
 #        - created_time
@@ -525,6 +542,9 @@ components:
           enum:
             - variant
             - read
+        cohort:
+            type: string
+            description: The cohort this object was ingested as part of
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.
@@ -544,6 +564,7 @@ components:
         - id
         - access_methods
         - description
+        - cohort
 #        - self_uri
 #        - size
 #        - created_time
@@ -617,6 +638,9 @@ components:
           type: string
           enum:
             - index
+        cohort:
+            type: string
+            description: The cohort this object was ingested as part of
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.

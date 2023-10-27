@@ -1,4 +1,8 @@
 BEGIN TRANSACTION;
+CREATE TABLE cohort (
+	id VARCHAR NOT NULL,
+	PRIMARY KEY (id)
+);
 CREATE TABLE drs_object (
         id VARCHAR NOT NULL,
         name VARCHAR,
@@ -11,7 +15,9 @@ CREATE TABLE drs_object (
         checksums VARCHAR,
         description VARCHAR,
         aliases VARCHAR,
-        PRIMARY KEY (id)
+        cohort_id VARCHAR,
+        PRIMARY KEY (id),
+        FOREIGN KEY(cohort_id) REFERENCES cohort (id)
 );
 CREATE TABLE access_method (
         id SERIAL PRIMARY KEY,
@@ -31,17 +37,6 @@ CREATE TABLE content_object (
         drs_uri VARCHAR,
         contents VARCHAR,
         FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
-);
-CREATE TABLE dataset (
-	id VARCHAR NOT NULL,
-	PRIMARY KEY (id)
-);
-CREATE TABLE dataset_association (
-	dataset_id VARCHAR NOT NULL,
-	drs_object_id VARCHAR NOT NULL,
-	PRIMARY KEY (dataset_id, drs_object_id),
-	FOREIGN KEY(dataset_id) REFERENCES dataset (id),
-	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 CREATE TABLE contig (
 	id VARCHAR NOT NULL,
@@ -183,7 +178,7 @@ CREATE TABLE sample (
 	FOREIGN KEY(variantfile_id) REFERENCES variantfile (id)
 );
 
--- ncbiRefSeq table modified from https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/
+-- ncbirefseq table modified from https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/
 
 -- field	example	description
 -- reference_genome	hg38	Reference genome build
@@ -193,7 +188,7 @@ CREATE TABLE sample (
 -- start	11873	Transcription start position (or end position for minus strand item)
 -- endpos	14409	Transcription end position (or start position for minus strand item)
 
-CREATE TABLE ncbiRefSeq (
+CREATE TABLE ncbirefseq (
 	id SERIAL PRIMARY KEY,
 	reference_genome varchar(10) NOT NULL,
 	gene_name varchar(255) NOT NULL,
@@ -205,55 +200,55 @@ CREATE TABLE ncbiRefSeq (
 );
 
 -- insert reference sequences for chromosomes: ncbi reference name is in transcript name, but gene name is empty
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000001.11', '1', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000002.12', '2', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000003.12', '3', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000004.12', '4', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000005.10', '5', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000006.12', '6', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000007.14', '7', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000008.11', '8', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000009.12', '9', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000010.11', '10', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000011.10', '11', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000012.12', '12', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000013.11', '13', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000014.9', '14', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000015.10', '15', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000016.10', '16', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000017.11', '17', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000018.10', '18', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000019.10', '19', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000020.11', '20', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000021.9', '21', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000022.11', '22', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000023.11', 'X', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000024.10', 'Y', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_012920.1', 'MT', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000001.10', '1', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000002.11', '2', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000003.11', '3', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000004.11', '4', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000005.9', '5', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000006.11', '6', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000007.13', '7', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000008.10', '8', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000009.11', '9', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000010.10', '10', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000011.9', '11', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000012.11', '12', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000013.10', '13', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000014.8', '14', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000015.9', '15', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000016.9', '16', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000017.10', '17', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000018.9', '18', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000019.9', '19', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000020.10', '20', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000021.8', '21', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000022.10', '22', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000023.10', 'X', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000024.9', 'Y', 0, 0, '') ON CONFLICT DO NOTHING;
-INSERT INTO ncbiRefSeq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_012920.1', 'MT', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000001.11', '1', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000002.12', '2', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000003.12', '3', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000004.12', '4', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000005.10', '5', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000006.12', '6', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000007.14', '7', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000008.11', '8', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000009.12', '9', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000010.11', '10', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000011.10', '11', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000012.12', '12', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000013.11', '13', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000014.9', '14', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000015.10', '15', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000016.10', '16', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000017.11', '17', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000018.10', '18', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000019.10', '19', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000020.11', '20', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000021.9', '21', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000022.11', '22', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000023.11', 'X', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_000024.10', 'Y', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg38', 'NC_012920.1', 'MT', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000001.10', '1', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000002.11', '2', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000003.11', '3', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000004.11', '4', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000005.9', '5', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000006.11', '6', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000007.13', '7', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000008.10', '8', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000009.11', '9', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000010.10', '10', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000011.9', '11', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000012.11', '12', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000013.10', '13', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000014.8', '14', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000015.9', '15', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000016.9', '16', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000017.10', '17', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000018.9', '18', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000019.9', '19', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000020.10', '20', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000021.8', '21', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000022.10', '22', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000023.10', 'X', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000024.9', 'Y', 0, 0, '') ON CONFLICT DO NOTHING;
+INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_012920.1', 'MT', 0, 0, '') ON CONFLICT DO NOTHING;
 
 COMMIT;

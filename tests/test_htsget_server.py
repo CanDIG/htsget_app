@@ -35,15 +35,21 @@ def get_headers(username=USERNAME, password=PASSWORD):
     return headers
 
 
-def test_remove_objects(drs_objects):
+def test_remove_objects():
+    cohorts = ["test-htsget", "1000Genomes"]
     headers = get_headers()
-    for obj in drs_objects:
-        url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
+    for cohort in cohorts:
+        url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
         response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
             response = requests.request("DELETE", url, headers=headers)
-            print(f"DELETE {obj['name']}: {response.text}")
+            print(f"DELETE {cohort}: {response.text}")
             assert response.status_code == 200
+        url = f"{HOST}/ga4gh/drs/v1/objects"
+        response = requests.request("GET", url, headers=headers, params={"cohort_id": cohort})
+        assert response.status_code == 200
+        for obj in response.json():
+            assert obj["cohort"] != cohort
 
 
 def test_post_objects(drs_objects):
@@ -127,6 +133,7 @@ def test_install_public_object():
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "size": 0,
             "version": "v1",
+            "cohort": "1000genomes",
             "access_methods": [
                 {
                     "type": "s3",
@@ -143,6 +150,7 @@ def test_install_public_object():
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "size": 0,
             "version": "v1",
+            "cohort": "1000genomes",
             "access_methods": [
                 {
                     "type": "s3",
@@ -174,7 +182,8 @@ def test_install_public_object():
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "size": 0,
-            "version": "v1"
+            "version": "v1",
+            "cohort": "1000genomes"
         }
     ]
     for obj in pieces:
@@ -206,7 +215,7 @@ def get_ingest_sample_names(genomic_id):
         ingest_map, program_id = item
         if ingest_map["genomic_id"] == genomic_id:
             for sample in ingest_map["samples"]:
-                result[sample['sample_name_in_file']] = f"{program_id}~{sample['sample_registration_id']}"
+                result[sample['sample_name_in_file']] = f"{sample['sample_registration_id']}"
     return result
 
 
@@ -225,7 +234,7 @@ def test_add_sample_drs(input, program_id):
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for sample in input['samples']:
-        sample_id = f"{program_id}~{sample['sample_registration_id']}"
+        sample_id = f"{sample['sample_registration_id']}"
         # remove any existing objects:
         sample_url = f"{HOST}/ga4gh/drs/v1/objects/{sample_id}"
         response = requests.request("GET", sample_url, headers=headers)
@@ -247,7 +256,8 @@ def test_add_sample_drs(input, program_id):
                     "id": input['genomic_id']
                 }
             ],
-            "version": "v1"
+            "version": "v1",
+            "cohort": program_id
         }
         response = requests.request("POST", post_url, json=sample_drs_object, headers=headers)
         print(f"POST {sample_drs_object['id']}: {response.text}")
@@ -518,7 +528,8 @@ def drs_objects():
             "mime_type": "application/octet-stream",
             "name": drs_obj,
             "contents": [],
-            "version": "v1"
+            "version": "v1",
+            "cohort": "test-htsget"
         }
         result.append(genomic_drs_obj)
 
@@ -529,7 +540,8 @@ def drs_objects():
             "description": "index",
             "mime_type": "application/octet-stream",
             "name": index_file,
-            "version": "v1"
+            "version": "v1",
+            "cohort": "test-htsget"
         })
         # add it to the contents of the genomic_drs_obj:
         genomic_drs_obj['contents'].append({
@@ -548,7 +560,8 @@ def drs_objects():
             "description": type,
             "mime_type": "application/octet-stream",
             "name": data_file,
-            "version": "v1"
+            "version": "v1",
+            "cohort": "test-htsget"
         })
         # add it to the contents of the genomic_drs_obj:
         genomic_drs_obj['contents'].append({

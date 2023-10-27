@@ -566,7 +566,7 @@ components:
           type: boolean
         id:
           description: id of the resultset
-          example: datasetA
+          example: cohortA
           type: string
         info:
           description: Additional details that could be of interest about the Resultset. Provided to clearly enclose any attribute that is not part of the Beacon specification.

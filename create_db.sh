@@ -18,7 +18,7 @@ echo "database is at $db"
 pwd
 
 # initialize the db if it's not already there:
-psql --quiet -h "$db" -U $PGUSER -d genomic -c "SELECT * from ncbiRefSeq limit 1"
+psql --quiet -h "$db" -U $PGUSER -d genomic -c "SELECT * from ncbirefseq limit 1"
 if [[ $? -ne 0 ]]; then
     echo "initializing database..."
     createdb -h "$db" -U $PGUSER genomic
