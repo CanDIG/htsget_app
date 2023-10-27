@@ -35,15 +35,21 @@ def get_headers(username=USERNAME, password=PASSWORD):
     return headers
 
 
-def test_remove_objects(drs_objects):
+def test_remove_objects():
+    cohorts = ["test-htsget", "1000Genomes"]
     headers = get_headers()
-    for obj in drs_objects:
-        url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
+    for cohort in cohorts:
+        url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
         response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
             response = requests.request("DELETE", url, headers=headers)
-            print(f"DELETE {obj['name']}: {response.text}")
+            print(f"DELETE {cohort}: {response.text}")
             assert response.status_code == 200
+        url = f"{HOST}/ga4gh/drs/v1/objects"
+        response = requests.request("GET", url, headers=headers, params={"cohort_id": cohort})
+        assert response.status_code == 200
+        for obj in response.json():
+            assert obj["cohort"] != cohort
 
 
 def test_post_objects(drs_objects):
