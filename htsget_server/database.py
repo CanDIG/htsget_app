@@ -271,8 +271,8 @@ class DrsObject(ObjectDBBase):
     access_methods = relationship("AccessMethod", back_populates="drs_object", cascade="all, delete, delete-orphan")
     description = Column(String, default='')
     aliases = Column(String, default='[]') # JSON array of strings of aliases
-    contents = relationship("ContentsObject")
-    cohort_id = Column(Integer, ForeignKey('cohort.id'))
+    contents = relationship("ContentsObject", cascade="all, delete, delete-orphan")
+    cohort_id = Column(String, ForeignKey('cohort.id'))
     cohort = relationship("Cohort", back_populates="associated_drs")
     variantfile = relationship("VariantFile", back_populates="drs_object")
 
@@ -295,7 +295,7 @@ class DrsObject(ObjectDBBase):
         if len(list(self.access_methods)) > 0:
             result['access_methods'] = json.loads(self.access_methods.__repr__())
         if self.cohort is not None:
-            result['cohort'] = self.cohort
+            result['cohort'] = self.cohort_id
         return json.dumps(result)
 
 
@@ -400,6 +400,11 @@ def create_drs_object(obj):
             new_object.size = obj['size']
         if 'description' in obj:
             new_object.description = obj['description']
+        if 'cohort' in obj:
+            cohort = session.query(Cohort).filter_by(id=obj['cohort']).one_or_none()
+            if cohort is None:
+                create_cohort({"id": obj["cohort"], "drsobjects": []})
+            new_object.cohort_id = obj['cohort']
 
         # json arrays stored as strings
         if 'checksums' in obj:
@@ -455,6 +460,7 @@ def create_drs_object(obj):
 def delete_drs_object(obj_id):
     with Session() as session:
         new_object = session.query(DrsObject).filter_by(id=obj_id).one()
+        cohort = session.query(Cohort).filter_by(id=new_object.cohort_id).one_or_none()
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))

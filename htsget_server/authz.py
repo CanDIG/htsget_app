@@ -20,10 +20,9 @@ def is_authed(id_, request):
     if "Authorization" in request.headers:
         authed_cohorts = get_authorized_cohorts(request)
         obj = database.get_drs_object(id_)
-        if obj is not None and 'cohorts' in obj:
-            for cohort in obj["cohorts"]:
-                if cohort in authed_cohorts:
-                    return 200
+        if obj is not None and 'cohort' in obj:
+            if obj['cohort'] in authed_cohorts:
+                return 200
     else:
         return 401
     return 403

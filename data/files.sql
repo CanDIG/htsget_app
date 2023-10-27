@@ -1,4 +1,8 @@
 BEGIN TRANSACTION;
+CREATE TABLE cohort (
+	id VARCHAR NOT NULL,
+	PRIMARY KEY (id)
+);
 CREATE TABLE drs_object (
         id VARCHAR NOT NULL,
         name VARCHAR,
@@ -11,7 +15,9 @@ CREATE TABLE drs_object (
         checksums VARCHAR,
         description VARCHAR,
         aliases VARCHAR,
-        PRIMARY KEY (id)
+        cohort_id VARCHAR,
+        PRIMARY KEY (id),
+        FOREIGN KEY(cohort_id) REFERENCES cohort (id)
 );
 CREATE TABLE access_method (
         id SERIAL PRIMARY KEY,
@@ -31,11 +37,6 @@ CREATE TABLE content_object (
         drs_uri VARCHAR,
         contents VARCHAR,
         FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
-);
-CREATE TABLE cohort (
-	id VARCHAR NOT NULL,
-	PRIMARY KEY (id),
-	FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 CREATE TABLE contig (
 	id VARCHAR NOT NULL,
