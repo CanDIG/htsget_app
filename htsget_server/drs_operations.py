@@ -49,8 +49,8 @@ def get_object(object_id, expand=False):
     return new_object, 200
 
 
-def list_objects():
-    return database.list_drs_objects(), 200
+def list_objects(cohort_id):
+    return database.list_drs_objects(cohort_id=cohort_id), 200
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')

@@ -30,6 +30,8 @@ paths:
       - $ref: '#/components/parameters/BearerAuth'
     get:
       summary: List all DRS objects
+      parameters:
+      - $ref: '#/components/parameters/CohortIdQuery'
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.list_objects
@@ -192,6 +194,12 @@ components:
       description: CohortId
       schema:
         type: string
+    CohortIdQuery:
+        in: query
+        name: cohort_id
+        description: CohortId
+        schema:
+          type: string
     ObjectId:
       in: path
       name: object_id

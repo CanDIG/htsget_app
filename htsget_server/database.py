@@ -364,9 +364,12 @@ def get_drs_object(object_id, expand=False):
         return None
 
 
-def list_drs_objects():
+def list_drs_objects(cohort_id=None):
     with Session() as session:
-        result = session.query(DrsObject).all()
+        if cohort_id is not None:
+            result = session.query(DrsObject).filter_by(cohort_id=cohort_id).all()
+        else:
+            result = session.query(DrsObject).all()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
