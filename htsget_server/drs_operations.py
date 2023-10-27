@@ -49,7 +49,7 @@ def get_object(object_id, expand=False):
     return new_object, 200
 
 
-def list_objects(cohort_id):
+def list_objects(cohort_id=None):
     return database.list_drs_objects(cohort_id=cohort_id), 200
 
 
