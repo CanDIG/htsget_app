@@ -272,6 +272,7 @@ components:
         - id
         - contents
         - description
+        - cohort
 #        - self_uri
 #        - size
 #        - created_time
@@ -340,6 +341,9 @@ components:
           type: string
           enum:
             - sample
+        cohort:
+          type: string
+          description: The cohort this object was ingested as part of
         aliases:
           type: array
           items:
@@ -356,6 +360,7 @@ components:
         - id
         - contents
         - description
+        - cohort
 #        - self_uri
 #        - size
 #        - created_time
@@ -434,6 +439,9 @@ components:
           enum:
             - wgs
             - wts
+        cohort:
+            type: string
+            description: The cohort this object was ingested as part of
         aliases:
           type: array
           items:
@@ -450,6 +458,7 @@ components:
         - id
         - access_methods
         - description
+        - cohort
 #        - self_uri
 #        - size
 #        - created_time
@@ -525,6 +534,9 @@ components:
           enum:
             - variant
             - read
+        cohort:
+            type: string
+            description: The cohort this object was ingested as part of
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.
@@ -544,6 +556,7 @@ components:
         - id
         - access_methods
         - description
+        - cohort
 #        - self_uri
 #        - size
 #        - created_time
@@ -617,6 +630,9 @@ components:
           type: string
           enum:
             - index
+        cohort:
+            type: string
+            description: The cohort this object was ingested as part of
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.
