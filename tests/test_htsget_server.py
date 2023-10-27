@@ -36,7 +36,7 @@ def get_headers(username=USERNAME, password=PASSWORD):
 
 
 def test_remove_objects():
-    cohorts = ["test-htsget", "1000Genomes"]
+    cohorts = ["test-htsget", "1000genomes"]
     headers = get_headers()
     for cohort in cohorts:
         url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
