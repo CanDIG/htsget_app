@@ -126,7 +126,8 @@ class VariantFile(ObjectDBBase):
     # a variantfile can contain several samples
     samples = relationship(
         "Sample",
-        back_populates="variantfile"
+        back_populates="variantfile",
+        cascade="all, delete, delete-orphan"
     )
     def __repr__(self):
         result = {
