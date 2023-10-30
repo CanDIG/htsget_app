@@ -126,7 +126,8 @@ class VariantFile(ObjectDBBase):
     # a variantfile can contain several samples
     samples = relationship(
         "Sample",
-        back_populates="variantfile"
+        back_populates="variantfile",
+        cascade="all, delete, delete-orphan"
     )
     def __repr__(self):
         result = {
@@ -464,6 +465,11 @@ def delete_drs_object(obj_id):
     with Session() as session:
         new_object = session.query(DrsObject).filter_by(id=obj_id).one()
         cohort = session.query(Cohort).filter_by(id=new_object.cohort_id).one_or_none()
+        if new_object.description in ["wgs", "wts"]:
+            # this is a GenomicDrsObject; we need to delete any indexed variantfiles
+            variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
+            for vf in variantfiles:
+                session.delete(vf)
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))
