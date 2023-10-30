@@ -204,7 +204,7 @@ def get_ingest_file():
                         "sample_name_in_file": "NA18537"
                     }
                 ]
-            }, "1000Genomes"
+            }, "1000genomes"
         )
     ]
 
