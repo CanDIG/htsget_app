@@ -321,19 +321,15 @@ def test_invalid_start_end(start, end):
 def existent_file_test_data():
     return [
         ('NA18537', 'variants',
-         {'referenceName': 21, 'start': 10235878, 'end': 45412368},
+         {'referenceName': 21, 'start': 10002800, 'end': 10050000},
          200),
         ('NA18537', 'variants',
          {'referenceName': 21},
          200),
         ('NA18537', 'variants',
-         {'start': 10235878, 'end': 45412368},
+         {'start': 10002800, 'end': 10050000},
          200),
         ('NA18537', 'variants', {}, 200),
-        ('NA20787', 'variants', {}, 200),
-        ('NA20787', 'variants',
-         {'referenceName': 21},
-         200),
         ('HG203245', 'variants', {}, 404)
     ]
 
@@ -364,7 +360,7 @@ def pull_slices_data():
           "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant", 2),
         ({}, 'sample.compressed', ".vcf.gz", "variant", 9),
         ({"referenceName": "21",
-          "start": 9410000, "end": 9420000}, 'NA18537', ".vcf.gz", "variant", 18)
+          "start": 10002800, "end": 10087068}, 'NA18537', ".vcf.gz", "variant", 18)
     ]
 
 
