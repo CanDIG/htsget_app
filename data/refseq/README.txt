@@ -8,6 +8,6 @@ s/^(.+?)\t(.+?)\t(.+?)\t(.)\t(\d+)\t(\d+)\t(\d+)\t(\d+)\t(\d+)\t(.+?)\t(.+?)\t.\
 now the columns left are:
 name, contig, txStart, txEnd, name2
 which correspond to our:
-transcript_name, contig, start, end, gene_name
+transcript_name, contig, start, endpos, gene_name
 
 These files are saved as ncbiRefSeqSelect.hg37.txt and ncbiRefSeqSelect.hg38.txt.

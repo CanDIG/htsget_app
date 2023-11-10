@@ -49,8 +49,8 @@ def get_object(object_id, expand=False):
     return new_object, 200
 
 
-def list_objects():
-    return database.list_drs_objects(), 200
+def list_objects(cohort_id=None):
+    return database.list_drs_objects(cohort_id=cohort_id), 200
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
@@ -105,44 +105,44 @@ def delete_object(object_id):
         return {"message": str(e)}, 500
 
 
-def list_datasets():
-    datasets = database.list_datasets()
-    if datasets is None:
+def list_cohorts():
+    cohorts = database.list_cohorts()
+    if cohorts is None:
         return [], 404
     try:
         if authz.is_site_admin(request):
-            return list(map(lambda x: x['id'], datasets)), 200
-        authorized_datasets = authz.get_authorized_datasets(request)
-        return list(set(map(lambda x: x['id'], datasets)).intersection(set(authorized_datasets))), 200
+            return list(map(lambda x: x['id'], cohorts)), 200
+        authorized_cohorts = authz.get_authorized_cohorts(request)
+        return list(set(map(lambda x: x['id'], cohorts)).intersection(set(authorized_cohorts))), 200
     except Exception as e:
         return [], 500
 
 
-def post_dataset():
+def post_cohort():
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to POST"}, 403
-    new_dataset = database.create_dataset(connexion.request.json)
-    return new_dataset, 200
+    new_cohort = database.create_cohort(connexion.request.json)
+    return new_cohort, 200
 
 
-def get_dataset(dataset_id):
-    new_dataset = database.get_dataset(dataset_id)
-    if new_dataset is None:
-        return {"message": "No matching dataset found"}, 404
+def get_cohort(cohort_id):
+    new_cohort = database.get_cohort(cohort_id)
+    if new_cohort is None:
+        return {"message": "No matching cohort found"}, 404
     if authz.is_site_admin(request):
-        return new_dataset, 200
-    authorized_datasets = authz.get_authorized_datasets(request)
-    if new_dataset["id"] in authorized_datasets:
-        return new_dataset, 200
-    return {"message": f"Not authorized to access dataset {dataset_id}"}, 403
+        return new_cohort, 200
+    authorized_cohorts = authz.get_authorized_cohorts(request)
+    if new_cohort["id"] in authorized_cohorts:
+        return new_cohort, 200
+    return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
 
 
-def delete_dataset(dataset_id):
+def delete_cohort(cohort_id):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to POST"}, 403
     try:
-        new_dataset = database.delete_dataset(dataset_id)
-        return new_dataset, 200
+        new_cohort = database.delete_cohort(cohort_id)
+        return new_cohort, 200
     except Exception as e:
         return {"message": str(e)}, 500
 

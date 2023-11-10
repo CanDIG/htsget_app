@@ -217,6 +217,39 @@ def get_matching_transcripts(id_=None):
     return get_matching_genes(id_=id_, type="transcript_name")
 
 
+@app.route('/samples/<path:id_>')
+def get_sample(id_=None):
+    result = {
+        "sample_id": id_,
+        "genomes": [],
+        "transcriptomes": []
+    }
+
+    # Get the SampleDrsObject. It will have a contents array of GenomicContentsObjects > GenomicDrsObjects.
+    # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
+    sample_drs_obj, result_code = drs_operations.get_object(id_)
+    if result_code == 200 and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
+        for contents_obj in sample_drs_obj["contents"]:
+            drs_obj = database.get_drs_object(contents_obj["id"])
+            if drs_obj is not None:
+                if drs_obj["description"] == "wgs":
+                    result["genomes"].append(drs_obj["id"])
+                elif drs_obj["description"] == "wts":
+                    result["transcriptomes"].append(drs_obj["id"])
+        return result, 200
+    return {"message": f"Could not find sample {id_}"}, 404
+
+
+def get_samples():
+    req = connexion.request.json
+    result = []
+    for sample in req["samples"]:
+        res, status_code = get_sample(sample)
+        if status_code == 200:
+            result.append(res)
+    return result, 200
+
+
 def _get_htsget_url(id, reference_name, slice_start, slice_end, file_type, data=True):
     """
     Creates single slice for a region in a file. Returns an HTSGetURL object.

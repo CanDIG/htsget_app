@@ -1,37 +1,20 @@
 ARG venv_python
-ARG alpine_version
-FROM python:${venv_python}-alpine${alpine_version}
+FROM python:${venv_python}
 
 LABEL Maintainer="CanDIG Project"
 LABEL "candigv2"="htsget_app"
 
 USER root
 
-RUN addgroup -S candig && adduser -S candig -G candig
+RUN useradd -r candig -U
 
-RUN apk update
-
-RUN apk add --no-cache \
-	autoconf \
-	automake \
-	make \
-	gcc \
-	perl \
-	bash \
-	build-base \
-	musl-dev \
-	zlib-dev \
-	bzip2-dev \
-	xz-dev \
-	libcurl \
-	linux-headers \
-	curl \
-	curl-dev \
-	yaml-dev \
-	libressl-dev \
-	pcre-dev \
-	git \
-	sqlite
+RUN apt-get update && apt-get -y install \
+	cron \
+	libpcre3  \
+	libpcre3-dev \
+	sqlite3 \
+	postgresql-client \
+    postgresql
 
 COPY requirements.txt /app/htsget_server/requirements.txt
 

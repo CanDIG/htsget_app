@@ -35,15 +35,21 @@ def get_headers(username=USERNAME, password=PASSWORD):
     return headers
 
 
-def test_remove_objects(drs_objects):
+def test_remove_objects():
+    cohorts = ["test-htsget", "1000genomes"]
     headers = get_headers()
-    for obj in drs_objects:
-        url = f"{HOST}/ga4gh/drs/v1/objects/{obj['id']}"
+    for cohort in cohorts:
+        url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
         response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
             response = requests.request("DELETE", url, headers=headers)
-            print(f"DELETE {obj['name']}: {response.text}")
+            print(f"DELETE {cohort}: {response.text}")
             assert response.status_code == 200
+        url = f"{HOST}/ga4gh/drs/v1/objects"
+        response = requests.request("GET", url, headers=headers, params={"cohort_id": cohort})
+        assert response.status_code == 200
+        for obj in response.json():
+            assert obj["cohort"] != cohort
 
 
 def test_post_objects(drs_objects):
@@ -58,7 +64,7 @@ def test_post_objects(drs_objects):
     for obj in drs_objects:
         url = f"{HOST}/ga4gh/drs/v1/objects"
         response = requests.request("POST", url, json=obj, headers=headers)
-        print(f"POST {obj['name']}: {response.text}")
+        print(f"POST {obj}: {response.text}")
         assert response.status_code == 200
 
 
@@ -121,12 +127,13 @@ def test_install_public_object():
         {
             "aliases": [],
             "checksums": [],
-            "description": "",
+            "description": "index",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "size": 0,
             "version": "v1",
+            "cohort": "1000genomes",
             "access_methods": [
                 {
                     "type": "s3",
@@ -137,12 +144,13 @@ def test_install_public_object():
         {
             "aliases": [],
             "checksums": [],
-            "description": "",
+            "description": "variant",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "size": 0,
             "version": "v1",
+            "cohort": "1000genomes",
             "access_methods": [
                 {
                     "type": "s3",
@@ -169,12 +177,13 @@ def test_install_public_object():
                 "id": "index"
               }
             ],
-            "description": "",
+            "description": "wgs",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "size": 0,
-            "version": "v1"
+            "version": "v1",
+            "cohort": "1000genomes"
         }
     ]
     for obj in pieces:
@@ -188,18 +197,14 @@ def get_ingest_file():
     return [
         (
             {
-                "genomic_id": "multisample_1",
+                "genomic_id": "NA18537",
                 "samples": [
                     {
-                        "sample_registration_id": "SAMPLE_REGISTRATION_3",
-                        "sample_name_in_file": "TUMOR"
-                    },
-                    {
-                        "sample_registration_id": "SAMPLE_REGISTRATION_4",
-                        "sample_name_in_file": "NORMAL"
+                        "sample_registration_id": "NA18537-wgs",
+                        "sample_name_in_file": "NA18537"
                     }
                 ]
-            }, "SYNTHETIC-2"
+            }, "1000genomes"
         )
     ]
 
@@ -210,7 +215,7 @@ def get_ingest_sample_names(genomic_id):
         ingest_map, program_id = item
         if ingest_map["genomic_id"] == genomic_id:
             for sample in ingest_map["samples"]:
-                result[sample['sample_name_in_file']] = f"{program_id}~{sample['sample_registration_id']}"
+                result[sample['sample_name_in_file']] = f"{sample['sample_registration_id']}"
     return result
 
 
@@ -225,10 +230,11 @@ def test_add_sample_drs(input, program_id):
     if response.status_code == 200:
         assert response.status_code == 200
     genomic_drs_obj = response.json()
+    contents_count = len(genomic_drs_obj["contents"])
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for sample in input['samples']:
-        sample_id = f"{program_id}~{sample['sample_registration_id']}"
+        sample_id = f"{sample['sample_registration_id']}"
         # remove any existing objects:
         sample_url = f"{HOST}/ga4gh/drs/v1/objects/{sample_id}"
         response = requests.request("GET", sample_url, headers=headers)
@@ -240,6 +246,7 @@ def test_add_sample_drs(input, program_id):
         # create a sampledrsobject to correspond to each sample:
         sample_drs_object = {
             "id": sample_id,
+            "description": "sample",
             "contents": [
                 {
                     "drs_uri": [
@@ -249,7 +256,8 @@ def test_add_sample_drs(input, program_id):
                     "id": input['genomic_id']
                 }
             ],
-            "version": "v1"
+            "version": "v1",
+            "cohort": program_id
         }
         response = requests.request("POST", post_url, json=sample_drs_object, headers=headers)
         print(f"POST {sample_drs_object['id']}: {response.text}")
@@ -270,7 +278,22 @@ def test_add_sample_drs(input, program_id):
     response = requests.request("GET", get_url, headers=headers)
     if response.status_code == 200:
         assert response.status_code == 200
-    assert len(genomic_drs_obj["contents"]) == 4
+    assert len(genomic_drs_obj["contents"]) == contents_count + 1
+
+
+@pytest.mark.parametrize('input, program_id', get_ingest_file())
+def test_sample_stats(input, program_id):
+    headers = get_headers()
+
+    sample = get_ingest_sample_names(input['genomic_id'])
+    print(sample)
+    # look for the sample
+    get_url = f"{HOST}/htsget/v1/samples/{sample[list(sample.keys()).pop()]}"
+    response = requests.request("GET", get_url, headers=headers)
+    if response.status_code == 200:
+        assert response.status_code == 200
+
+    assert input['genomic_id'] in response.json()['genomes']
 
 
 def invalid_start_end_data():
@@ -298,19 +321,15 @@ def test_invalid_start_end(start, end):
 def existent_file_test_data():
     return [
         ('NA18537', 'variants',
-         {'referenceName': 21, 'start': 10235878, 'end': 45412368},
+         {'referenceName': 21, 'start': 10002800, 'end': 10050000},
          200),
         ('NA18537', 'variants',
          {'referenceName': 21},
          200),
         ('NA18537', 'variants',
-         {'start': 10235878, 'end': 45412368},
+         {'start': 10002800, 'end': 10050000},
          200),
         ('NA18537', 'variants', {}, 200),
-        ('NA20787', 'variants', {}, 200),
-        ('NA20787', 'variants',
-         {'referenceName': 21},
-         200),
         ('HG203245', 'variants', {}, 404)
     ]
 
@@ -341,7 +360,7 @@ def pull_slices_data():
           "start": 0, "end": 1260000}, 'sample.compressed', ".vcf.gz", "variant", 2),
         ({}, 'sample.compressed', ".vcf.gz", "variant", 9),
         ({"referenceName": "21",
-          "start": 9410000, "end": 9420000}, 'NA18537', ".vcf.gz", "variant", 18)
+          "start": 10002800, "end": 10087068}, 'NA18537', ".vcf.gz", "variant", 18)
     ]
 
 
@@ -442,14 +461,6 @@ def test_beacon_post_search(body, count, cases):
     assert len(response.json()['response']) == count
     assert len(response.json()['response'][0]['caseLevelData']) == cases
 
-    # check to see if the sample names got in:
-    samples = get_ingest_sample_names('multisample_1')
-    for cld in response.json()['response'][0]['caseLevelData']:
-        if cld['analysisId'] == 'multisample_1':
-            assert cld['biosampleId'] in samples.values()
-        else:
-            assert cld['biosampleId'] not in samples.values()
-
 
 # if we search for NBPF1, we should find records in test.vcf that contain NBPF1 in their VEP annotations.
 def test_beacon_search_annotations():
@@ -466,6 +477,7 @@ def test_beacon_search_annotations():
     }
     response = requests.post(url, json=body, headers=get_headers())
     found_gene = False
+    print(response.json())
     for var in response.json()['response']:
         if 'molecularAttributes' in var:
             if 'geneIds' in var['molecularAttributes']:
@@ -508,10 +520,12 @@ def drs_objects():
         # make a genomicdrsobj:
         genomic_drs_obj = {
             "id": drs_obj,
+            "description": "wgs",
             "mime_type": "application/octet-stream",
             "name": drs_obj,
             "contents": [],
-            "version": "v1"
+            "version": "v1",
+            "cohort": "test-htsget"
         }
         result.append(genomic_drs_obj)
 
@@ -519,9 +533,11 @@ def drs_objects():
         index_file = drs_objects[drs_obj].pop("index")
         result.append({
             "id": index_file,
+            "description": "index",
             "mime_type": "application/octet-stream",
             "name": index_file,
-            "version": "v1"
+            "version": "v1",
+            "cohort": "test-htsget"
         })
         # add it to the contents of the genomic_drs_obj:
         genomic_drs_obj['contents'].append({
@@ -537,9 +553,11 @@ def drs_objects():
         data_file = drs_objects[drs_obj].pop(type)
         result.append({
             "id": data_file,
+            "description": type,
             "mime_type": "application/octet-stream",
             "name": data_file,
-            "version": "v1"
+            "version": "v1",
+            "cohort": "test-htsget"
         })
         # add it to the contents of the genomic_drs_obj:
         genomic_drs_obj['contents'].append({

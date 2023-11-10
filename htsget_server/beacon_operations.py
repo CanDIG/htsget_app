@@ -201,9 +201,10 @@ def search(raw_req):
             for gene in genes:
                 if gene['reference_genome'] == actual_params['reference_genome']:
                     actual_params['reference_name'] = database.normalize_contig(gene['contig'])
-                    actual_params['start'] = gene['start']
-                    actual_params['end'] = gene['end']
-                    break
+                    if actual_params['reference_name'] is not None:
+                        actual_params['start'] = gene['start']
+                        actual_params['end'] = gene['end']
+                        break
         else:
             response = {
                     'error': {
@@ -273,7 +274,7 @@ def search(raw_req):
             response['responseSummary']['numTotalResults'] = len(resultset)
             response['responseSummary']['exists'] = True
 
-        # if the request granularity was "record", check to see that the user is actually authorized to see any datasets:
+        # if the request granularity was "record", check to see that the user is actually authorized to see any cohorts:
         response['beaconHandovers'] = []
         for drs_obj in variants_by_file.keys():
             handover, status_code = htsget_operations.get_variants(id_=drs_obj, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])

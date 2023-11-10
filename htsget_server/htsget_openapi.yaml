@@ -319,6 +319,40 @@ paths:
                                 type: object
                                 $ref: '#/components/schemas/GeneSearchResultsTicket'
 
+    /samples/{id}:
+        get:
+            summary: Get metadata about a sample
+            operationId: htsget_operations.get_sample
+            description: Get MoH-relevant genomic information about a sample
+            parameters:
+                - $ref: '#/components/parameters/authHeaderParam'
+                - $ref: "#/components/parameters/idPathParam"
+            responses:
+                200:
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SampleTicket'
+    /samples:
+        post:
+            summary: Get metadata about multiple samples
+            operationId: htsget_operations.get_samples
+            description: Get MoH-relevant genomic information about a list of samples
+            parameters:
+                - $ref: '#/components/parameters/authHeaderParam'
+            requestBody:
+                $ref: '#/components/requestBodies/SamplesRequestBody'
+            responses:
+                200:
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/SampleTicket'
+
 tags:
     - name: Reads
       description: |
@@ -744,6 +778,22 @@ components:
                                                 - hg38
                                         region:
                                             $ref: '#/components/schemas/Region'
+        SampleTicket:
+            type: object
+            properties:
+                sample_id:
+                    type: string
+                    description: MoH submitter_sample_id from a Sample Registration associated with a specimen.
+                genome:
+                    type: array
+                    description: An array of associated GenomicDrsObjects that describe reads, e.g. bams.
+                    items:
+                        type: string
+                transcriptome:
+                    type: array
+                    description: An array of associated GenomicDrsObjects that describe transcriptome data.
+                    items:
+                        type: string
 
         # ERROR SCHEMAS
         Error:
@@ -817,6 +867,14 @@ components:
             required: false
             schema:
                 type: string
+        sampleIdPathParam:
+            in: path
+            name: id
+            description: MoH Sample Registration ID for a sample with associated genomic data
+            required: true
+            schema:
+                type: string
+                format: path
         readsFormatParam:
             in: query
             name: format
@@ -943,6 +1001,20 @@ components:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ReadsRequestBody'
+        SamplesRequestBody:
+            description: List of samples requested
+            required: false
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            samples:
+                                type: array
+                                items:
+                                    type: string
+
+
     responses:
         400BadRequestError:
             description: The request was not processed, as the request parameters did not adhere to the specification
