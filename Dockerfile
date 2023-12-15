@@ -6,7 +6,7 @@ LABEL "candigv2"="htsget_app"
 
 USER root
 
-RUN useradd -r candig -U
+RUN addgroup -S candig && adduser -S candig -G candig
 
 RUN apt-get update && apt-get -y install \
 	cron \
@@ -23,6 +23,10 @@ RUN pip install --no-cache-dir -r /app/htsget_server/requirements.txt
 COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
+
+RUN chown -R candig:candig /app/htsget_server
+
+USER candig
 
 RUN touch initial_setup
 
