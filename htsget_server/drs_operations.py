@@ -214,13 +214,13 @@ def _describe_drs_object(object_id):
         for contents in drs_obj["contents"]:
             # get each drs object (should be the genomic file and its index)
             # if sub_obj.name matches an index file regex, it's an index file
-            index_match = re.fullmatch('.+\.(...*i)$', contents["name"])
+            index_match = re.fullmatch(r'.+\.(...*i)$', contents["name"])
 
             # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
-            read_match = re.fullmatch('.+\.(.+?am)$', contents["name"])
+            read_match = re.fullmatch(r'.+\.(.+?am)$', contents["name"])
 
             # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
-            variant_match = re.fullmatch('.+\.(.cf)(\.gz)*$', contents["name"])
+            variant_match = re.fullmatch(r'.+\.(.cf)(\.gz)*$', contents["name"])
 
             if read_match is not None:
                 result['format'] = read_match.group(1).upper()
