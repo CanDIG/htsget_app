@@ -1,7 +1,7 @@
 language: python
 dist: focal
 python:
-  - 3.10
+  - 3.12
 
 services:
   - docker
@@ -12,8 +12,8 @@ env:
 before_install:
   - docker pull minio/minio
   - docker create -p9090:9090 -p9000:9000 -p9001:9001 minio/minio minio server /data | xargs -I{} docker start {}
-  - docker pull postgres:15-alpine
-  - docker create -p5433:5432 -p5432:5432 --env POSTGRES_USER=admin --env POSTGRES_DB=metadata --env POSTGRES_PASSWORD=OG0pjmnQDWUTvLotYrxPrg --env POSTGRES_HOST_AUTH_METHOD=password --name metadata-db postgres:15-alpine | xargs -I{} docker start {}
+  - docker pull postgres:16-alpine
+  - docker create -p5433:5432 -p5432:5432 --env POSTGRES_USER=admin --env POSTGRES_DB=metadata --env POSTGRES_PASSWORD=OG0pjmnQDWUTvLotYrxPrg --env POSTGRES_HOST_AUTH_METHOD=password --name metadata-db postgres:16-alpine | xargs -I{} docker start {}
   - docker ps -a
   - docker logs metadata-db
 
