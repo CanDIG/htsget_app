@@ -6,7 +6,7 @@ LABEL "candigv2"="htsget_app"
 
 USER root
 
-RUN addgroup -S candig && adduser -S candig -G candig
+RUN groupadd -r candig && useradd -r candig -g candig
 
 RUN apt-get update && apt-get -y install \
 	cron \
