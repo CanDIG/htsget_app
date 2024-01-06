@@ -4,7 +4,7 @@ set -Euo pipefail
 
 export VAULT_S3_TOKEN=$(cat /run/secrets/vault-s3-token)
 export OPA_SECRET=$(cat /run/secrets/opa-service-token)
-export VAULT_URL=$CANDIG_VAULT_URL
+export VAULT_URL=$VAULT_URL
 
 if [[ -f "initial_setup" ]]; then
     if [[ -f "/run/secrets/cert.pem" ]]; then
