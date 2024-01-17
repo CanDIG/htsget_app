@@ -8,6 +8,7 @@ import json
 import re
 import connexion
 from functools import reduce
+import authz
 
 
 app = Flask(__name__)
@@ -276,8 +277,20 @@ def search(raw_req):
 
         # if the request granularity was "record", check to see that the user is actually authorized to see any cohorts:
         response['beaconHandovers'] = []
-        for drs_obj in variants_by_file.keys():
-            handover, status_code = htsget_operations.get_variants(id_=drs_obj, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+        query_info = {} # program_id and submitter_sample_id
+        for drs_obj_id in variants_by_file.keys():
+            # look for samples and cohorts
+            drs_obj, status_code = drs_operations.get_object(drs_obj_id)
+            if drs_obj["cohort"] not in query_info:
+                query_info[drs_obj["cohort"]] = []
+            for c in drs_obj["contents"]:
+                if c["id"] not in ["variant", "read", "index"]:
+                    # this is a SampleContentObject
+                    if c["name"] not in query_info[drs_obj["cohort"]]:
+                        query_info[drs_obj["cohort"]].append(c["name"])
+
+            # fill in handover data
+            handover, status_code = htsget_operations.get_variants(id_=drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
             if handover is not None:
                 handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
                 response['beaconHandovers'].append(handover)
@@ -287,6 +300,9 @@ def search(raw_req):
             response.pop('beaconHandovers')
             if meta['returnedGranularity'] == 'boolean':
                 response['responseSummary'].pop('numTotalResults')
+        # if the requester is the query microservice, add query info to the results
+        if authz.request_is_from_query(connexion.request):
+            response["query_info"] = query_info
     else:
         response = {
             'error': {
