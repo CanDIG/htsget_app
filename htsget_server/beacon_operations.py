@@ -281,13 +281,14 @@ def search(raw_req):
         for drs_obj_id in variants_by_file.keys():
             # look for samples and cohorts
             drs_obj, status_code = drs_operations.get_object(drs_obj_id)
-            if drs_obj["cohort"] not in query_info:
-                query_info[drs_obj["cohort"]] = []
-            for c in drs_obj["contents"]:
-                if c["id"] not in ["variant", "read", "index"]:
-                    # this is a SampleContentObject
-                    if c["name"] not in query_info[drs_obj["cohort"]]:
-                        query_info[drs_obj["cohort"]].append(c["name"])
+            if "cohort" in drs_obj:
+                if drs_obj["cohort"] not in query_info:
+                    query_info[drs_obj["cohort"]] = []
+                for c in drs_obj["contents"]:
+                    if c["id"] not in ["variant", "read", "index"]:
+                        # this is a SampleContentObject
+                        if c["name"] not in query_info[drs_obj["cohort"]]:
+                            query_info[drs_obj["cohort"]].append(c["name"])
 
             # fill in handover data
             handover, status_code = htsget_operations.get_variants(id_=drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
