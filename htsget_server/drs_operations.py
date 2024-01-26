@@ -43,6 +43,9 @@ def get_object(object_id, expand=False):
         new_object = database.get_drs_object(escape(object_id), expand)
         auth_code = authz.is_authed(escape(object_id), request)
         if auth_code != 200:
+            # allow request if it's from query
+            if authz.request_is_from_query(request):
+                return new_object, 200
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     if new_object is None:
         return {"message": "No matching object found"}, 404
