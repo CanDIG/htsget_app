@@ -189,7 +189,7 @@ def _describe_drs_object(object_id):
         for contents in drs_obj["contents"]:
             # get each drs object (should be the genomic file and its index)
             # if sub_obj.name matches an index file regex, it's an index file
-            index_match = re.fullmatch('.+\.(..i)$', contents["name"])
+            index_match = re.fullmatch('.+\.(...*i)$', contents["name"])
 
             # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
             read_match = re.fullmatch('.+\.(.+?am)$', contents["name"])
