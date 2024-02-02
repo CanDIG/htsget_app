@@ -96,7 +96,7 @@ def test_post_update():
 
 
 def index_variants():
-    return [('sample.compressed', None, 'hg37'), ('NA18537', None, 'hg37'), ('multisample_1', 'HG00096', 'hg37'), ('multisample_2', 'HG00097', 'hg37'), ('test', 'BIOCAN_00097', 'hg38')]
+    return [('sample.compressed', None, 'hg38'), ('NA18537', None, 'hg38'), ('multisample_1', 'HG00096', 'hg38'), ('multisample_2', 'HG00097', 'hg38'), ('test', 'BIOCAN_00097', 'hg38')]
 
 
 @pytest.mark.parametrize('sample, genomic_id, genome', index_variants())
@@ -400,7 +400,7 @@ def test_gene_search():
 def test_beacon_get_search():
     # for an authed user, this short allele form request should work:
     # return two variations, one ref, one alt, for a single position.
-    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg37&allele=NC_000021.8%3Ag.5030847T%3EA"
+    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg38&allele=NC_000021.8%3Ag.5030847T%3EA"
     response = requests.get(url, headers=get_headers())
     print(response.text)
     assert len(response.json()['response']) == 2
@@ -424,7 +424,7 @@ def get_beacon_post_search():
                     "requestParameters": {
                         "start": [5030000],
                         "end": [5030847],
-                        "assemblyId": "hg37",
+                        "assemblyId": "hg38",
                         "referenceName": "21"
                     }
                 },
