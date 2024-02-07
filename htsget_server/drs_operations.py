@@ -70,7 +70,7 @@ def get_access_url(object_id, access_id, request=request):
         object_name = id_parse.group(4)
         url = None
         if id_parse.group(5) is None:
-            url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
+            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
         else:
             keys = parse_qs(id_parse.group(6))
             access = None
@@ -82,7 +82,7 @@ def get_access_url(object_id, access_id, request=request):
                 secret = keys['secret'].pop()
             if 'public' in keys:
                 public = True
-            url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
+            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
         if status_code == 200:
             return {"url": url}, status_code
         return {"error": url}, 500
