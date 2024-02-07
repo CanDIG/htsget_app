@@ -382,7 +382,10 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
             ref_name = None
             if reference_name is not None:
                 # there will have to be an update when we figure out how to index read files
-                ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': id_})
+                try:
+                    ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': id_})
+                except:
+                    ref_name = None
                 if ref_name is None:
                     ref_name = reference_name
             try:
@@ -449,7 +452,9 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
         raise ValueError("File type must be 'variant' or 'read'")
 
     drs_obj = drs_operations._describe_drs_object(id)
-    if drs_obj is not None:
+    if drs_obj is not None and "status_code" not in drs_obj:
+        if "format" not in drs_obj:
+            raise Exception(f"no format: {drs_obj}")
         if "error" in drs_obj:
             return drs_obj['error'], drs_obj['status_code']
         response = {
