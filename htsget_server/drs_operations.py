@@ -58,36 +58,11 @@ def list_objects(cohort_id=None):
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
 def get_access_url(object_id, access_id, request=request):
-    app.logger.warning(f"looking for url {access_id}")
     if object_id is not None:
         auth_code = authz.is_authed(escape(object_id), request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
-    id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
-    if id_parse is not None:
-        endpoint = id_parse.group(1)
-        bucket = id_parse.group(3)
-        object_name = id_parse.group(4)
-        url = None
-        if id_parse.group(5) is None:
-            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
-        else:
-            keys = parse_qs(id_parse.group(6))
-            access = None
-            secret = None
-            public = False
-            if 'access' in keys:
-                access = keys['access'].pop()
-            if 'secret' in keys:
-                secret = keys['secret'].pop()
-            if 'public' in keys:
-                public = True
-            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
-        if status_code == 200:
-            return {"url": url}, status_code
-        return {"error": url}, 500
-    else:
-        return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "get_access_url"}, 400
+    return _get_access_url(access_id)
 
 
 def post_object():
@@ -232,7 +207,7 @@ def _get_file_path(drs_file_obj_id):
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
-            (url, status_code) = get_access_url(None, method["access_id"])
+            (url, status_code) = _get_access_url(method["access_id"])
             result["status_code"] = status_code
             if status_code < 300:
                 result["path"] = url["url"]
@@ -252,3 +227,31 @@ def _get_file_path(drs_file_obj_id):
         result.pop('path')
     return result
 
+
+def _get_access_url(access_id):
+    app.logger.warning(f"looking for url {access_id}")
+    id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
+    if id_parse is not None:
+        endpoint = id_parse.group(1)
+        bucket = id_parse.group(3)
+        object_name = id_parse.group(4)
+        url = None
+        if id_parse.group(5) is None:
+            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
+        else:
+            keys = parse_qs(id_parse.group(6))
+            access = None
+            secret = None
+            public = False
+            if 'access' in keys:
+                access = keys['access'].pop()
+            if 'secret' in keys:
+                secret = keys['secret'].pop()
+            if 'public' in keys:
+                public = True
+            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
+        if status_code == 200:
+            return {"url": url}, status_code
+        return {"error": url}, 500
+    else:
+        return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "_get_access_url"}, 400
