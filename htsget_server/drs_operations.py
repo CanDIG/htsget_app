@@ -57,7 +57,7 @@ def list_objects(cohort_id=None):
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
-def get_access_url(object_id, access_id):
+def get_access_url(object_id, access_id, request=request):
     app.logger.warning(f"looking for url {access_id}")
     if object_id is not None:
         auth_code = authz.is_authed(escape(object_id), request)
