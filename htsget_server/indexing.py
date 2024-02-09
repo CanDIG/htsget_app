@@ -25,7 +25,8 @@ def index_variants(id_=None, genome='hg38'):
     samples = list(gen_obj['file'].header.samples)
     for sample in samples:
         if database.create_sample({'id': sample, 'variantfile_id': id_}) is None:
-            return {"message": f"Could not add sample {sample} to variantfile {id_}"}, 500
+            app.logger.warning(f"Could not add sample {sample} to variantfile {id_}")
+
     print(f"{datetime.datetime.today()} indexed varfile {len(samples)} samples")
 
     print(f"{datetime.datetime.today()} normalizing contigs")
@@ -56,12 +57,9 @@ def index_variants(id_=None, genome='hg38'):
     print(f"{datetime.datetime.today()} writing {len(res['bucket_counts'])} entries to db")
     database.create_pos_bucket(res)
 
+    database.mark_variantfile_as_indexed(id_)
     print(f"{datetime.datetime.today()} done")
-    if res is None:
-        return {"message": f"Could not add positions {record.contig}:{record.pos} to variantfile {id_}"}, 500
-    else:
-        database.mark_variantfile_as_indexed(id_)
-    return to_create, 200
+    return {"message": f"Indexing complete for variantfile {id_}"}, 200
 
 
 def create_position(obj):
