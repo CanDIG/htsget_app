@@ -297,6 +297,9 @@ class DrsObject(ObjectDBBase):
             result['access_methods'] = json.loads(self.access_methods.__repr__())
         if self.cohort is not None:
             result['cohort'] = self.cohort_id
+        if self.variantfile is not None and len(self.variantfile) > 0:
+            result['indexed'] = self.variantfile[0].indexed
+            result['reference_genome'] = self.variantfile[0].reference_genome
         return json.dumps(result)
 
 
@@ -457,8 +460,13 @@ def create_drs_object(obj):
             session.add(new_contents)
         session.add(new_object)
         session.commit()
-        result = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
-        return json.loads(str(result))
+
+    # if we have reference_genome info, it's a GenomicDrsObject and needs a variantfile:
+    if 'reference_genome' in obj:
+        create_variantfile({"id": obj["id"], "reference_genome": obj["reference_genome"]})
+
+    result = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
+    return json.loads(str(result))
 
 
 def delete_drs_object(obj_id):
