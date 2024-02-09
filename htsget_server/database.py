@@ -738,39 +738,6 @@ def delete_header(text):
 def get_bucket_for_position(pos):
     return int(pos/BUCKET_SIZE) * BUCKET_SIZE
 
-def create_position(obj):
-    # obj = { 'variantfile_id',
-    #         'position_id' or 'positions',
-    #         'normalized_contig_id' or 'normalized_contigs'
-    #         }
-    if 'position_id' in obj and 'normalized_contig_id' in obj:
-        obj['pos_bucket_ids'] = [get_bucket_for_position(obj['position_id'])]
-        obj.pop('position_id')
-        obj['normalized_contigs'] = [obj['normalized_contig_id']]
-        obj.pop('normalized_contig_id')
-    if len(obj['positions']) != len(obj['normalized_contigs']):
-        return None
-    old_normalized_contigs = obj.pop('normalized_contigs')
-    pos_bucket_ids = [get_bucket_for_position(obj['positions'].pop(0))]
-    normalized_contigs = [old_normalized_contigs.pop(0)]
-    bucket_counts = [0]
-    curr_bucket = None
-    curr_contig = None
-    for i in range(len(obj['positions'])):
-        curr_bucket = get_bucket_for_position(obj['positions'][i])
-        curr_contig = old_normalized_contigs[i]
-        bucket_counts[-1] += 1
-        if curr_contig != normalized_contigs[-1] or curr_bucket != pos_bucket_ids[-1]:
-            pos_bucket_ids.append(curr_bucket)
-            bucket_counts.append(0)
-            normalized_contigs.append(curr_contig)
-    # last position needs to be counted as well
-    bucket_counts[-1] += 1
-    obj['pos_bucket_ids'] = pos_bucket_ids
-    obj['bucket_counts'] = bucket_counts
-    obj['normalized_contigs'] = normalized_contigs
-    obj.pop('positions')
-    return create_pos_bucket(obj)
 
 def create_pos_bucket(obj):
     # obj = { 'variantfile_id',
@@ -813,7 +780,6 @@ def create_pos_bucket(obj):
                 association.bucket_count = bucket_count
                 session.add(association)
                 session.commit()
-        return json.loads(str(new_pos_bucket))
         return None
 
 

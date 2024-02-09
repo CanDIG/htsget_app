@@ -122,7 +122,7 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
         if varfile is not None:
             if varfile['indexed'] == 1 and not force:
                 return varfile, 200
-        return indexing.index_variants(id_=id_, force=force, genome=genome, genomic_id=genomic_id)
+        return indexing.index_variants(id_=id_, genome=genome)
     else:
         return None, 404
 
