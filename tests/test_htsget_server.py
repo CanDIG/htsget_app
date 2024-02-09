@@ -178,6 +178,7 @@ def test_install_public_object():
               }
             ],
             "description": "wgs",
+            "reference_genome": "hg38",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
@@ -525,6 +526,7 @@ def drs_objects():
             "name": drs_obj,
             "contents": [],
             "version": "v1",
+            "reference_genome": "hg38",
             "cohort": "test-htsget"
         }
         result.append(genomic_drs_obj)
