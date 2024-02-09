@@ -96,13 +96,13 @@ def test_post_update():
 
 
 def index_variants():
-    return [('sample.compressed', None, 'hg38'), ('NA18537', None, 'hg38'), ('multisample_1', 'HG00096', 'hg38'), ('multisample_2', 'HG00097', 'hg38'), ('test', 'BIOCAN_00097', 'hg38')]
+    return [('sample.compressed', None), ('NA18537', None), ('multisample_1', 'HG00096'), ('multisample_2', 'HG00097'), ('test', 'BIOCAN_00097')]
 
 
-@pytest.mark.parametrize('sample, genomic_id, genome', index_variants())
-def test_index_variantfile(sample, genomic_id, genome):
+@pytest.mark.parametrize('sample, genomic_id', index_variants())
+def test_index_variantfile(sample, genomic_id):
     url = f"{HOST}/htsget/v1/variants/{sample}/index"
-    params = {"genome": genome}
+    params = {}
     if genomic_id is not None:
         params["genomic_id"] = genomic_id
     #params['force'] = True
