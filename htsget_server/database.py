@@ -724,7 +724,9 @@ def add_header_for_variantfile(obj):
         for headertext in headertexts:
             if headertext == '' or headertext.startswith("#CHROM"):
                 continue
-            new_header = session.query(Header).filter_by(text=headertext).one_or_none()
+            q = select(Header).filter_by(text=headertext).limit(1)
+            new_header = session.scalars(q).first()
+
             if new_header is None:
                 new_header = Header()
                 new_header.text = headertext
