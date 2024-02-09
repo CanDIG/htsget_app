@@ -6,9 +6,6 @@ import requests
 import datetime
 
 
-    varfile = database.get_variantfile(id_)
-    if varfile is None:
-        varfile = database.create_variantfile({"id": id_, "reference_genome": genome})
 def index_variants(id_=None):
     print(f"{datetime.datetime.today()} starting indexing")
     gen_obj = drs_operations._get_genomic_obj(id_)
@@ -104,4 +101,5 @@ if __name__ == "__main__":
     parser.add_argument("--genome", help="reference genome", default="hg38", required=False)
 
     args = parser.parse_args()
+    varfile = database.create_variantfile({"id": args.id, "reference_genome": args.genome})
     index_variants(id_=args.id)
