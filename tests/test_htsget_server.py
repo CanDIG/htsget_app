@@ -406,7 +406,7 @@ def test_gene_search():
 def test_beacon_get_search():
     # for an authed user, this short allele form request should work:
     # return two variations, one ref, one alt, for a single position.
-    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg38&allele=NC_000021.8%3Ag.5030847T%3EA"
+    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg38&allele=NC_000021.9%3Ag.5030847T%3EA"
     response = requests.get(url, headers=get_headers())
     print(response.text)
     assert len(response.json()['response']) == 2
