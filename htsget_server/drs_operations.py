@@ -34,7 +34,7 @@ def get_service_info():
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def get_object(object_id, expand=False):
-    app.logger.warning(f"looking for object {object_id}")
+    app.logger.debug(f"looking for object {object_id}")
     access_url_parse = re.match(r"(.+?)/access_url/(.+)", escape(object_id))
     if access_url_parse is not None:
         return get_access_url(access_url_parse.group(1), access_url_parse.group(2))
@@ -229,7 +229,7 @@ def _get_file_path(drs_file_obj_id):
 
 
 def _get_access_url(access_id):
-    app.logger.warning(f"looking for url {access_id}")
+    app.logger.debug(f"looking for url {access_id}")
     id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
     if id_parse is not None:
         endpoint = id_parse.group(1)
