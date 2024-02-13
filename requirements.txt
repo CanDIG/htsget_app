@@ -10,3 +10,4 @@ pytest==7.2.0
 uwsgi==2.0.22
 connexion[swagger-ui]
 psycopg2-binary
+watchdog~=4.0.0

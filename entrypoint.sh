@@ -30,5 +30,7 @@ fi
 # use the following for development
 #python3 htsget_server/server.py
 
+python htsget_server/indexing.py &
+
 # use the following instead for production deployment
 uwsgi uwsgi.ini
