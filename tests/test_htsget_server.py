@@ -6,6 +6,7 @@ import pytest
 import requests
 from pathlib import Path
 from authx.auth import get_minio_client, get_access_token, store_aws_credential
+from time import sleep
 
 # assumes that we are running pytest from the repo directory
 REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
@@ -105,12 +106,16 @@ def test_index_variantfile(sample, genomic_id):
     params = {}
     if genomic_id is not None:
         params["genomic_id"] = genomic_id
-    #params['force'] = True
+    params['force'] = True
     response = requests.get(url, params=params, headers=get_headers())
+    assert response.status_code == 200
+
+    # shouldn't take more than a second to index the tiny file, but just in case...
+    sleep(2)
+    get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
+    response = requests.get(get_url, headers=get_headers())
     print(response.text)
-    assert response.json()["id"] == sample
-    if genomic_id is not None:
-        assert response.json()["genomic_id"] == genomic_id
+    assert response.json()["indexed"] == 1
 
 
 def test_install_public_object():
