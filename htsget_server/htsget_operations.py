@@ -5,11 +5,12 @@ from urllib.parse import urlencode
 import drs_operations
 import database
 import authz
-from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT
+from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH
 from markupsafe import escape
 import connexion
 import variants
 import indexing
+from pathlib import Path
 
 
 app = Flask(__name__)
@@ -118,11 +119,15 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
         params = {"id": id_, "reference_genome": genome}
         if genomic_id is not None:
             params["genomic_id"] = genomic_id
-        varfile = database.create_variantfile(params)
-        if varfile is not None:
-            if varfile['indexed'] == 1 and not force:
-                return varfile, 200
-        return indexing.index_variants(id_=id_)
+        try:
+            varfile = database.create_variantfile(params)
+            if varfile is not None:
+                if varfile['indexed'] == 1 and not force:
+                    return varfile, 200
+            Path(f"{INDEXING_PATH}/{id_}").touch()
+            return None, 200
+        except Exception as e:
+            return {"message": str(e)}, 500
     else:
         return None, 404
 

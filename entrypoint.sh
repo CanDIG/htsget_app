@@ -23,7 +23,7 @@ if [[ -f "initial_setup" ]]; then
     sed -i s@\<VAULT_URL\>@$VAULT_URL@ config.ini
 
     bash create_db.sh
-
+    mkdir $INDEXING_PATH
     rm initial_setup
 fi
 
