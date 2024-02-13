@@ -7,7 +7,7 @@ services:
   - docker
 
 env:
-  - MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin MINIO_URL=http://localhost:9000 MINIO_ACCESS_KEY=minioadmin MINIO_SECRET_KEY=minioadmin HTSGET_TEST_KEY=thisisatest USE_MINIO_SANDBOX=True DB_PATH=localhost SERVER_LOCAL_DATA=/home/travis/build/CanDIG/htsget_app/data PGPASSWORD=OG0pjmnQDWUTvLotYrxPrg PGUSER=admin
+  - MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin MINIO_URL=http://localhost:9000 MINIO_ACCESS_KEY=minioadmin MINIO_SECRET_KEY=minioadmin HTSGET_TEST_KEY=thisisatest USE_MINIO_SANDBOX=True DB_PATH=localhost SERVER_LOCAL_DATA=/home/travis/build/CanDIG/htsget_app/data PGPASSWORD=OG0pjmnQDWUTvLotYrxPrg PGUSER=admin INDEXING_PATH=/home/travis/build/CanDIG/tmp
 
 before_install:
   - docker pull minio/minio
@@ -21,8 +21,10 @@ cache: pip
 install:
   - pip install -r requirements.txt
   - bash create_db.sh
+  - mkdir -p $INDEXING_PATH
 
 script:
   - python htsget_server/server.py &
+  - python htsget_server/indexing.py &
   - sleep 5
   - pytest tests/test_htsget_server.py
