@@ -457,6 +457,9 @@ components:
           enum:
             - hg37
             - hg38
+        indexed:
+          type: integer
+          description: 1 if the object has been indexed for search, 0 if not
         aliases:
           type: array
           items:
