@@ -38,3 +38,5 @@ VAULT_S3_TOKEN = os.getenv("VAULT_S3_TOKEN", "none")
 DEBUG_MODE = False
 if os.getenv("DEBUG_MODE", "1") == "1":
     DEBUG_MODE = True
+
+INDEXING_PATH = os.getenv("INDEXING_PATH", "~/tmp")

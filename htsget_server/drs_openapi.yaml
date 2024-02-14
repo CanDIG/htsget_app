@@ -369,6 +369,7 @@ components:
         - contents
         - description
         - cohort
+        - reference_genome
 #        - self_uri
 #        - size
 #        - created_time
@@ -448,8 +449,17 @@ components:
             - wgs
             - wts
         cohort:
-            type: string
-            description: The cohort this object was ingested as part of
+          type: string
+          description: The cohort this object was ingested as part of
+        reference_genome:
+          type: string
+          description: the reference genome used to compile this genomic object
+          enum:
+            - hg37
+            - hg38
+        indexed:
+          type: integer
+          description: 1 if the object has been indexed for search, 0 if not
         aliases:
           type: array
           items:

@@ -5,10 +5,12 @@ from urllib.parse import urlencode
 import drs_operations
 import database
 import authz
-from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT
+from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH
 from markupsafe import escape
 import connexion
 import variants
+import indexing
+from pathlib import Path
 
 
 app = Flask(__name__)
@@ -117,47 +119,15 @@ def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
         params = {"id": id_, "reference_genome": genome}
         if genomic_id is not None:
             params["genomic_id"] = genomic_id
-        varfile = database.create_variantfile(params)
-        if varfile is not None:
-            if varfile['indexed'] == 1 and not force:
-                return varfile, 200
-        gen_obj = drs_operations._get_genomic_obj(id_)
-        if gen_obj is None:
-            return {"message": f"No variant with id {id_} exists"}, 404
-        if "message" in gen_obj:
-            return {"message": gen_obj['message']}, 500
-        headers = str(gen_obj['file'].header).split('\n')
-        database.add_header_for_variantfile({'texts': headers, 'variantfile_id': id_})
-        samples = list(gen_obj['file'].header.samples)
-        for sample in samples:
-            if database.create_sample({'id': sample, 'variantfile_id': id_}) is None:
-                return {"message": f"Could not add sample {sample} to variantfile {id_}"}, 500
-        contigs = {}
-        for contig in list(gen_obj['file'].header.contigs):
-            contigs[contig] = database.normalize_contig(contig)
-
-        # find first normalized contig and set the chr_prefix:
-        for raw_contig in contigs.keys():
-            if contigs[raw_contig] is not None:
-                prefix = database.get_contig_prefix(raw_contig)
-                varfile = database.set_variantfile_prefix({"variantfile_id": id_, "chr_prefix": prefix})
-                break
-
-        positions = []
-        normalized_contigs = []
-        for record in gen_obj['file'].fetch():
-            normalized_contig_id = contigs[record.contig]
-            if normalized_contig_id is not None:
-                positions.append(record.pos)
-                normalized_contigs.append(normalized_contig_id)
-            else:
-                app.logger.warning(f"referenceName {record.contig} in {id_} does not correspond to a known chromosome.")
-        res = database.create_position({'variantfile_id': id_, 'positions': positions, 'normalized_contigs': normalized_contigs})
-        if res is None:
-            return {"message": f"Could not add positions {record.contig}:{record.pos} to variantfile {id_}"}, 500
-        else:
-            database.mark_variantfile_as_indexed(id_)
-        return varfile, 200
+        try:
+            varfile = database.create_variantfile(params)
+            if varfile is not None:
+                if varfile['indexed'] == 1 and not force:
+                    return varfile, 200
+            Path(f"{INDEXING_PATH}/{id_}").touch()
+            return None, 200
+        except Exception as e:
+            return {"message": str(e)}, 500
     else:
         return None, 404
 
@@ -382,7 +352,10 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
             ref_name = None
             if reference_name is not None:
                 # there will have to be an update when we figure out how to index read files
-                ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': id_})
+                try:
+                    ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': id_})
+                except:
+                    ref_name = None
                 if ref_name is None:
                     ref_name = reference_name
             try:
@@ -449,7 +422,9 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
         raise ValueError("File type must be 'variant' or 'read'")
 
     drs_obj = drs_operations._describe_drs_object(id)
-    if drs_obj is not None:
+    if drs_obj is not None and "status_code" not in drs_obj:
+        if "format" not in drs_obj:
+            raise Exception(f"no format: {drs_obj}")
         if "error" in drs_obj:
             return drs_obj['error'], drs_obj['status_code']
         response = {
