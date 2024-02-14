@@ -286,6 +286,10 @@ def test_add_sample_drs(input, program_id):
         assert response.status_code == 200
     assert len(genomic_drs_obj["contents"]) == contents_count + 1
 
+    verify_url = f"{HOST}/htsget/v1/variants/{input['genomic_id']}/verify"
+    response = requests.get(verify_url)
+    assert response.status_code == 200
+
 
 @pytest.mark.parametrize('input, program_id', get_ingest_file())
 def test_sample_stats(input, program_id):
