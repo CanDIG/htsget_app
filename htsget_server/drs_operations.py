@@ -222,7 +222,10 @@ def _get_file_path(drs_file_obj_id):
                         result['message'] = f"No file exists at {result['path']} on the server."
                         result['status_code'] = 404
     if result['path'] is None:
-        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {url}"
+        message = url
+        if "error" in url:
+            message = url["error"]
+        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {message}"
         result['status_code'] = 404
         result.pop('path')
     return result

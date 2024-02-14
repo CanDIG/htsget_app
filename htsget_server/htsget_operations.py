@@ -350,7 +350,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
     gen_obj = drs_operations._get_genomic_obj(id_)
     if gen_obj is not None:
         if "message" in gen_obj:
-            return {"message": gen_obj['message']}, gen_obj['status_code']
+            return gen_obj['message'], gen_obj['status_code']
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
                                  mode='wb', delete=False)
