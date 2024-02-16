@@ -52,6 +52,15 @@ def get_object(object_id, expand=False):
     return new_object, 200
 
 
+def get_object_for_drs_uri(drs_uri):
+    drs_uri_parse = re.match(r"drs:\/\/(.+)\/(.+)")
+    if drs_uri_parse is None:
+        return {"message": f"Incorrect format for DRS URI: {drs_uri}"}
+    if drs_uri_parse.group(1) == os.getenv("HTSGET_URL"):
+        return get_object(drs_uri_parse.group(2))
+    return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}
+
+
 def list_objects(cohort_id=None):
     return database.list_drs_objects(cohort_id=cohort_id), 200
 
@@ -207,10 +216,15 @@ def _get_file_path(drs_file_obj_id):
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
-            (url, status_code) = _get_access_url(method["access_id"])
+            (url_obj, status_code) = _get_access_url(method["access_id"])
             result["status_code"] = status_code
             if status_code < 300:
-                result["path"] = url["url"]
+                result["path"] = url_obj["url"]
+                result["checksum"] = {
+                    "type": "etag",
+                    "checksum": url_obj["metadata"].etag
+                }
+                result["size"] = url_obj["metadata"].size
                 break
         else:
             # the access_url has all the info we need
@@ -221,8 +235,17 @@ def _get_file_path(drs_file_obj_id):
                     if not os.path.exists(result["path"]):
                         result['message'] = f"No file exists at {result['path']} on the server."
                         result['status_code'] = 404
+                    else:
+                        if len(drs_file_obj["checksums"]) > 0:
+                            result["checksum"] = drs_file_obj["checksums"][0]
+                        else:
+                            result["checksum"] = None
+                        result["size"] = os.path.getsize(result["path"])
     if result['path'] is None:
-        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {url}"
+        message = url
+        if "error" in url:
+            message = url["error"]
+        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {message}"
         result['status_code'] = 404
         result.pop('path')
     return result
@@ -251,7 +274,7 @@ def _get_access_url(access_id):
                 public = True
             url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
         if status_code == 200:
-            return {"url": url}, status_code
-        return {"error": url}, 500
+            return url, status_code
+        return url, 500
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "_get_access_url"}, 400

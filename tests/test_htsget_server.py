@@ -116,6 +116,8 @@ def test_index_variantfile(sample, genomic_id):
     response = requests.get(get_url, headers=get_headers())
     print(response.text)
     assert response.json()["indexed"] == 1
+    assert len(response.json()["checksums"]) > 0
+    assert response.json()["size"] > 0
 
 
 def test_install_public_object():
@@ -285,6 +287,10 @@ def test_add_sample_drs(input, program_id):
     if response.status_code == 200:
         assert response.status_code == 200
     assert len(genomic_drs_obj["contents"]) == contents_count + 1
+
+    verify_url = f"{HOST}/htsget/v1/variants/{input['genomic_id']}/verify"
+    response = requests.get(verify_url)
+    assert response.status_code == 200
 
 
 @pytest.mark.parametrize('input, program_id', get_ingest_file())

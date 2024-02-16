@@ -111,6 +111,15 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
     return None, auth_code
 
 
+@app.route('/variants/<path:id_>/verify')
+def verify_genomic_drs_object(id_):
+    try:
+        _verify_genomic_drs_object(id_)
+    except Exception as e:
+        return {"result": False, "message": str(e)}, 200
+    return {"result": True}, 200
+
+
 @app.route('/variants/<path:id_>/index')
 def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
     if not authz.is_site_admin(request):
@@ -341,7 +350,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
     gen_obj = drs_operations._get_genomic_obj(id_)
     if gen_obj is not None:
         if "message" in gen_obj:
-            return {"message": gen_obj['message']}, gen_obj['status_code']
+            return gen_obj['message'], gen_obj['status_code']
         file_in = gen_obj["file"]
         ntf = tempfile.NamedTemporaryFile(prefix='htsget', suffix=format_,
                                  mode='wb', delete=False)
@@ -443,3 +452,27 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     return {"message": f"No {file_type} found for id: {id}, try using the other endpoint"}, 404
 
 
+def _verify_genomic_drs_object(id_):
+    # get the listed samples that the GenomicDrsObject says should be in the file
+    gen_drs_obj, status_code = drs_operations.get_object(id_)
+    if status_code != 200:
+        raise Exception(f"Could not find object {id_}")
+    drs_samples = set()
+    if "contents" in gen_drs_obj and "reference_genome" in gen_drs_obj:
+        for c in gen_drs_obj["contents"]:
+            if c["id"] not in ["variant", "read", "index"]:
+                drs_samples.add(c["id"])
+    else:
+        raise Exception(f"Object {id_} is not a GenomicDrsObject")
+
+    # get the samples that are in the linked files
+    gen_obj = drs_operations._get_genomic_obj(id_)
+    if gen_obj is None:
+        raise Exception(f"No variant with id {id_} exists")
+    if "message" in gen_obj:
+        raise Exception(f"{gen_obj['message']}")
+    file_samples = set(gen_obj['file'].header.samples)
+    test = drs_samples.difference(file_samples)
+    if len(test) > 0:
+        raise Exception(f"GenomicDrsObject {id_} lists samples {test} that are not in the linked genomic file")
+    return None

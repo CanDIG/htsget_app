@@ -8,6 +8,7 @@ import os
 import sys
 from watchdog.observers import Observer
 import watchdog.events
+import hashlib
 
 
 def index_variants(id_=None):
@@ -58,6 +59,11 @@ def index_variants(id_=None):
 
     database.mark_variantfile_as_indexed(id_)
     logging.info(f"{id_} done")
+
+    logging.info(f"adding stats to {id_}")
+    calculate_stats(id_)
+    logging.info(f"{id_} done")
+
     return {"message": f"Indexing complete for variantfile {id_}"}, 200
 
 
@@ -96,14 +102,60 @@ def create_position(obj):
     return obj
 
 
+## Given a DrsObject in json, compute its size and checksums
+def calculate_stats(obj_id):
+    drs_json = database.get_drs_object(obj_id)
+    # a DrsObject either has access methods or contents
+    if "access_methods" in drs_json:
+        # if there are access methods, it's a file object
+        file_obj = drs_operations._get_file_path(drs_json["id"])
+        if file_obj["checksum"] is None:
+            logging.debug(f"calculating checksum for {drs_json['id']}")
+            checksum = []
+            with open(file_obj["path"], "rb") as f:
+                bytes = f.read()  # read file as bytes
+                checksum = [{
+                    "type": "sha-256",
+                    "checksum": hashlib.sha256(bytes).hexdigest()
+                }]
+            logging.debug(f"done calculating checksum for {drs_json['id']}")
+            drs_json["checksums"] = checksum
+        else:
+            drs_json["checksums"] = [file_obj["checksum"]]
+        drs_json["size"] = file_obj["size"]
+    elif "contents" in drs_json:
+        drs_json["size"] = 0
+        checksum = {
+            "type": "sha-256",
+            "checksum": ""
+        }
+        # if it's a sample drs object, its checksum will be ""
+        if drs_json["description"] != "sample":
+            # for each contents, find drs_obj for its drs_uri
+            raw_checksums = []
+            for c in drs_json["contents"]:
+                c_obj = calculate_stats(c["name"])
+                if len(c_obj["checksums"]) > 0:
+                    raw_checksums.append(c_obj["checksums"][0]["checksum"])
+                drs_json["size"] += c_obj["size"]
+            # sort raw checksums, concat, then take sha256:
+            raw_checksums.sort()
+            checksum["checksum"] = hashlib.sha256("".join(raw_checksums).encode()).hexdigest()
+        drs_json["checksums"] = [checksum]
+    return database.create_drs_object(drs_json)
+
+
 ## When a file is created, index the variant with the ID of that filename.
 ## These are created at htsget_operations.index_variants.
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
     def on_created(self, event):
         name = event.src_path.replace(INDEXING_PATH, "").replace("/", "")
-        response, status_code = index_variants(id_=name)
-        logging.info(response)
-        os.remove(event.src_path)
+        try:
+            response, status_code = index_variants(id_=name)
+            logging.info(response)
+            os.remove(event.src_path)
+        except Exception as e:
+            logging.warning(str(e))
 
 
 if __name__ == "__main__":
@@ -126,7 +178,12 @@ if __name__ == "__main__":
     to_index = os.listdir(INDEXING_PATH)
     logging.info(f"Finishing backlog: indexing {to_index}")
     while len(to_index) > 0:
-        index_variants(id_=to_index.pop())
+        try:
+            x=to_index.pop()
+            index_variants(id_=x)
+            os.remove(f"{INDEXING_PATH}/{x}")
+        except Exception as e:
+            logging.warning(str(e))
         to_index = os.listdir(INDEXING_PATH)
 
     # now that the backlog is complete, listen for new files created:
