@@ -182,6 +182,8 @@ if __name__ == "__main__":
             x=to_index.pop()
             index_variants(id_=x)
             os.remove(f"{INDEXING_PATH}/{x}")
+        except Exception as e:
+            logging.warning(str(e))
         to_index = os.listdir(INDEXING_PATH)
 
     # now that the backlog is complete, listen for new files created:
