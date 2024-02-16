@@ -150,9 +150,12 @@ def calculate_stats(obj_id):
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
     def on_created(self, event):
         name = event.src_path.replace(INDEXING_PATH, "").replace("/", "")
-        response, status_code = index_variants(id_=name)
-        logging.info(response)
-        os.remove(event.src_path)
+        try:
+            response, status_code = index_variants(id_=name)
+            logging.info(response)
+            os.remove(event.src_path)
+        except Exception as e:
+            logging.warning(str(e))
 
 
 if __name__ == "__main__":
@@ -175,7 +178,10 @@ if __name__ == "__main__":
     to_index = os.listdir(INDEXING_PATH)
     logging.info(f"Finishing backlog: indexing {to_index}")
     while len(to_index) > 0:
-        index_variants(id_=to_index.pop())
+        try:
+            x=to_index.pop()
+            index_variants(id_=x)
+            os.remove(f"{INDEXING_PATH}/{x}")
         to_index = os.listdir(INDEXING_PATH)
 
     # now that the backlog is complete, listen for new files created:
