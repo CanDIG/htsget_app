@@ -52,6 +52,15 @@ def get_object(object_id, expand=False):
     return new_object, 200
 
 
+def get_object_for_drs_uri(drs_uri):
+    drs_uri_parse = re.match(r"drs:\/\/(.+)\/(.+)")
+    if drs_uri_parse is None:
+        return {"message": f"Incorrect format for DRS URI: {drs_uri}"}
+    if drs_uri_parse.group(1) == os.getenv("HTSGET_URL"):
+        return get_object(drs_uri_parse.group(2))
+    return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}
+
+
 def list_objects(cohort_id=None):
     return database.list_drs_objects(cohort_id=cohort_id), 200
 
