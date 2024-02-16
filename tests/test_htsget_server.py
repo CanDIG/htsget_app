@@ -116,6 +116,8 @@ def test_index_variantfile(sample, genomic_id):
     response = requests.get(get_url, headers=get_headers())
     print(response.text)
     assert response.json()["indexed"] == 1
+    assert len(response.json()["checksums"]) > 0
+    assert response.json()["size"] > 0
 
 
 def test_install_public_object():
