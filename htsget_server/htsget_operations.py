@@ -455,6 +455,8 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 def _verify_genomic_drs_object(id_):
     # get the listed samples that the GenomicDrsObject says should be in the file
     gen_drs_obj, status_code = drs_operations.get_object(id_)
+    if status_code != 200:
+        raise Exception(f"Could not find object {id_}")
     drs_samples = set()
     if "contents" in gen_drs_obj and "reference_genome" in gen_drs_obj:
         for c in gen_drs_obj["contents"]:
