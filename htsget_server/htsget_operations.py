@@ -134,13 +134,20 @@ def index_variants(id_=None, force=False, genome='hg38'):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
+        # check that there is a database drs object for this:
+        drs_obj = database.get_drs_object(id_)
+        if drs_obj is None:
+            return {"message": f"No DRS object exists with ID {id_}"}, 404
+        cohort = ""
+        if "cohort" in drs_obj:
+            cohort = drs_obj['cohort']
         params = {"id": id_, "reference_genome": genome}
         try:
             varfile = database.create_variantfile(params)
             if varfile is not None:
                 if varfile['indexed'] == 1 and not force:
                     return varfile, 200
-            Path(f"{INDEXING_PATH}/{id_}").touch()
+            Path(f"{INDEXING_PATH}/{cohort}_{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
