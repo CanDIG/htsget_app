@@ -121,13 +121,11 @@ def verify_genomic_drs_object(id_):
 
 
 @app.route('/variants/<path:id_>/index')
-def index_variants(id_=None, force=False, genome='hg38', genomic_id=None):
+def index_variants(id_=None, force=False, genome='hg38'):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
         params = {"id": id_, "reference_genome": genome}
-        if genomic_id is not None:
-            params["genomic_id"] = genomic_id
         try:
             varfile = database.create_variantfile(params)
             if varfile is not None:
