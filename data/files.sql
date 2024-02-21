@@ -251,4 +251,7 @@ INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos
 INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_000024.9', 'Y', 0, 0, '') ON CONFLICT DO NOTHING;
 INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES ('hg37', 'NC_012920.1', 'MT', 0, 0, '') ON CONFLICT DO NOTHING;
 
+-- reverting https://github.com/CanDIG/htsget_app/pull/239
+ALTER TABLE variantfile DROP COLUMN genomic_id;
+
 COMMIT;

@@ -92,7 +92,6 @@ class Contig(ObjectDBBase):
 class VariantFile(ObjectDBBase):
     __tablename__ = 'variantfile'
     id = Column(String, primary_key=True)
-    genomic_id = Column(String)
     indexed = Column(Integer)
     chr_prefix = Column(String)
     reference_genome = Column(String)
@@ -133,7 +132,6 @@ class VariantFile(ObjectDBBase):
         result = {
             'id': self.id,
             'drsobject': self.drs_object_id,
-            'genomic_id': self.genomic_id,
             'indexed': self.indexed,
             'chr_prefix': self.chr_prefix,
             'reference_genome': self.reference_genome,
@@ -579,7 +577,7 @@ def get_variantfile(variantfile_id):
 
 
 def create_variantfile(obj):
-    # obj = {"id", "reference_genome", "genomic_id"}
+    # obj = {"id", "reference_genome"}
     with Session() as session:
         new_variantfile = session.query(VariantFile).filter_by(id=obj['id']).one_or_none()
         if new_variantfile is None:
@@ -587,10 +585,6 @@ def create_variantfile(obj):
             new_variantfile.indexed = 0
             new_variantfile.chr_prefix = ''
         new_variantfile.id = obj['id']
-        if "genomic_id" in obj:
-            new_variantfile.genomic_id = obj['genomic_id']
-        else:
-            new_variantfile.genomic_id = obj['id']
         new_variantfile.reference_genome = obj['reference_genome']
         new_drs = session.query(DrsObject).filter_by(id=obj['id']).one_or_none()
         if new_drs is not None:
