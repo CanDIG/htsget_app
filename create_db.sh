@@ -37,3 +37,8 @@ if [[ $numgenes -lt 5 ]]; then
     # rm genes.sql
     echo "...done"
 fi
+
+# run any migrations:
+echo "running migrations..."
+psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_288.sql >>setup_out.txt
+echo "...done"
