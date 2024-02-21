@@ -157,15 +157,19 @@ def calculate_stats(obj_id):
 
 ## When a file is created, index the variant with the ID of that filename.
 ## These are created at htsget_operations.index_variants.
+def index_touch_file(file_path):
+    try:
+        name = file_path.replace(INDEXING_PATH, "").replace("/", "")
+        response, status_code = index_variants(file_name=name)
+        logging.info(response)
+        os.remove(file_path)
+    except Exception as e:
+        logging.warning(str(e))
+
+
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
     def on_created(self, event):
-        name = event.src_path.replace(INDEXING_PATH, "").replace("/", "")
-        try:
-            response, status_code = index_variants(file_name=name)
-            logging.info(response)
-            os.remove(event.src_path)
-        except Exception as e:
-            logging.warning(str(e))
+        index_touch_file(event.src_path)
 
 
 if __name__ == "__main__":
@@ -196,9 +200,8 @@ if __name__ == "__main__":
     logging.info(f"Finishing backlog: indexing {to_index}")
     while len(to_index) > 0:
         try:
-            x=to_index.pop()
-            index_variants(file_name=x)
-            os.remove(f"{INDEXING_PATH}/{x}")
+            file_path = f"{INDEXING_PATH}/{to_index.pop()}"
+            index_touch_file(file_path)
         except Exception as e:
             logging.warning(str(e))
         to_index = os.listdir(INDEXING_PATH)
