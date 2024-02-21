@@ -10,6 +10,7 @@ from watchdog.observers import Observer
 import watchdog.events
 import hashlib
 import re
+import datetime
 
 
 def index_variants(file_name=None):
@@ -161,9 +162,14 @@ def index_touch_file(file_path):
     try:
         name = file_path.replace(INDEXING_PATH, "").replace("/", "")
         response, status_code = index_variants(file_name=name)
+        if status_code != 200:
+            with open(file_path, "a") as f:
+                f.write(f"{datetime.datetime.today()} {response['message']}")
         logging.info(response)
         os.remove(file_path)
     except Exception as e:
+        with open(file_path, "a") as f:
+            f.write(f"{datetime.datetime.today()} {str(e)}")
         logging.warning(str(e))
 
 
