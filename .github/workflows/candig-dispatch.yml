@@ -1,39 +1,41 @@
+---
 name: Submodule PR
 on:
-    push:
-        branches: [develop]
+  push:
+    branches:
+      - develop
 jobs:
   CanDIG-dispatch:
     runs-on: ubuntu-latest
     env:
-      PARENT_REPOSITORY: 'CanDIG/CanDIGv2'
-      CHECKOUT_BRANCH: 'develop'
-      PR_AGAINST_BRANCH: 'develop'
-      OWNER: 'CanDIG'
+      PARENT_REPOSITORY: CanDIG/CanDIGv2
+      CHECKOUT_BRANCH: develop
+      PR_AGAINST_BRANCH: develop
+      OWNER: CanDIG
     steps:
-            - name: Check out repository code
-              uses: actions/checkout@v4
-            - name: get PR data
-              uses: actions/github-script@v7
-              id: get_pr_data
-              with:
-                script: |
-                  return (
-                    await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                      commit_sha: context.sha,
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                    })
-                  ).data[0];
-            - name: Create PR in CanDIGv2
-              id: make_pr
-              uses: CanDIG/github-action-pr-expanded@v4
-              with:
-                  github_token: ${{ secrets.SUBMODULE_PR }}
-                  parent_repository: ${{ env.PARENT_REPOSITORY }}
-                  checkout_branch: ${{ env.CHECKOUT_BRANCH}}
-                  pr_against_branch: ${{ env.PR_AGAINST_BRANCH }}
-                  pr_title: '${{ github.repository }} merging: ${{ fromJson(steps.get_pr_data.outputs.result).title }}'
-                  pr_description: "PR triggered by update to develop branch on ${{ github.repository }}. Commit hash: `${{ github.sha }}`. PR link: [#${{ fromJson(steps.get_pr_data.outputs.result).number }}](https://github.com/${{ github.repository }}/pull/${{ fromJson(steps.get_pr_data.outputs.result).number }})"
-                  owner: ${{ env.OWNER }}
-                  submodule_path: lib/htsget/htsget_app
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: get PR data
+        uses: actions/github-script@v7
+        id: get_pr_data
+        with:
+          script: |
+            return (
+              await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                commit_sha: context.sha,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              })
+            ).data[0];
+      - name: Create PR in CanDIGv2
+        id: make_pr
+        uses: CanDIG/github-action-pr-expanded@v4
+        with:
+          github_token: ${{ secrets.SUBMODULE_PR }}
+          parent_repository: ${{ env.PARENT_REPOSITORY }}
+          checkout_branch: ${{ env.CHECKOUT_BRANCH}}
+          pr_against_branch: ${{ env.PR_AGAINST_BRANCH }}
+          pr_title: "${{ github.repository }} merging: ${{ fromJson(steps.get_pr_data.outputs.result).title }}"
+          pr_description: "PR triggered by update to develop branch on ${{ github.repository }}. Commit hash: `${{ github.sha }}`. PR link:[#${{ fromJson(steps.get_pr_data.outputs.result).number }}](https://github.com/${{ github.repository }}/pull/${{ fromJson(steps.get_pr_data.outputs.result).number }})"
+          owner: ${{ env.OWNER }}
+          submodule_path: lib/htsget/htsget_app
