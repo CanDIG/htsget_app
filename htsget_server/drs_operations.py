@@ -242,9 +242,9 @@ def _get_file_path(drs_file_obj_id):
                             result["checksum"] = None
                         result["size"] = os.path.getsize(result["path"])
     if result['path'] is None:
-        message = url
-        if "error" in url:
-            message = url["error"]
+        message = url_obj
+        if "error" in url_obj:
+            message = url_obj["error"]
         result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {message}"
         result['status_code'] = 404
         result.pop('path')
