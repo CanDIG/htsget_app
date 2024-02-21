@@ -127,6 +127,30 @@ paths:
                5XX:
                    $ref: '#/components/responses/5xxServerError'
 
+    /reads/{id}/verify:
+       get:
+           tags:
+               - Reads
+           summary: Verify the integrity of the read object
+           operationId: "htsget_operations.verify_reads_genomic_drs_object"
+           description: |
+               Verify the integrity of the read object
+           parameters:
+               - $ref: '#/components/parameters/idPathParam'
+           responses:
+               200:
+                   description: Read file stored correctly
+                   content:
+                       application/json:
+                           schema:
+                               type: object
+               400:
+                   $ref: '#/components/responses/400BadRequestError'
+               404:
+                   $ref: '#/components/responses/404NotFoundError'
+               5XX:
+                   $ref: '#/components/responses/5xxServerError'
+
     /variants/service-info:
        get:
            tags:
@@ -210,7 +234,7 @@ paths:
             tags:
                 - Variants
             summary: Verify the integrity of the variant object
-            operationId: "htsget_operations.verify_genomic_drs_object"
+            operationId: "htsget_operations.verify_variants_genomic_drs_object"
             description: |
                 Verify the integrity of the variant object
             parameters:
