@@ -44,6 +44,15 @@ def get_authorized_cohorts(request):
         return []
 
 
+def is_cohort_authorized(request, cohort_id):
+    if is_site_admin(request):
+        return True
+    authorized_cohorts = get_authorized_cohorts(request)
+    if cohort_id in authorized_cohorts:
+        return True
+    return False
+
+
 def is_site_admin(request):
     """
     Is the user associated with the token a site admin?

@@ -179,6 +179,20 @@ paths:
               application/json:
                 schema:
                   type: object
+  /cohorts/{cohort_id}/status:
+    parameters:
+      - $ref: "#/components/parameters/CohortId"
+      - $ref: '#/components/parameters/BearerAuth'
+    get:
+      description: List indexing status reports for a cohort
+      operationId: drs_operations.get_cohort_status
+      responses:
+        200:
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CohortIndexStatus'
 components:
   parameters:
     BearerAuth:
@@ -271,8 +285,35 @@ components:
         drsobjects:
           type: array
           items:
-            type: string
-            description: a DRS object's self_uri
+            $ref: '#/components/schemas/DrsUri'
+    CohortIndexStatus:
+      type: object
+      properties:
+        index_complete:
+          description: DrsUris for variant genomic objects that have been successfully indexed
+          type: array
+          items:
+            $ref: '#/components/schemas/DrsUri'
+        index_in_progress:
+          description: DrsUris for variant genomic objects that have not yet been indexed
+          type: array
+          items:
+            $ref: '#/components/schemas/DrsUri'
+        index_errored:
+          description: DrsUris for variant genomic objects that are in the queue to be indexed
+          type: array
+          items:
+            type: object
+            properties:
+              drs_uri:
+                $ref: '#/components/schemas/DrsUri'
+              errors:
+                type: array
+                items:
+                  type: string
+    DrsUri:
+      type: string
+      description: a DRS object's self_uri
     SampleDrsObject:
       type: object
       description: A DrsObject that describes the clinical sample used for genomic analysis.
