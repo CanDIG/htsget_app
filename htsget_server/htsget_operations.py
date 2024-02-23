@@ -87,6 +87,36 @@ def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None
     return None, auth_code
 
 
+@app.route('/reads/<path:id_>/index')
+def index_reads(id_=None):
+    if not authz.is_site_admin(request):
+        return {"message": "User is not authorized to index reads"}, 403
+    if id_ is not None:
+        # check that there is a database drs object for this:
+        drs_obj = database.get_drs_object(id_)
+        if drs_obj is None:
+            return {"message": f"No DRS object exists with ID {id_}"}, 404
+        cohort = ""
+        if "cohort" in drs_obj:
+            cohort = drs_obj['cohort']
+        try:
+            Path(f"{INDEXING_PATH}/{cohort}_{id_}").touch()
+            return None, 200
+        except Exception as e:
+            return {"message": str(e)}, 500
+    else:
+        return None, 404
+
+
+@app.route('/reads/<path:id_>/verify')
+def verify_reads_genomic_drs_object(id_):
+    try:
+        _verify_genomic_drs_object(id_)
+    except Exception as e:
+        return {"result": False, "message": str(e)}, 200
+    return {"result": True}, 200
+
+
 @app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
@@ -112,7 +142,7 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 
 
 @app.route('/variants/<path:id_>/verify')
-def verify_genomic_drs_object(id_):
+def verify_variants_genomic_drs_object(id_):
     try:
         _verify_genomic_drs_object(id_)
     except Exception as e:
@@ -125,13 +155,20 @@ def index_variants(id_=None, force=False, genome='hg38'):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
+        # check that there is a database drs object for this:
+        drs_obj = database.get_drs_object(id_)
+        if drs_obj is None:
+            return {"message": f"No DRS object exists with ID {id_}"}, 404
+        cohort = ""
+        if "cohort" in drs_obj:
+            cohort = drs_obj['cohort']
         params = {"id": id_, "reference_genome": genome}
         try:
             varfile = database.create_variantfile(params)
             if varfile is not None:
                 if varfile['indexed'] == 1 and not force:
                     return varfile, 200
-            Path(f"{INDEXING_PATH}/{id_}").touch()
+            Path(f"{INDEXING_PATH}/{cohort}_{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -456,21 +493,38 @@ def _verify_genomic_drs_object(id_):
     if status_code != 200:
         raise Exception(f"Could not find object {id_}")
     drs_samples = set()
+    file_type = None
     if "contents" in gen_drs_obj and "reference_genome" in gen_drs_obj:
         for c in gen_drs_obj["contents"]:
             if c["id"] not in ["variant", "read", "index"]:
                 drs_samples.add(c["id"])
+            if c["id"] in ["variant", "read"]:
+                file_type = c["id"]
     else:
         raise Exception(f"Object {id_} is not a GenomicDrsObject")
+    if file_type is None:
+        raise Exception(f"Object {id_} should be a GenomicDrsObject, but does not link to a variant or read file")
 
     # get the samples that are in the linked files
     gen_obj = drs_operations._get_genomic_obj(id_)
     if gen_obj is None:
-        raise Exception(f"No variant with id {id_} exists")
+        raise Exception(f"No genomic object with id {id_} exists")
     if "message" in gen_obj:
         raise Exception(f"{gen_obj['message']}")
-    file_samples = set(gen_obj['file'].header.samples)
-    test = drs_samples.difference(file_samples)
-    if len(test) > 0:
-        raise Exception(f"GenomicDrsObject {id_} lists samples {test} that are not in the linked genomic file")
+    if file_type == "variant":
+        # for variant files, we can test whether the linked file is readable by querying it for its samples.
+        file_samples = set(gen_obj['file'].header.samples)
+        test = drs_samples.difference(file_samples)
+        # the GenomicDrsObject's listed SamplesContentsObjects should match the samples in the VCF file.
+        if len(test) > 0:
+            raise Exception(f"GenomicDrsObject {id_} lists samples {test} that are not in the linked genomic file")
+    else:
+        # for read files, we can test whether the linked file is readable by checking for references in the header.
+        try:
+            if len(gen_obj['file'].header.references) == 0:
+                raise Exception(f"GenomicDrsObject {id_} links to a read file with no reference sequences")
+        except Exception as e:
+            raise Exception(f"GenomicDrsObject {id_} links to a read file that could not be read: {str(e)}")
+        if len(drs_samples) > 1:
+            raise Exception(f"GenomicDrsObject {id_} lists multiple samples, but only one can be in the read file")
     return None

@@ -9,27 +9,45 @@ import sys
 from watchdog.observers import Observer
 import watchdog.events
 import hashlib
+import re
+import datetime
 
 
-def index_variants(id_=None):
-    logging.info(f"{id_} starting indexing")
-    gen_obj = drs_operations._get_genomic_obj(id_)
+def index_variants(file_name=None):
+    # split file name into cohort and drs_obj_id
+    file_parse = re.match(r"(.*?)_(.+)", file_name)
+    if file_parse is not None:
+        cohort = file_parse.group(1)
+        drs_obj_id = file_parse.group(2)
+    else:
+        return {"message": f"Format of file name is wrong: {file_name}"}, 500
+
+    logging.info(f"adding stats to {drs_obj_id}")
+    calculate_stats(drs_obj_id)
+    logging.info(f"{drs_obj_id} stats done")
+
+    gen_obj = drs_operations._get_genomic_obj(drs_obj_id)
     if gen_obj is None:
-        return {"message": f"No variant with id {id_} exists"}, 404
+        return {"message": f"No variant with id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
         return {"message": gen_obj['message']}, 500
 
+    if gen_obj['type'] == 'read':
+        return {"message": f"Read object {drs_obj_id} stats calculated"}, 200
+
+    logging.info(f"{drs_obj_id} starting indexing")
+
     headers = str(gen_obj['file'].header).split('\n')
 
-    database.add_header_for_variantfile({'texts': headers, 'variantfile_id': id_})
-    logging.info(f"{id_} indexed {len(headers)} headers")
+    database.add_header_for_variantfile({'texts': headers, 'variantfile_id': drs_obj_id})
+    logging.info(f"{drs_obj_id} indexed {len(headers)} headers")
 
     samples = list(gen_obj['file'].header.samples)
     for sample in samples:
-        if database.create_sample({'id': sample, 'variantfile_id': id_}) is None:
-            logging.warning(f"Could not add sample {sample} to variantfile {id_}")
+        if database.create_sample({'id': sample, 'variantfile_id': drs_obj_id}) is None:
+            logging.warning(f"Could not add sample {sample} to variantfile {drs_obj_id}")
 
-    logging.info(f"{id_} indexed {len(samples)} samples in file")
+    logging.info(f"{drs_obj_id} indexed {len(samples)} samples in file")
 
     contigs = {}
     for contig in list(gen_obj['file'].header.contigs):
@@ -39,32 +57,28 @@ def index_variants(id_=None):
     for raw_contig in contigs.keys():
         if contigs[raw_contig] is not None:
             prefix = database.get_contig_prefix(raw_contig)
-            varfile = database.set_variantfile_prefix({"variantfile_id": id_, "chr_prefix": prefix})
+            varfile = database.set_variantfile_prefix({"variantfile_id": drs_obj_id, "chr_prefix": prefix})
             break
 
     positions = []
     normalized_contigs = []
-    to_create = {'variantfile_id': id_, 'positions': positions, 'normalized_contigs': normalized_contigs}
+    to_create = {'variantfile_id': drs_obj_id, 'positions': positions, 'normalized_contigs': normalized_contigs}
     for record in gen_obj['file'].fetch():
         normalized_contig_id = contigs[record.contig]
         if normalized_contig_id is not None:
             positions.append(record.pos)
             normalized_contigs.append(normalized_contig_id)
         else:
-            logging.warning(f"referenceName {record.contig} in {id_} does not correspond to a known chromosome.")
+            logging.warning(f"referenceName {record.contig} in {drs_obj_id} does not correspond to a known chromosome.")
     res = create_position(to_create)
 
-    logging.info(f"{id_} writing {len(res['bucket_counts'])} entries to db")
+    logging.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
     database.create_pos_bucket(res)
 
-    database.mark_variantfile_as_indexed(id_)
-    logging.info(f"{id_} done")
+    database.mark_variantfile_as_indexed(drs_obj_id)
+    logging.info(f"{drs_obj_id} done")
 
-    logging.info(f"adding stats to {id_}")
-    calculate_stats(id_)
-    logging.info(f"{id_} done")
-
-    return {"message": f"Indexing complete for variantfile {id_}"}, 200
+    return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200
 
 
 def create_position(obj):
@@ -147,15 +161,24 @@ def calculate_stats(obj_id):
 
 ## When a file is created, index the variant with the ID of that filename.
 ## These are created at htsget_operations.index_variants.
+def index_touch_file(file_path):
+    try:
+        name = file_path.replace(INDEXING_PATH, "").replace("/", "")
+        response, status_code = index_variants(file_name=name)
+        if status_code != 200:
+            with open(file_path, "a") as f:
+                f.write(f"{datetime.datetime.today()} {response['message']}")
+        logging.info(response)
+        os.remove(file_path)
+    except Exception as e:
+        with open(file_path, "a") as f:
+            f.write(f"{datetime.datetime.today()} {str(e)}")
+        logging.warning(str(e))
+
+
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
     def on_created(self, event):
-        name = event.src_path.replace(INDEXING_PATH, "").replace("/", "")
-        try:
-            response, status_code = index_variants(id_=name)
-            logging.info(response)
-            os.remove(event.src_path)
-        except Exception as e:
-            logging.warning(str(e))
+        index_touch_file(event.src_path)
 
 
 if __name__ == "__main__":
@@ -169,8 +192,15 @@ if __name__ == "__main__":
 
     ## If this has been called on a single ID, index it and exit.
     if args.id is not None:
+        drs_obj = database.get_drs_object(args.id)
+        if drs_obj is None:
+            print(f"No DRS object with id {args.id}")
+            sys.exit()
+        cohort = ""
+        if "cohort" in drs_obj:
+            cohort = drs_obj["cohort"]
         varfile = database.create_variantfile({"id": args.id, "reference_genome": args.genome})
-        index_variants(id_=args.id)
+        index_variants(drs_obj_id=f"{cohort}_{args.id}")
         sys.exit()
 
     ## Otherwise, look for any backlog IDs, index those, then listen for new IDs to index.
@@ -179,9 +209,8 @@ if __name__ == "__main__":
     logging.info(f"Finishing backlog: indexing {to_index}")
     while len(to_index) > 0:
         try:
-            x=to_index.pop()
-            index_variants(id_=x)
-            os.remove(f"{INDEXING_PATH}/{x}")
+            file_path = f"{INDEXING_PATH}/{to_index.pop()}"
+            index_touch_file(file_path)
         except Exception as e:
             logging.warning(str(e))
         to_index = os.listdir(INDEXING_PATH)

@@ -8,6 +8,7 @@ import authz
 from markupsafe import escape
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import parse_qs, urlparse, urlencode
+from config import INDEXING_PATH
 
 
 app = Flask(__name__)
@@ -53,12 +54,12 @@ def get_object(object_id, expand=False):
 
 
 def get_object_for_drs_uri(drs_uri):
-    drs_uri_parse = re.match(r"drs:\/\/(.+)\/(.+)")
+    drs_uri_parse = re.match(r"drs:\/\/(.+)\/(.+)", drs_uri)
     if drs_uri_parse is None:
-        return {"message": f"Incorrect format for DRS URI: {drs_uri}"}
-    if drs_uri_parse.group(1) == os.getenv("HTSGET_URL"):
+        return {"message": f"Incorrect format for DRS URI: {drs_uri}"}, 401
+    if drs_uri_parse.group(1) in os.getenv("HTSGET_URL"):
         return get_object(drs_uri_parse.group(2))
-    return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}
+    return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}, 401
 
 
 def list_objects(cohort_id=None):
@@ -133,6 +134,42 @@ def delete_cohort(cohort_id):
     except Exception as e:
         return {"message": str(e)}, 500
 
+
+def get_cohort_status(cohort_id):
+    new_cohort = database.get_cohort(cohort_id)
+    if new_cohort is None:
+        return {"message": "No matching cohort found"}, 404
+    if not authz.is_cohort_authorized(request, cohort_id):
+        return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
+
+    # get the objects in the cohort:
+    result = {
+        "index_complete": [],
+        "index_in_progress": [],
+        "index_errored": []
+    }
+    for drs_uri in new_cohort['drsobjects']:
+        drs_obj, status_code = get_object_for_drs_uri(drs_uri)
+        if "indexed" in drs_obj:
+            if drs_obj['indexed'] == 1:
+                result['index_complete'].append(drs_uri)
+            else:
+                # look for index touch file, see if there are errors there:
+                file_path = os.path.join(INDEXING_PATH, f"{cohort_id}_{drs_obj['id']}")
+                err_obj = {
+                    "drs_uri": drs_uri,
+                    "errors": []
+                }
+                if os.path.exists(file_path):
+                    with open(file_path) as f:
+                        err_obj["errors"].extend(f.readlines())
+                        if len(err_obj["errors"]) > 0:
+                            result['index_errored'].append(err_obj)
+                        else:
+                            result['index_in_progress'].append(drs_uri)
+    return result, 200
+
+
 # This is specific to our particular use case: a DRS object that represents a
 # particular sample can have a variant or read file and an associated index file.
 # We need to query DRS to get the bundling object, which should contain links to
@@ -146,6 +183,7 @@ def _get_genomic_obj(object_id):
     if 'message' in index_result:
         result = index_result
     else:
+        result['type'] = drs_obj['type']
         main_result = _get_file_path(drs_obj['main'])
         if 'message' in main_result:
             result = main_result
@@ -242,9 +280,9 @@ def _get_file_path(drs_file_obj_id):
                             result["checksum"] = None
                         result["size"] = os.path.getsize(result["path"])
     if result['path'] is None:
-        message = url
-        if "error" in url:
-            message = url["error"]
+        message = url_obj
+        if "error" in url_obj:
+            message = url_obj["error"]
         result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {message}"
         result['status_code'] = 404
         result.pop('path')
