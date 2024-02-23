@@ -56,10 +56,10 @@ def get_object(object_id, expand=False):
 def get_object_for_drs_uri(drs_uri):
     drs_uri_parse = re.match(r"drs:\/\/(.+)\/(.+)", drs_uri)
     if drs_uri_parse is None:
-        return {"message": f"Incorrect format for DRS URI: {drs_uri}"}
+        return {"message": f"Incorrect format for DRS URI: {drs_uri}"}, 401
     if drs_uri_parse.group(1) in os.getenv("HTSGET_URL"):
         return get_object(drs_uri_parse.group(2))
-    return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}
+    return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}, 401
 
 
 def list_objects(cohort_id=None):
