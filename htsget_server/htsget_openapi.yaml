@@ -127,6 +127,29 @@ paths:
                5XX:
                    $ref: '#/components/responses/5xxServerError'
 
+    /reads/{id}/index:
+      get:
+          tags:
+              - Reads
+          summary: Calculate size and checksums for the read object
+          operationId: "htsget_operations.index_reads"
+          description: Calculate size and checksums for the read object
+          parameters:
+              - $ref: '#/components/parameters/idPathParam'
+          responses:
+              200:
+                  description: Read file queued for indexing
+                  content:
+                      application/json:
+                          schema:
+                              type: object
+              400:
+                  $ref: '#/components/responses/400BadRequestError'
+              404:
+                  $ref: '#/components/responses/404NotFoundError'
+              5XX:
+                  $ref: '#/components/responses/5xxServerError'
+
     /reads/{id}/verify:
        get:
            tags:
@@ -217,7 +240,7 @@ paths:
                 - $ref: '#/components/parameters/refGenomeParam'
             responses:
                 200:
-                    description: Successfully indexed variant file
+                    description: Variant file queued for indexing
                     content:
                         application/json:
                             schema:

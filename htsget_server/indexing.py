@@ -22,13 +22,20 @@ def index_variants(file_name=None):
     else:
         return {"message": f"Format of file name is wrong: {file_name}"}, 500
 
-    logging.info(f"{drs_obj_id} starting indexing")
+    logging.info(f"adding stats to {drs_obj_id}")
+    calculate_stats(drs_obj_id)
+    logging.info(f"{drs_obj_id} stats done")
 
     gen_obj = drs_operations._get_genomic_obj(drs_obj_id)
     if gen_obj is None:
         return {"message": f"No variant with id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
         return {"message": gen_obj['message']}, 500
+
+    if gen_obj['type'] == 'read':
+        return {"message": f"Read object {drs_obj_id} stats calculated"}, 200
+
+    logging.info(f"{drs_obj_id} starting indexing")
 
     headers = str(gen_obj['file'].header).split('\n')
 
@@ -69,10 +76,6 @@ def index_variants(file_name=None):
     database.create_pos_bucket(res)
 
     database.mark_variantfile_as_indexed(drs_obj_id)
-    logging.info(f"{drs_obj_id} done")
-
-    logging.info(f"adding stats to {drs_obj_id}")
-    calculate_stats(drs_obj_id)
     logging.info(f"{drs_obj_id} done")
 
     return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200

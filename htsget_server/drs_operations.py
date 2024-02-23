@@ -183,6 +183,7 @@ def _get_genomic_obj(object_id):
     if 'message' in index_result:
         result = index_result
     else:
+        result['type'] = drs_obj['type']
         main_result = _get_file_path(drs_obj['main'])
         if 'message' in main_result:
             result = main_result
