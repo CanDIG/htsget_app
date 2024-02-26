@@ -108,8 +108,15 @@ def test_index_variantfile(sample):
     response = requests.get(url, params=params, headers=get_headers())
     assert response.status_code == 200
 
-    # shouldn't take more than a second to index the tiny file, but just in case...
-    sleep(2)
+    # shouldn't take more than a second to index the tiny file, but just in case: a max 30 second check
+    for i in range(30):
+        get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
+        response = requests.get(get_url, headers=get_headers())
+        print(response.text)
+        if response.json()["indexed"] == 1:
+            break
+        sleep(1)
+
     get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
     response = requests.get(get_url, headers=get_headers())
     print(response.text)
