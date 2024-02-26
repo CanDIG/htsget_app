@@ -510,7 +510,8 @@ components:
                 $ref: '#/components/schemas/Region'
         # SERVICE-INFO SCHEMAS
         ServiceInfo:
-            '$ref': https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/v1.0.0/service-info.yaml#/components/schemas/Service
+            type: object
+            #'$ref': https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/v1.0.0/service-info.yaml#/components/schemas/Service
         HtsgetServiceInfoExtension:
             type: object
             description: Htsget-specific properties integrated into base service info data model
