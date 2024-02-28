@@ -608,6 +608,15 @@ def mark_variantfile_as_indexed(variantfile_id):
             session.commit()
 
 
+def mark_variantfile_as_not_indexed(variantfile_id):
+    with Session() as session:
+        new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
+        if new_variantfile is not None:
+            new_variantfile.indexed = 0
+            session.add(new_variantfile)
+            session.commit()
+
+
 def set_variantfile_prefix(obj):
     # obj = {'variantfile_id', 'chr_prefix'}
     with Session() as session:
