@@ -168,6 +168,8 @@ def index_variants(id_=None, force=False, genome='hg38'):
             if varfile is not None:
                 if varfile['indexed'] == 1 and not force:
                     return varfile, 200
+                # clear the indexed bit:
+                database.mark_variantfile_as_not_indexed(id_)
             Path(f"{INDEXING_PATH}/{cohort}_{id_}").touch()
             return None, 200
         except Exception as e:
