@@ -279,8 +279,8 @@ def search(raw_req):
         response['beaconHandovers'] = []
         query_info = {} # program_id and submitter_sample_id
         for drs_obj_id in variants_by_file.keys():
-            # look for samples and cohorts
-            drs_obj, status_code = drs_operations.get_object(drs_obj_id)
+            # look for samples and cohorts for all drs objects, even if user is not authorized
+            drs_obj = database.get_drs_object(drs_obj_id)
             if "cohort" in drs_obj:
                 if drs_obj["cohort"] not in query_info:
                     query_info[drs_obj["cohort"]] = []
