@@ -36,10 +36,14 @@ def get_headers(username=USERNAME, password=PASSWORD):
     return headers
 
 
-def test_remove_objects():
-    cohorts = ["test-htsget", "1000genomes"]
+def test_remove_objects(cohorts):
     headers = get_headers()
+    candig_url = os.getenv("CANDIG_URL")
+
     for cohort in cohorts:
+        if candig_url is not None:
+            response = requests.delete(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+
         url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
         response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
@@ -53,13 +57,20 @@ def test_remove_objects():
             assert obj["cohort"] != cohort
 
 
-def test_post_objects(drs_objects):
+def test_post_objects(drs_objects, cohorts):
     """
     Install test objects. Will fail if any post request returns an error.
     """
     # clean up old objects in db:
     url = f"{HOST}/ga4gh/drs/v1/objects"
     headers = get_headers()
+    candig_url = os.getenv("CANDIG_URL")
+
+    for cohort in cohorts:
+        if candig_url is not None:
+            response = requests.post(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+            print(response.text)
+
     response = requests.request("GET", url, headers=headers)
 
     for obj in drs_objects:
@@ -510,6 +521,11 @@ def test_vcf_json():
     res = requests.request("GET", url, params=params, headers=get_headers())
     assert res.json()['id'] == 'test'
     assert len(res.json()['variants']) == 7
+
+
+@pytest.fixture
+def cohorts():
+    return ["test-htsget", "1000genomes"]
 
 
 @pytest.fixture
