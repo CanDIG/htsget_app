@@ -396,7 +396,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
                     # check to see that we should be processing the actual sample data:
                     if is_authed:
                         cld['analysisId'] = drs_obj
-                        cld['biosampleId'] = k
+                        cld['biosampleId'] = f"{x['cohort']}~{k}"
                     alleles = sample['GT'].split('/')
                     if len(alleles) < 2:
                         alleles = sample['GT'].split('|')
