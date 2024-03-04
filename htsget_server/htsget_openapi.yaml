@@ -865,6 +865,17 @@ components:
                     description: An array of associated GenomicDrsObjects that describe transcriptome data.
                     items:
                         type: string
+                variants:
+                    type: array
+                    description: An array of associated GenomicDataDrsObjects that describe variant files.
+                    items:
+                        type: string
+                reads:
+                    type: array
+                    description: An array of associated GenomicDataDrsObjects that describe read files.
+                    items:
+                        type: string
+
 
         # ERROR SCHEMAS
         Error:

@@ -238,7 +238,9 @@ def get_sample(id_=None):
     result = {
         "sample_id": id_,
         "genomes": [],
-        "transcriptomes": []
+        "transcriptomes": [],
+        "variants": [],
+        "reads": []
     }
 
     # Get the SampleDrsObject. It will have a contents array of GenomicContentsObjects > GenomicDrsObjects.
@@ -252,6 +254,13 @@ def get_sample(id_=None):
                     result["genomes"].append(drs_obj["id"])
                 elif drs_obj["description"] == "wts":
                     result["transcriptomes"].append(drs_obj["id"])
+                # check the contents of this genomic drs object and see if it contains variants or reads
+                if "contents" in drs_obj:
+                    for content in drs_obj["contents"]:
+                        if content["id"] == "variant":
+                            result["variants"].append(drs_obj["id"])
+                        elif content["id"] == "read":
+                            result["reads"].append(drs_obj["id"])
         return result, 200
     return {"message": f"Could not find sample {id_}"}, 404
 
