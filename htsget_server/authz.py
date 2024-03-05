@@ -15,8 +15,6 @@ def is_authed(id_, request):
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return 200 # no auth
-    if is_site_admin(request):
-        return 200
     if "Authorization" in request.headers:
         authed_cohorts = get_authorized_cohorts(request)
         obj = database.get_drs_object(id_)
