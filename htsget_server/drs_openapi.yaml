@@ -5,7 +5,6 @@ info:
   termsOfService: 'https://www.ga4gh.org/terms-and-conditions/'
   license:
     name: Apache 2.0
-    url: 'https://raw.githubusercontent.com/ga4gh/data-repository-service-schemas/master/LICENSE'
 servers:
   - url: /ga4gh/drs/v1
 security:
