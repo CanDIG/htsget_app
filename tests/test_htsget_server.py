@@ -6,6 +6,7 @@ import pytest
 import requests
 from pathlib import Path
 from authx.auth import get_minio_client, get_access_token, store_aws_credential
+from time import sleep
 
 # assumes that we are running pytest from the repo directory
 REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
@@ -35,10 +36,14 @@ def get_headers(username=USERNAME, password=PASSWORD):
     return headers
 
 
-def test_remove_objects():
-    cohorts = ["test-htsget", "1000genomes"]
+def test_remove_objects(cohorts):
     headers = get_headers()
+    candig_url = os.getenv("CANDIG_URL")
+
     for cohort in cohorts:
+        if candig_url is not None:
+            response = requests.delete(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+
         url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
         response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
@@ -52,13 +57,20 @@ def test_remove_objects():
             assert obj["cohort"] != cohort
 
 
-def test_post_objects(drs_objects):
+def test_post_objects(drs_objects, cohorts):
     """
     Install test objects. Will fail if any post request returns an error.
     """
     # clean up old objects in db:
     url = f"{HOST}/ga4gh/drs/v1/objects"
     headers = get_headers()
+    candig_url = os.getenv("CANDIG_URL")
+
+    for cohort in cohorts:
+        if candig_url is not None:
+            response = requests.post(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+            print(response.text)
+
     response = requests.request("GET", url, headers=headers)
 
     for obj in drs_objects:
@@ -96,21 +108,32 @@ def test_post_update():
 
 
 def index_variants():
-    return [('sample.compressed', None, 'hg37'), ('NA18537', None, 'hg37'), ('multisample_1', 'HG00096', 'hg37'), ('multisample_2', 'HG00097', 'hg37'), ('test', 'BIOCAN_00097', 'hg38')]
+    return [('sample.compressed'), ('NA18537'), ('multisample_1'), ('multisample_2'), ('test')]
 
 
-@pytest.mark.parametrize('sample, genomic_id, genome', index_variants())
-def test_index_variantfile(sample, genomic_id, genome):
+@pytest.mark.parametrize('sample', index_variants())
+def test_index_variantfile(sample):
     url = f"{HOST}/htsget/v1/variants/{sample}/index"
-    params = {"genome": genome}
-    if genomic_id is not None:
-        params["genomic_id"] = genomic_id
-    #params['force'] = True
+    params = {}
+    params['force'] = True
     response = requests.get(url, params=params, headers=get_headers())
+    assert response.status_code == 200
+
+    # shouldn't take more than a second to index the tiny file, but just in case: a max 30 second check
+    for i in range(30):
+        get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
+        response = requests.get(get_url, headers=get_headers())
+        print(response.text)
+        if response.json()["indexed"] == 1:
+            break
+        sleep(1)
+
+    get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
+    response = requests.get(get_url, headers=get_headers())
     print(response.text)
-    assert response.json()["id"] == sample
-    if genomic_id is not None:
-        assert response.json()["genomic_id"] == genomic_id
+    assert response.json()["indexed"] == 1
+    assert len(response.json()["checksums"]) > 0
+    assert response.json()["size"] > 0
 
 
 def test_install_public_object():
@@ -178,6 +201,7 @@ def test_install_public_object():
               }
             ],
             "description": "wgs",
+            "reference_genome": "hg38",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
@@ -279,6 +303,10 @@ def test_add_sample_drs(input, program_id):
     if response.status_code == 200:
         assert response.status_code == 200
     assert len(genomic_drs_obj["contents"]) == contents_count + 1
+
+    verify_url = f"{HOST}/htsget/v1/variants/{input['genomic_id']}/verify"
+    response = requests.get(verify_url)
+    assert response.status_code == 200
 
 
 @pytest.mark.parametrize('input, program_id', get_ingest_file())
@@ -400,7 +428,7 @@ def test_gene_search():
 def test_beacon_get_search():
     # for an authed user, this short allele form request should work:
     # return two variations, one ref, one alt, for a single position.
-    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg37&allele=NC_000021.8%3Ag.5030847T%3EA"
+    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg38&allele=NC_000021.9%3Ag.5030847T%3EA"
     response = requests.get(url, headers=get_headers())
     print(response.text)
     assert len(response.json()['response']) == 2
@@ -424,7 +452,7 @@ def get_beacon_post_search():
                     "requestParameters": {
                         "start": [5030000],
                         "end": [5030847],
-                        "assemblyId": "hg37",
+                        "assemblyId": "hg38",
                         "referenceName": "21"
                     }
                 },
@@ -496,6 +524,11 @@ def test_vcf_json():
 
 
 @pytest.fixture
+def cohorts():
+    return ["test-htsget", "1000genomes"]
+
+
+@pytest.fixture
 def drs_objects():
     drs_objects = {}
     for root, dirs, files in os.walk(LOCAL_FILE_PATH):
@@ -525,6 +558,7 @@ def drs_objects():
             "name": drs_obj,
             "contents": [],
             "version": "v1",
+            "reference_genome": "hg38",
             "cohort": "test-htsget"
         }
         result.append(genomic_drs_obj)

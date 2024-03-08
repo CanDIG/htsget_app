@@ -127,6 +127,53 @@ paths:
                5XX:
                    $ref: '#/components/responses/5xxServerError'
 
+    /reads/{id}/index:
+      get:
+          tags:
+              - Reads
+          summary: Calculate size and checksums for the read object
+          operationId: "htsget_operations.index_reads"
+          description: Calculate size and checksums for the read object
+          parameters:
+              - $ref: '#/components/parameters/idPathParam'
+          responses:
+              200:
+                  description: Read file queued for indexing
+                  content:
+                      application/json:
+                          schema:
+                              type: object
+              400:
+                  $ref: '#/components/responses/400BadRequestError'
+              404:
+                  $ref: '#/components/responses/404NotFoundError'
+              5XX:
+                  $ref: '#/components/responses/5xxServerError'
+
+    /reads/{id}/verify:
+       get:
+           tags:
+               - Reads
+           summary: Verify the integrity of the read object
+           operationId: "htsget_operations.verify_reads_genomic_drs_object"
+           description: |
+               Verify the integrity of the read object
+           parameters:
+               - $ref: '#/components/parameters/idPathParam'
+           responses:
+               200:
+                   description: Read file stored correctly
+                   content:
+                       application/json:
+                           schema:
+                               type: object
+               400:
+                   $ref: '#/components/responses/400BadRequestError'
+               404:
+                   $ref: '#/components/responses/404NotFoundError'
+               5XX:
+                   $ref: '#/components/responses/5xxServerError'
+
     /variants/service-info:
        get:
            tags:
@@ -191,10 +238,33 @@ paths:
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/forceParam'
                 - $ref: '#/components/parameters/refGenomeParam'
-                - $ref: '#/components/parameters/genomicIdParam'
             responses:
                 200:
-                    description: Successfully indexed variant file
+                    description: Variant file queued for indexing
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+
+    /variants/{id}/verify:
+        get:
+            tags:
+                - Variants
+            summary: Verify the integrity of the variant object
+            operationId: "htsget_operations.verify_variants_genomic_drs_object"
+            description: |
+                Verify the integrity of the variant object
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+            responses:
+                200:
+                    description: Variant file stored correctly
                     content:
                         application/json:
                             schema:
@@ -440,7 +510,8 @@ components:
                 $ref: '#/components/schemas/Region'
         # SERVICE-INFO SCHEMAS
         ServiceInfo:
-            '$ref': https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/v1.0.0/service-info.yaml#/components/schemas/Service
+            type: object
+            #'$ref': https://raw.githubusercontent.com/ga4gh-discovery/ga4gh-service-info/v1.0.0/service-info.yaml#/components/schemas/Service
         HtsgetServiceInfoExtension:
             type: object
             description: Htsget-specific properties integrated into base service info data model
@@ -794,6 +865,17 @@ components:
                     description: An array of associated GenomicDrsObjects that describe transcriptome data.
                     items:
                         type: string
+                variants:
+                    type: array
+                    description: An array of associated GenomicDataDrsObjects that describe variant files.
+                    items:
+                        type: string
+                reads:
+                    type: array
+                    description: An array of associated GenomicDataDrsObjects that describe read files.
+                    items:
+                        type: string
+
 
         # ERROR SCHEMAS
         Error:
@@ -860,13 +942,6 @@ components:
             required: false
             schema:
                 $ref: '#/components/schemas/ReferenceGenome'
-        genomicIdParam:
-            in: query
-            name: genomic_id
-            description: If specified, sets this variant entity's associated genomic_id. Otherwise default is the same as the id.
-            required: false
-            schema:
-                type: string
         sampleIdPathParam:
             in: path
             name: id

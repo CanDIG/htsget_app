@@ -23,12 +23,14 @@ if [[ -f "initial_setup" ]]; then
     sed -i s@\<VAULT_URL\>@$VAULT_URL@ config.ini
 
     bash create_db.sh
-
+    mkdir $INDEXING_PATH
     rm initial_setup
 fi
 
 # use the following for development
 #python3 htsget_server/server.py
+
+python htsget_server/indexing.py &
 
 # use the following instead for production deployment
 uwsgi uwsgi.ini

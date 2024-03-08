@@ -131,7 +131,6 @@ INSERT INTO alias VALUES('chrM','MT');
 INSERT INTO alias VALUES('ChrM','MT');
 CREATE TABLE variantfile (
 	id VARCHAR NOT NULL,
-	genomic_id VARCHAR,
 	drs_object_id VARCHAR,
 	indexed INTEGER,
 	chr_prefix VARCHAR,

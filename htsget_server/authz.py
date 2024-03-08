@@ -15,8 +15,6 @@ def is_authed(id_, request):
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return 200 # no auth
-    if is_site_admin(request):
-        return 200
     if "Authorization" in request.headers:
         authed_cohorts = get_authorized_cohorts(request)
         obj = database.get_drs_object(id_)
@@ -44,6 +42,15 @@ def get_authorized_cohorts(request):
         return []
 
 
+def is_cohort_authorized(request, cohort_id):
+    if is_site_admin(request):
+        return True
+    authorized_cohorts = get_authorized_cohorts(request)
+    if cohort_id in authorized_cohorts:
+        return True
+    return False
+
+
 def is_site_admin(request):
     """
     Is the user associated with the token a site admin?
@@ -62,5 +69,11 @@ def is_site_admin(request):
     return False
 
 
-def get_s3_url(request, s3_endpoint=None, bucket=None, object_id=None, access_key=None, secret_key=None, region=None, public=False):
-    return authx.auth.get_s3_url(request, s3_endpoint=s3_endpoint, bucket=bucket, object_id=object_id, access_key=access_key, secret_key=secret_key, region=region, public=public)
+def get_s3_url(s3_endpoint=None, bucket=None, object_id=None, access_key=None, secret_key=None, region=None, public=False):
+    return authx.auth.get_s3_url(s3_endpoint=s3_endpoint, bucket=bucket, object_id=object_id, access_key=access_key, secret_key=secret_key, region=region, public=public)
+
+
+def request_is_from_query(request):
+    if "X-Service-Token" in request.headers:
+        return authx.auth.verify_service_token(service="query", token=request.headers["X-Service-Token"])
+    return False

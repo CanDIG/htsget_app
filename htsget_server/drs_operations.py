@@ -8,6 +8,7 @@ import authz
 from markupsafe import escape
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import parse_qs, urlparse, urlencode
+from config import INDEXING_PATH
 
 
 app = Flask(__name__)
@@ -34,7 +35,7 @@ def get_service_info():
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def get_object(object_id, expand=False):
-    app.logger.warning(f"looking for object {object_id}")
+    app.logger.debug(f"looking for object {object_id}")
     access_url_parse = re.match(r"(.+?)/access_url/(.+)", escape(object_id))
     if access_url_parse is not None:
         return get_access_url(access_url_parse.group(1), access_url_parse.group(2))
@@ -49,42 +50,26 @@ def get_object(object_id, expand=False):
     return new_object, 200
 
 
+def get_object_for_drs_uri(drs_uri):
+    drs_uri_parse = re.match(r"drs:\/\/(.+)\/(.+)", drs_uri)
+    if drs_uri_parse is None:
+        return {"message": f"Incorrect format for DRS URI: {drs_uri}"}, 401
+    if drs_uri_parse.group(1) in os.getenv("HTSGET_URL"):
+        return get_object(drs_uri_parse.group(2))
+    return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}, 401
+
+
 def list_objects(cohort_id=None):
     return database.list_drs_objects(cohort_id=cohort_id), 200
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
-def get_access_url(object_id, access_id):
-    app.logger.warning(f"looking for url {access_id}")
+def get_access_url(object_id, access_id, request=request):
     if object_id is not None:
         auth_code = authz.is_authed(escape(object_id), request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
-    id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
-    if id_parse is not None:
-        endpoint = id_parse.group(1)
-        bucket = id_parse.group(3)
-        object_name = id_parse.group(4)
-        url = None
-        if id_parse.group(5) is None:
-            url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
-        else:
-            keys = parse_qs(id_parse.group(6))
-            access = None
-            secret = None
-            public = False
-            if 'access' in keys:
-                access = keys['access'].pop()
-            if 'secret' in keys:
-                secret = keys['secret'].pop()
-            if 'public' in keys:
-                public = True
-            url, status_code = authz.get_s3_url(request, s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
-        if status_code == 200:
-            return {"url": url}, status_code
-        return {"error": url}, 500
-    else:
-        return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "get_access_url"}, 400
+    return _get_access_url(access_id)
 
 
 def post_object():
@@ -146,6 +131,42 @@ def delete_cohort(cohort_id):
     except Exception as e:
         return {"message": str(e)}, 500
 
+
+def get_cohort_status(cohort_id):
+    new_cohort = database.get_cohort(cohort_id)
+    if new_cohort is None:
+        return {"message": "No matching cohort found"}, 404
+    if not authz.is_cohort_authorized(request, cohort_id):
+        return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
+
+    # get the objects in the cohort:
+    result = {
+        "index_complete": [],
+        "index_in_progress": [],
+        "index_errored": []
+    }
+    for drs_uri in new_cohort['drsobjects']:
+        drs_obj, status_code = get_object_for_drs_uri(drs_uri)
+        if "indexed" in drs_obj:
+            if drs_obj['indexed'] == 1:
+                result['index_complete'].append(drs_uri)
+            else:
+                # look for index touch file, see if there are errors there:
+                file_path = os.path.join(INDEXING_PATH, f"{cohort_id}_{drs_obj['id']}")
+                err_obj = {
+                    "drs_uri": drs_uri,
+                    "errors": []
+                }
+                if os.path.exists(file_path):
+                    with open(file_path) as f:
+                        err_obj["errors"].extend(f.readlines())
+                        if len(err_obj["errors"]) > 0:
+                            result['index_errored'].append(err_obj)
+                        else:
+                            result['index_in_progress'].append(drs_uri)
+    return result, 200
+
+
 # This is specific to our particular use case: a DRS object that represents a
 # particular sample can have a variant or read file and an associated index file.
 # We need to query DRS to get the bundling object, which should contain links to
@@ -159,6 +180,7 @@ def _get_genomic_obj(object_id):
     if 'message' in index_result:
         result = index_result
     else:
+        result['type'] = drs_obj['type']
         main_result = _get_file_path(drs_obj['main'])
         if 'message' in main_result:
             result = main_result
@@ -229,10 +251,15 @@ def _get_file_path(drs_file_obj_id):
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
-            (url, status_code) = get_access_url(None, method["access_id"])
+            (url_obj, status_code) = _get_access_url(method["access_id"])
             result["status_code"] = status_code
             if status_code < 300:
-                result["path"] = url["url"]
+                result["path"] = url_obj["url"]
+                result["checksum"] = {
+                    "type": "etag",
+                    "checksum": url_obj["metadata"].etag
+                }
+                result["size"] = url_obj["metadata"].size
                 break
         else:
             # the access_url has all the info we need
@@ -243,9 +270,46 @@ def _get_file_path(drs_file_obj_id):
                     if not os.path.exists(result["path"]):
                         result['message'] = f"No file exists at {result['path']} on the server."
                         result['status_code'] = 404
+                    else:
+                        if len(drs_file_obj["checksums"]) > 0:
+                            result["checksum"] = drs_file_obj["checksums"][0]
+                        else:
+                            result["checksum"] = None
+                        result["size"] = os.path.getsize(result["path"])
     if result['path'] is None:
-        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {url}"
+        message = url_obj
+        if "error" in url_obj:
+            message = url_obj["error"]
+        result['message'] = f"No file was found for drs_obj {drs_file_obj_id}: {message}"
         result['status_code'] = 404
         result.pop('path')
     return result
 
+
+def _get_access_url(access_id):
+    app.logger.debug(f"looking for url {access_id}")
+    id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
+    if id_parse is not None:
+        endpoint = id_parse.group(1)
+        bucket = id_parse.group(3)
+        object_name = id_parse.group(4)
+        url = None
+        if id_parse.group(5) is None:
+            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
+        else:
+            keys = parse_qs(id_parse.group(6))
+            access = None
+            secret = None
+            public = False
+            if 'access' in keys:
+                access = keys['access'].pop()
+            if 'secret' in keys:
+                secret = keys['secret'].pop()
+            if 'public' in keys:
+                public = True
+            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
+        if status_code == 200:
+            return url, status_code
+        return url, 500
+    else:
+        return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "_get_access_url"}, 400
