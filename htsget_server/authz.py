@@ -16,10 +16,9 @@ def is_authed(id_, request):
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return 200 # no auth
     if "Authorization" in request.headers:
-        authed_cohorts = get_authorized_cohorts(request)
         obj = database.get_drs_object(id_)
         if obj is not None and 'cohort' in obj:
-            if obj['cohort'] in authed_cohorts:
+            if is_cohort_authorized(request, obj['cohort']):
                 return 200
     else:
         return 401
