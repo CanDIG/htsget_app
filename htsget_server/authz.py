@@ -42,12 +42,7 @@ def get_authorized_cohorts(request):
 
 
 def is_cohort_authorized(request, cohort_id):
-    if is_site_admin(request):
-        return True
-    authorized_cohorts = get_authorized_cohorts(request)
-    if cohort_id in authorized_cohorts:
-        return True
-    return False
+    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(request), method=request.method, path=request.path, program=cohort_id, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
 
 
 def is_site_admin(request):
