@@ -33,6 +33,8 @@ def is_testing(request):
 
 
 def get_authorized_cohorts(request):
+    if is_testing(request):
+        return []
     try:
         return authx.auth.get_opa_datasets(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
     except Exception as e:
@@ -42,6 +44,8 @@ def get_authorized_cohorts(request):
 
 
 def is_cohort_authorized(request, cohort_id):
+    if is_testing(request):
+        return True
     return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(request), method=request.method, path=request.path, program=cohort_id, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
 
 
