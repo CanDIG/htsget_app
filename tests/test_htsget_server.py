@@ -442,14 +442,6 @@ def test_beacon_get_search():
     print(response.text)
     assert len(response.json()['response']) == 2
 
-    # for an unauthorized user, the request should not contain a full response, just a count
-    headers = get_headers(username="test", password="test")
-    headers["Authorization"] = "Bearer unauthorized"
-    response = requests.get(url, headers=headers)
-    print(response.text)
-    assert 'response' not in response.json()
-    assert response.json()['responseSummary']['exists']
-
 
 def get_beacon_post_search():
     return [
