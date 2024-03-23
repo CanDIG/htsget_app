@@ -68,7 +68,13 @@ def test_post_objects(drs_objects, cohorts):
 
     for cohort in cohorts:
         if candig_url is not None:
-            response = requests.post(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+            test_program = {
+                "program_id": cohort,
+                "program_curators": [f"{USERNAME}@test.ca"],
+                "team_members": [f"{USERNAME}@test.ca"]
+            }
+
+            response = requests.post(f"{candig_url}/ingest/program", headers=get_headers(), json=test_program)
             print(response.text)
 
     response = requests.request("GET", url, headers=headers)
