@@ -8,12 +8,17 @@ import authx.auth
 app = Flask(__name__)
 
 
-def is_authed(id_, request):
-    if request is None:
-        return 401
+def is_testing(request):
     if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        return True
+
+
+def is_authed(id_, request):
+    if request is None:
+        return 401
+    if is_testing(request):
         return 200 # no auth
     if "Authorization" in request.headers:
         obj = database.get_drs_object(id_)
@@ -23,13 +28,6 @@ def is_authed(id_, request):
     else:
         return 401
     return 403
-
-
-def is_testing(request):
-    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
-        print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
-        app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
-        return True
 
 
 def get_authorized_cohorts(request):
@@ -53,10 +51,8 @@ def is_site_admin(request):
     """
     Is the user associated with the token a site admin?
     """
-    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
-        print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
-        app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
-        return True # no auth
+    if is_testing(request):
+        return True
     if "Authorization" in request.headers:
         try:
             return authx.auth.is_site_admin(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
