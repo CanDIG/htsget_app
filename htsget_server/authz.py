@@ -34,7 +34,7 @@ def get_authorized_cohorts(request):
     if is_testing(request):
         return []
     try:
-        return authx.auth.get_opa_datasets(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+        return authx.auth.get_opa_datasets(request, admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
     except Exception as e:
         print(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
         app.logger.warning(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
@@ -44,7 +44,7 @@ def get_authorized_cohorts(request):
 def is_cohort_authorized(request, cohort_id):
     if is_testing(request):
         return True
-    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(request), method=request.method, path=request.path, program=cohort_id, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(request), method=request.method, path=request.path, program=cohort_id, admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
 
 
 def is_site_admin(request):
@@ -55,7 +55,7 @@ def is_site_admin(request):
         return True
     if "Authorization" in request.headers:
         try:
-            return authx.auth.is_site_admin(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+            return authx.auth.is_site_admin(request, admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
         except Exception as e:
             print(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
             app.logger.warning(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
