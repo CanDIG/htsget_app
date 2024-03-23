@@ -129,6 +129,9 @@ def test_index_variantfile(sample):
     for i in range(30):
         get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
         response = requests.get(get_url, headers=get_headers())
+        if response.status_code == 500:
+            # in case indexing is still using the database, keep looping
+            continue
         print(response.text)
         if response.json()["indexed"] == 1:
             break
