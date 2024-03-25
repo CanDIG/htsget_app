@@ -5,7 +5,7 @@ pysam==0.20.0
 sqlalchemy==1.4.44
 connexion==2.14.1
 MarkupSafe==2.1.1
-candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@daisieh/opa-roles
+candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@v2.2.1
 pytest==7.2.0
 uwsgi==2.0.22
 connexion[swagger-ui]
