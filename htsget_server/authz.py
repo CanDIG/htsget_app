@@ -8,6 +8,24 @@ import authx.auth
 app = Flask(__name__)
 
 
+def is_authed(id_, request):
+    if request is None:
+        return 401
+    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
+        print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        return 200 # no auth
+    if "Authorization" in request.headers:
+        authed_cohorts = get_authorized_cohorts(request)
+        obj = database.get_drs_object(id_)
+        if obj is not None and 'cohort' in obj:
+            if obj['cohort'] in authed_cohorts:
+                return 200
+    else:
+        return 401
+    return 403
+
+
 def is_testing(request):
     if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
         print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
@@ -15,26 +33,9 @@ def is_testing(request):
         return True
 
 
-def is_authed(id_, request):
-    if request is None:
-        return 401
-    if is_testing(request):
-        return 200 # no auth
-    if "Authorization" in request.headers:
-        obj = database.get_drs_object(id_)
-        if obj is not None and 'cohort' in obj:
-            if is_cohort_authorized(request, obj['cohort']):
-                return 200
-    else:
-        return 401
-    return 403
-
-
 def get_authorized_cohorts(request):
-    if is_testing(request):
-        return []
     try:
-        return authx.auth.get_opa_datasets(request, admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+        return authx.auth.get_opa_datasets(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
     except Exception as e:
         print(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
         app.logger.warning(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
@@ -42,20 +43,25 @@ def get_authorized_cohorts(request):
 
 
 def is_cohort_authorized(request, cohort_id):
-    if is_testing(request):
+    if is_site_admin(request):
         return True
-    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(request), method=request.method, path=request.path, program=cohort_id, admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+    authorized_cohorts = get_authorized_cohorts(request)
+    if cohort_id in authorized_cohorts:
+        return True
+    return False
 
 
 def is_site_admin(request):
     """
     Is the user associated with the token a site admin?
     """
-    if is_testing(request):
-        return True
+    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
+        print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        return True # no auth
     if "Authorization" in request.headers:
         try:
-            return authx.auth.is_site_admin(request, admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
+            return authx.auth.is_site_admin(request, opa_url=AUTHZ['CANDIG_OPA_URL'], admin_secret=AUTHZ['CANDIG_OPA_SECRET'])
         except Exception as e:
             print(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
             app.logger.warning(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
