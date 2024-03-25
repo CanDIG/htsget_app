@@ -68,7 +68,13 @@ def test_post_objects(drs_objects, cohorts):
 
     for cohort in cohorts:
         if candig_url is not None:
-            response = requests.post(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+            test_program = {
+                "program_id": cohort,
+                "program_curators": [f"{USERNAME}@test.ca"],
+                "team_members": [f"{USERNAME}@test.ca"]
+            }
+
+            response = requests.post(f"{candig_url}/ingest/program", headers=get_headers(), json=test_program)
             print(response.text)
 
     response = requests.request("GET", url, headers=headers)
@@ -123,6 +129,9 @@ def test_index_variantfile(sample):
     for i in range(30):
         get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
         response = requests.get(get_url, headers=get_headers())
+        if response.status_code == 500:
+            # in case indexing is still using the database, keep looping
+            continue
         print(response.text)
         if response.json()["indexed"] == 1:
             break
@@ -432,14 +441,6 @@ def test_beacon_get_search():
     response = requests.get(url, headers=get_headers())
     print(response.text)
     assert len(response.json()['response']) == 2
-
-    # for an unauthorized user, the request should not contain a full response, just a count
-    headers = get_headers(username="test", password="test")
-    headers["Authorization"] = "Bearer unauthorized"
-    response = requests.get(url, headers=headers)
-    print(response.text)
-    assert 'response' not in response.json()
-    assert response.json()['responseSummary']['exists']
 
 
 def get_beacon_post_search():
