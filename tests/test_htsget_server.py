@@ -70,8 +70,8 @@ def test_post_objects(drs_objects, cohorts):
         if candig_url is not None:
             test_program = {
                 "program_id": cohort,
-                "program_curators": [f"{USERNAME}@test.ca"],
-                "team_members": [f"{USERNAME}@test.ca"]
+                "program_curators": [USERNAME],
+                "team_members": [USERNAME]
             }
 
             response = requests.post(f"{candig_url}/ingest/program", headers=get_headers(), json=test_program)
