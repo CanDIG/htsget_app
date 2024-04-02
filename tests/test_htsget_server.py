@@ -42,7 +42,7 @@ def test_remove_objects(cohorts):
 
     for cohort in cohorts:
         if candig_url is not None:
-            response = requests.delete(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+            response = requests.delete(f"{candig_url}/ingest/program/{cohort}", headers=get_headers())
 
         url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
         response = requests.request("GET", url, headers=headers)
