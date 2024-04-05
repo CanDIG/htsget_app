@@ -17,8 +17,7 @@ from config import PORT
 
 HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
-USERNAME = os.getenv("CANDIG_SITE_ADMIN_USER")
-PASSWORD = os.getenv("CANDIG_SITE_ADMIN_PASSWORD")
+USERNAME = os.getenv("CANDIG_NOT_ADMIN_USER2", "user2@test.ca")
 MINIO_URL = os.getenv("MINIO_URL")
 VAULT_URL = os.getenv("VAULT_URL")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
