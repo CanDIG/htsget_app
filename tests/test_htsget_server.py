@@ -5,7 +5,7 @@ import sys
 import pytest
 import requests
 from pathlib import Path
-from authx.auth import get_minio_client, get_access_token, store_aws_credential
+from authx.auth import get_minio_client, get_site_admin_token, store_aws_credential
 from time import sleep
 
 # assumes that we are running pytest from the repo directory
@@ -26,10 +26,10 @@ MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 CWD = os.getcwd()
 
 
-def get_headers(username=USERNAME, password=PASSWORD):
+def get_headers():
     headers = {}
     try:
-        token = get_access_token(username=username, password=password)
+        token = get_site_admin_token()
         headers["Authorization"] = f"Bearer {token}"
     except Exception as e:
         headers["Authorization"] = f"Bearer {TEST_KEY}"
@@ -52,6 +52,7 @@ def test_remove_objects(cohorts):
             assert response.status_code == 200
         url = f"{HOST}/ga4gh/drs/v1/objects"
         response = requests.request("GET", url, headers=headers, params={"cohort_id": cohort})
+        print(response.text)
         assert response.status_code == 200
         for obj in response.json():
             assert obj["cohort"] != cohort
@@ -149,7 +150,7 @@ def test_install_public_object():
 # s3://1000genomes/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
     headers = get_headers()
     try:
-        token = get_access_token(username=USERNAME, password=PASSWORD)
+        token = get_site_admin_token()
     except Exception as e:
         token = None
     client = get_minio_client(token=token, s3_endpoint="http://s3.us-east-1.amazonaws.com", bucket="1000genomes", access_key=None, secret_key=None, public=True)
@@ -647,7 +648,7 @@ def get_client():
             bucket = 'testhtsget'
             if MINIO_URL and minio_access_key and minio_secret_key:
                 if VAULT_URL:
-                    token = get_access_token(username=USERNAME, password=PASSWORD)
+                    token = get_site_admin_token()
                     credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=minio_access_key, secret=minio_secret_key, vault_url=VAULT_URL)
                     if status_code == 200:
                         client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
