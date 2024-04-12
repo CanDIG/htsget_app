@@ -1,6 +1,6 @@
 This directory contains various genomic files for testing. Their contents and sources are listed below:
 
-| file set                                      | file type | variants | Location                                                              | samples                         | Source |
+| file set                                      | file type | total variants | Location                                                              | samples                         | Source |
 |-----------------------------------------------|-----------|----------|-----------------------------------------------------------------------|---------------------------------|--------|
 | `test.vcf.gz\|tbi`                            | variants  | 7        | chr1:14248, 1056628,1107718, 4404404, 9041920, 16565782, 1656584      | 2: sample_normal, sample_tumour | 1000G  |
 | `HG02102.vcf.gz\|tbi`                         | variants  | 60694    | Full chromosome 21 21:9411410-48114083                                | 1: HG02102                      | 1000G  |
