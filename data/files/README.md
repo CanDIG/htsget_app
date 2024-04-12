@@ -10,3 +10,5 @@ This directory contains various genomic files for testing. Their contents and so
 | `multisample_1.vcf.gz\|.tbi`                  | variants  | 3        | chr21:5030551-5030847                                                 | 2: NORMAL & TUMOR               |        |
 | `multisample_2.vcf.gz\|.tbi`                  | variants  | 2        | chr21:5030847-5031153                                                 | 2: NORMAL & TUMOR               |        |
 | `sample.compressed.vcf.gz\|tbi`               | variants  | 9        | 19:111,112 20:14370, 1733, 1110696, 1230237, 1234567 21:48110183 X:10 | 3: NA00001, NA00002, NA00003    |        |
+
+Files listed as 1000G are from the [1000 Genomes project](https://www.internationalgenome.org/). 
