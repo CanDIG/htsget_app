@@ -73,7 +73,8 @@ def get_access_url(object_id, access_id, request=request):
 
 
 def post_object():
-    if not authz.is_site_admin(request):
+    cohort_id = connexion.request.json["cohort"]
+    if not authz.is_cohort_authorized(request, cohort_id):
         return {"message": "User is not authorized to POST"}, 403
     new_object = database.create_drs_object(connexion.request.json)
     return new_object, 200
@@ -81,13 +82,18 @@ def post_object():
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def delete_object(object_id):
-    if not authz.is_site_admin(request):
-        return {"message": "User is not authorized to POST"}, 403
-    try:
-        new_object = database.delete_drs_object(escape(object_id))
-        return new_object, 200
-    except Exception as e:
-        return {"message": str(e)}, 500
+    obj = database.get_drs_object(object_id)
+    if obj is not None:
+        cohort_id = obj["cohort"]
+        if not authz.is_cohort_authorized(request, cohort_id):
+            return {"message": "User is not authorized to POST"}, 403
+        try:
+            new_object = database.delete_drs_object(escape(object_id))
+            return new_object, 200
+        except Exception as e:
+            return {"message": str(e)}, 500
+    else:
+        return {"message": f"object {object_id} not found"}, 404
 
 
 def list_cohorts():
