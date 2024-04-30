@@ -13,9 +13,8 @@ REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
 sys.path.insert(0, os.path.abspath(f"{REPO_DIR}/htsget_server"))
 LOCAL_FILE_PATH = os.path.abspath(f"{REPO_DIR}/data/files")
 SERVER_LOCAL_DATA = os.getenv("SERVER_LOCAL_DATA", "/app/htsget_server/data")
-from config import PORT
 
-HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
+HOST = os.getenv("TESTENV_URL")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
 USERNAME = os.getenv("CANDIG_NOT_ADMIN_USER2", "user2@test.ca")
 MINIO_URL = os.getenv("MINIO_URL")
