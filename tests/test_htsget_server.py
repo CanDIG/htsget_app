@@ -332,6 +332,18 @@ def test_sample_stats(input, program_id):
     assert input['genomic_id'] in response.json()['genomes']
 
 
+def test_cohort_samples():
+    headers = get_headers()
+
+    get_url = f"{HOST}/htsget/v1/samples"
+    response = requests.request("GET", get_url, headers=headers)
+    print(response.json())
+    response = requests.request("GET", get_url, headers=headers, params={"cohort": "1000genomes"})
+    assert response.status_code == 200
+    print(response.json())
+    assert len(response.json()) == 1
+
+
 def invalid_start_end_data():
     return [(17123456, 23588), (9203, 42220938)]
 
