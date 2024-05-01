@@ -26,6 +26,9 @@ CWD = os.getcwd()
 
 def get_headers():
     headers = {}
+    if TEST_KEY is not None:
+        headers["Authorization"] = f"Bearer {TEST_KEY}"
+        return headers
     try:
         token = get_site_admin_token()
         headers["Authorization"] = f"Bearer {token}"
@@ -307,13 +310,14 @@ def test_add_sample_drs(input, program_id):
 
     response = requests.post(post_url, json=genomic_drs_obj, headers=get_headers())
     print(response.text)
-    response = requests.request("GET", get_url, headers=headers)
+    response = requests.request("GET", get_url, headers=get_headers())
     if response.status_code == 200:
         assert response.status_code == 200
     assert len(genomic_drs_obj["contents"]) == contents_count + 1
 
     verify_url = f"{HOST}/htsget/v1/variants/{input['genomic_id']}/verify"
-    response = requests.get(verify_url)
+    response = requests.get(verify_url, headers=get_headers())
+    print(response.text)
     assert response.status_code == 200
 
 
@@ -326,10 +330,21 @@ def test_sample_stats(input, program_id):
     # look for the sample
     get_url = f"{HOST}/htsget/v1/samples/{sample[list(sample.keys()).pop()]}"
     response = requests.request("GET", get_url, headers=headers)
-    if response.status_code == 200:
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     assert input['genomic_id'] in response.json()['genomes']
+
+
+def test_cohort_samples():
+    headers = get_headers()
+
+    get_url = f"{HOST}/htsget/v1/samples"
+    response = requests.request("GET", get_url, headers=headers)
+    print(response.json())
+    response = requests.request("GET", get_url, headers=headers, params={"cohort": "1000genomes"})
+    assert response.status_code == 200
+    print(response.json())
+    assert len(response.json()) == 1
 
 
 def invalid_start_end_data():
@@ -446,7 +461,7 @@ def get_beacon_post_search():
     return [
         (
             # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
-            # first variation, corresponding to "NC_000021.8:g.5030551=", should contain two cases
+            # first variation, corresponding to "NC_000021.9:g.5030847=", should contain two cases
             {
                 "query": {
                     "requestParameters": {

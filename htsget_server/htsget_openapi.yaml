@@ -405,9 +405,25 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/SampleTicket'
     /samples:
+        get:
+            summary: Get metadata about samples in a cohort
+            operationId: htsget_operations.get_cohort_samples
+            description: Get MoH-relevant genomic information about all samples in a cohort
+            parameters:
+                - $ref: '#/components/parameters/authHeaderParam'
+                - $ref: '#/components/parameters/cohortParam'
+            responses:
+                200:
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/SampleTicket'
         post:
             summary: Get metadata about multiple samples
-            operationId: htsget_operations.get_samples
+            operationId: htsget_operations.get_multiple_samples
             description: Get MoH-relevant genomic information about a list of samples
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
@@ -855,6 +871,9 @@ components:
                 sample_id:
                     type: string
                     description: MoH submitter_sample_id from a Sample Registration associated with a specimen.
+                cohort:
+                    type: string
+                    description: MoH cohort ID
                 genome:
                     type: array
                     description: An array of associated GenomicDrsObjects that describe reads, e.g. bams.
@@ -1068,6 +1087,13 @@ components:
             name: Range
             schema:
                 $ref: '#/components/schemas/Range'
+        cohortParam:
+            in: query
+            name: cohort
+            description: name of cohort
+            required: false
+            schema:
+                type: string
     requestBodies:
         ReadsRequestBody:
             description: Specify desired file format, fields, tags, and regions from an alignment file

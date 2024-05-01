@@ -25,6 +25,8 @@ def is_authed(id_, request):
         if obj is not None and 'cohort' in obj:
             if is_cohort_authorized(request, obj['cohort']):
                 return 200
+        else:
+            return 404
     else:
         return 401
     return 403
