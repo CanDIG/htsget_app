@@ -247,6 +247,7 @@ def get_sample(id_=None):
     # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
     sample_drs_obj, result_code = drs_operations.get_object(id_)
     if result_code == 200 and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
+        result["cohort"] = sample_drs_obj["cohort"]
         for contents_obj in sample_drs_obj["contents"]:
             drs_obj = database.get_drs_object(contents_obj["id"])
             if drs_obj is not None:
@@ -265,10 +266,24 @@ def get_sample(id_=None):
     return {"message": f"Could not find sample {id_}"}, 404
 
 
-def get_samples():
+def get_multiple_samples():
     req = connexion.request.json
     result = []
     for sample in req["samples"]:
+        res, status_code = get_sample(sample)
+        if status_code == 200:
+            result.append(res)
+    return result, 200
+
+
+def get_cohort_samples(cohort=None):
+    if cohort is None:
+        sample_drs_objs = database.list_drs_objects()
+    else:
+        sample_drs_objs = database.list_drs_objects(cohort)
+    samples = list(map(lambda y: y["id"], filter(lambda x: x["description"] == "sample", sample_drs_objs)))
+    result = []
+    for sample in samples:
         res, status_code = get_sample(sample)
         if status_code == 200:
             result.append(res)

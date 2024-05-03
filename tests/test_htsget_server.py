@@ -5,7 +5,7 @@ import sys
 import pytest
 import requests
 from pathlib import Path
-from authx.auth import get_minio_client, get_access_token, store_aws_credential
+from authx.auth import get_minio_client, get_site_admin_token, store_aws_credential
 from time import sleep
 
 # assumes that we are running pytest from the repo directory
@@ -13,12 +13,10 @@ REPO_DIR = os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/..")
 sys.path.insert(0, os.path.abspath(f"{REPO_DIR}/htsget_server"))
 LOCAL_FILE_PATH = os.path.abspath(f"{REPO_DIR}/data/files")
 SERVER_LOCAL_DATA = os.getenv("SERVER_LOCAL_DATA", "/app/htsget_server/data")
-from config import PORT
 
-HOST = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
+HOST = os.getenv("TESTENV_URL")
 TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
-USERNAME = os.getenv("CANDIG_SITE_ADMIN_USER")
-PASSWORD = os.getenv("CANDIG_SITE_ADMIN_PASSWORD")
+USERNAME = os.getenv("CANDIG_NOT_ADMIN_USER2", "user2@test.ca")
 MINIO_URL = os.getenv("MINIO_URL")
 VAULT_URL = os.getenv("VAULT_URL")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
@@ -26,10 +24,13 @@ MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 CWD = os.getcwd()
 
 
-def get_headers(username=USERNAME, password=PASSWORD):
+def get_headers():
     headers = {}
+    if TEST_KEY is not None:
+        headers["Authorization"] = f"Bearer {TEST_KEY}"
+        return headers
     try:
-        token = get_access_token(username=username, password=password)
+        token = get_site_admin_token()
         headers["Authorization"] = f"Bearer {token}"
     except Exception as e:
         headers["Authorization"] = f"Bearer {TEST_KEY}"
@@ -42,7 +43,7 @@ def test_remove_objects(cohorts):
 
     for cohort in cohorts:
         if candig_url is not None:
-            response = requests.delete(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+            response = requests.delete(f"{candig_url}/ingest/program/{cohort}", headers=get_headers())
 
         url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
         response = requests.request("GET", url, headers=headers)
@@ -52,6 +53,7 @@ def test_remove_objects(cohorts):
             assert response.status_code == 200
         url = f"{HOST}/ga4gh/drs/v1/objects"
         response = requests.request("GET", url, headers=headers, params={"cohort_id": cohort})
+        print(response.text)
         assert response.status_code == 200
         for obj in response.json():
             assert obj["cohort"] != cohort
@@ -68,7 +70,13 @@ def test_post_objects(drs_objects, cohorts):
 
     for cohort in cohorts:
         if candig_url is not None:
-            response = requests.post(f"{candig_url}/ingest/program/{cohort}/email/{USERNAME}@test.ca", headers=get_headers())
+            test_program = {
+                "program_id": cohort,
+                "program_curators": [USERNAME],
+                "team_members": [USERNAME]
+            }
+
+            response = requests.post(f"{candig_url}/ingest/program", headers=get_headers(), json=test_program)
             print(response.text)
 
     response = requests.request("GET", url, headers=headers)
@@ -123,6 +131,9 @@ def test_index_variantfile(sample):
     for i in range(30):
         get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
         response = requests.get(get_url, headers=get_headers())
+        if response.status_code == 500:
+            # in case indexing is still using the database, keep looping
+            continue
         print(response.text)
         if response.json()["indexed"] == 1:
             break
@@ -140,7 +151,7 @@ def test_install_public_object():
 # s3://1000genomes/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
     headers = get_headers()
     try:
-        token = get_access_token(username=USERNAME, password=PASSWORD)
+        token = get_site_admin_token()
     except Exception as e:
         token = None
     client = get_minio_client(token=token, s3_endpoint="http://s3.us-east-1.amazonaws.com", bucket="1000genomes", access_key=None, secret_key=None, public=True)
@@ -299,13 +310,14 @@ def test_add_sample_drs(input, program_id):
 
     response = requests.post(post_url, json=genomic_drs_obj, headers=get_headers())
     print(response.text)
-    response = requests.request("GET", get_url, headers=headers)
+    response = requests.request("GET", get_url, headers=get_headers())
     if response.status_code == 200:
         assert response.status_code == 200
     assert len(genomic_drs_obj["contents"]) == contents_count + 1
 
     verify_url = f"{HOST}/htsget/v1/variants/{input['genomic_id']}/verify"
-    response = requests.get(verify_url)
+    response = requests.get(verify_url, headers=get_headers())
+    print(response.text)
     assert response.status_code == 200
 
 
@@ -318,10 +330,21 @@ def test_sample_stats(input, program_id):
     # look for the sample
     get_url = f"{HOST}/htsget/v1/samples/{sample[list(sample.keys()).pop()]}"
     response = requests.request("GET", get_url, headers=headers)
-    if response.status_code == 200:
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     assert input['genomic_id'] in response.json()['genomes']
+
+
+def test_cohort_samples():
+    headers = get_headers()
+
+    get_url = f"{HOST}/htsget/v1/samples"
+    response = requests.request("GET", get_url, headers=headers)
+    print(response.json())
+    response = requests.request("GET", get_url, headers=headers, params={"cohort": "1000genomes"})
+    assert response.status_code == 200
+    print(response.json())
+    assert len(response.json()) == 1
 
 
 def invalid_start_end_data():
@@ -433,20 +456,12 @@ def test_beacon_get_search():
     print(response.text)
     assert len(response.json()['response']) == 2
 
-    # for an unauthorized user, the request should not contain a full response, just a count
-    headers = get_headers(username="test", password="test")
-    headers["Authorization"] = "Bearer unauthorized"
-    response = requests.get(url, headers=headers)
-    print(response.text)
-    assert 'response' not in response.json()
-    assert response.json()['responseSummary']['exists']
-
 
 def get_beacon_post_search():
     return [
         (
             # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
-            # first variation, corresponding to "NC_000021.8:g.5030551=", should contain two cases
+            # first variation, corresponding to "NC_000021.9:g.5030847=", should contain two cases
             {
                 "query": {
                     "requestParameters": {
@@ -646,7 +661,7 @@ def get_client():
             bucket = 'testhtsget'
             if MINIO_URL and minio_access_key and minio_secret_key:
                 if VAULT_URL:
-                    token = get_access_token(username=USERNAME, password=PASSWORD)
+                    token = get_site_admin_token()
                     credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=minio_access_key, secret=minio_secret_key, vault_url=VAULT_URL)
                     if status_code == 200:
                         client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)

@@ -73,7 +73,8 @@ def get_access_url(object_id, access_id, request=request):
 
 
 def post_object():
-    if not authz.is_site_admin(request):
+    cohort_id = connexion.request.json["cohort"]
+    if not authz.is_cohort_authorized(request, cohort_id):
         return {"message": "User is not authorized to POST"}, 403
     new_object = database.create_drs_object(connexion.request.json)
     return new_object, 200
@@ -81,13 +82,18 @@ def post_object():
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def delete_object(object_id):
-    if not authz.is_site_admin(request):
-        return {"message": "User is not authorized to POST"}, 403
-    try:
-        new_object = database.delete_drs_object(escape(object_id))
-        return new_object, 200
-    except Exception as e:
-        return {"message": str(e)}, 500
+    obj = database.get_drs_object(object_id)
+    if obj is not None:
+        cohort_id = obj["cohort"]
+        if not authz.is_cohort_authorized(request, cohort_id):
+            return {"message": "User is not authorized to POST"}, 403
+        try:
+            new_object = database.delete_drs_object(escape(object_id))
+            return new_object, 200
+        except Exception as e:
+            return {"message": str(e)}, 500
+    else:
+        return {"message": f"object {object_id} not found"}, 404
 
 
 def list_cohorts():
@@ -104,7 +110,7 @@ def list_cohorts():
 
 
 def post_cohort():
-    if not authz.is_site_admin(request):
+    if not authz.is_cohort_authorized(request, connexion.request.json['id']):
         return {"message": "User is not authorized to POST"}, 403
     new_cohort = database.create_cohort(connexion.request.json)
     return new_cohort, 200
@@ -114,16 +120,13 @@ def get_cohort(cohort_id):
     new_cohort = database.get_cohort(cohort_id)
     if new_cohort is None:
         return {"message": "No matching cohort found"}, 404
-    if authz.is_site_admin(request):
-        return new_cohort, 200
-    authorized_cohorts = authz.get_authorized_cohorts(request)
-    if new_cohort["id"] in authorized_cohorts:
+    if authz.is_cohort_authorized(request, cohort_id):
         return new_cohort, 200
     return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
 
 
 def delete_cohort(cohort_id):
-    if not authz.is_site_admin(request):
+    if not authz.is_cohort_authorized(request, cohort_id):
         return {"message": "User is not authorized to POST"}, 403
     try:
         new_cohort = database.delete_cohort(cohort_id)
