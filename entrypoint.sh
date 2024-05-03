@@ -5,6 +5,7 @@ set -Euo pipefail
 export VAULT_S3_TOKEN=$(cat /run/secrets/vault-s3-token)
 export OPA_SECRET=$(cat /run/secrets/opa-service-token)
 export VAULT_URL=$VAULT_URL
+export AGGREGATE_COUNT_THRESHOLD=$AGGREGATE_COUNT_THRESHOLD
 
 if [[ -f "initial_setup" ]]; then
     if [[ -f "/run/secrets/cert.pem" ]]; then
@@ -21,6 +22,7 @@ if [[ -f "initial_setup" ]]; then
     sed -i s@\<CANDIG_OPA_SECRET\>@$OPA_SECRET@ config.ini
     sed -i s@\<OPA_URL\>@$OPA_URL@ config.ini
     sed -i s@\<VAULT_URL\>@$VAULT_URL@ config.ini
+    sed -i s@\<AGGREGATE_COUNT_THRESHOLD\>@$AGGREGATE_COUNT_THRESHOLD@ config.ini
 
     bash create_db.sh
     mkdir $INDEXING_PATH

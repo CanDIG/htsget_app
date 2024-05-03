@@ -27,6 +27,8 @@ BUCKET_SIZE = int(config['DEFAULT']['BucketSize'])
 
 PORT = config['DEFAULT']['Port']
 
+AGGREGATE_COUNT_THRESHOLD = config['DEFAULT']['AGGREGATE_COUNT_THRESHOLD']
+
 TEST_KEY = os.getenv("HTSGET_TEST_KEY", "testtesttest")
 
 USE_MINIO_SANDBOX = False
