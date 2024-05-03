@@ -301,6 +301,9 @@ def search(raw_req):
                 response['beaconHandovers'].append(handover)
         if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
             response['response'] = resultset
+            if len(resultset) > 0: # use true number if we're authorized, even if below AGGREGATE_COUNT_THRESHOLD
+                response['responseSummary']['numTotalResults'] = len(resultset)
+
         else:
             response.pop('beaconHandovers')
             if meta['returnedGranularity'] == 'boolean':
