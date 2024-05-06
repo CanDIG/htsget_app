@@ -24,6 +24,7 @@ install:
   - mkdir -p $INDEXING_PATH
 
 script:
+  - sed -i s@\<AGGREGATE_COUNT_THRESHOLD\>@$AGGREGATE_COUNT_THRESHOLD@ config.ini
   - python htsget_server/server.py &
   - python htsget_server/indexing.py &
   - sleep 5
