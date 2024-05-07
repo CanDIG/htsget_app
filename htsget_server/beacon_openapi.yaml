@@ -488,8 +488,7 @@ components:
       type: array
     NumTotalResults:
       description: Total number of results. NOT the number of results returned in this batch (after pagination) but the total obtained by the query.
-      minimum: 0
-      type: integer
+      type: string
     PageToken:
       description: A hash or similar that allows the server to retrieve a "page", e.g. (a subset of) a query response.
       example: ab0sc&fe1dd

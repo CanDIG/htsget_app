@@ -9,6 +9,7 @@ import re
 import connexion
 from functools import reduce
 import authz
+from config import AGGREGATE_COUNT_THRESHOLD
 
 
 app = Flask(__name__)
@@ -272,7 +273,10 @@ def search(raw_req):
 
 
         if len(resultset) > 0:
-            response['responseSummary']['numTotalResults'] = len(resultset)
+            if len(resultset) < int(AGGREGATE_COUNT_THRESHOLD):
+                response['responseSummary']['numTotalResults'] = f"<{AGGREGATE_COUNT_THRESHOLD}"
+            else:
+                response['responseSummary']['numTotalResults'] = len(resultset)
             response['responseSummary']['exists'] = True
 
         # if the request granularity was "record", check to see that the user is actually authorized to see any cohorts:
@@ -297,6 +301,9 @@ def search(raw_req):
                 response['beaconHandovers'].append(handover)
         if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
             response['response'] = resultset
+            if len(resultset) > 0: # use true number if we're authorized, even if below AGGREGATE_COUNT_THRESHOLD
+                response['responseSummary']['numTotalResults'] = len(resultset)
+
         else:
             response.pop('beaconHandovers')
             if meta['returnedGranularity'] == 'boolean':
