@@ -627,10 +627,8 @@ def drs_objects():
             "name": data_file,
             "id": type
         })
-    try:
-        client = get_client()
-    except Exception as e:
-        client = None
+    # removing minio step
+    client = None
 
     for obj in result:
         if "contents" not in obj:
