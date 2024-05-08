@@ -227,6 +227,16 @@ def test_install_public_object():
         print(f"POST {obj['name']}: {response.text}")
         assert response.status_code == 200
 
+    # check to make sure we can get data from this
+    url = f"{HOST}/htsget/v1/variants/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes"
+    response = requests.request("GET", url, headers=headers)
+    assert response.status_code == 200
+
+    url = f"{HOST}/htsget/v1/variants/data/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes?class=header"
+    response = requests.request("GET", url, headers=headers)
+    assert response.status_code == 200
+
+    assert response.text.startswith("##fileformat=VCFv4.1")
 
 def get_ingest_file():
     return [
