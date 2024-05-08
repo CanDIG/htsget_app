@@ -15,7 +15,7 @@ def is_testing(request):
         return True
 
 
-def is_authed(id_, request):
+def is_authed(id_, request, allow_elevated_privileges=False):
     if request is None:
         return 401
     if is_testing(request):
@@ -24,7 +24,7 @@ def is_authed(id_, request):
         obj = database.get_drs_object(id_)
         if obj is not None and 'cohort' in obj:
             if is_cohort_authorized(request, obj['cohort']) \
-                or request_is_from_query(request):
+                or (allow_elevated_privileges and request_is_from_query(request)):
                 return 200
         else:
             return 404

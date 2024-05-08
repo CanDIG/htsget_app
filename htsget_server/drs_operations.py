@@ -34,7 +34,7 @@ def get_service_info():
 
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
-def get_object(object_id, expand=False):
+def get_object(object_id, expand=False, allow_elevated_privileges=False):
     app.logger.debug(f"looking for object {object_id}")
     access_url_parse = re.match(r"(.+?)/access_url/(.+)", escape(object_id))
     if access_url_parse is not None:
@@ -42,7 +42,7 @@ def get_object(object_id, expand=False):
     new_object = None
     if object_id is not None:
         new_object = database.get_drs_object(escape(object_id), expand)
-        auth_code = authz.is_authed(escape(object_id), request)
+        auth_code = authz.is_authed(escape(object_id), request, allow_elevated_privileges)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     if new_object is None:

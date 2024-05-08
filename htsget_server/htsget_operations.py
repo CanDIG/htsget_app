@@ -234,7 +234,7 @@ def get_matching_transcripts(id_=None):
 
 
 @app.route('/samples/<path:id_>')
-def get_sample(id_=None):
+def get_sample(id_=None, allow_elevated_privileges=False):
     result = {
         "sample_id": id_,
         "genomes": [],
@@ -245,7 +245,7 @@ def get_sample(id_=None):
 
     # Get the SampleDrsObject. It will have a contents array of GenomicContentsObjects > GenomicDrsObjects.
     # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
-    sample_drs_obj, result_code = drs_operations.get_object(id_)
+    sample_drs_obj, result_code = drs_operations.get_object(id_, allow_elevated_privileges=allow_elevated_privileges)
     if result_code == 200 and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
         result["cohort"] = sample_drs_obj["cohort"]
         for contents_obj in sample_drs_obj["contents"]:
@@ -284,7 +284,7 @@ def get_cohort_samples(cohort=None):
     samples = list(map(lambda y: y["id"], filter(lambda x: x["description"] == "sample", sample_drs_objs)))
     result = []
     for sample in samples:
-        res, status_code = get_sample(sample)
+        res, status_code = get_sample(sample, allow_elevated_privileges=True)
         if status_code == 200:
             result.append(res)
     return result, 200
