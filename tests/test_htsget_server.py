@@ -616,30 +616,44 @@ def drs_objects():
             "name": data_file,
             "id": type
         })
-
-    client = get_client()
+    try:
+        client = get_client()
+    except Exception as e:
+        client = None
 
     for obj in result:
         if "contents" not in obj:
-            # create access_methods:
-            access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
-            if VAULT_URL is None and client['access'] and client['secret']:
-                access_id += f"?access={client['access']}&secret={client['secret']}"
-            obj["access_methods"] = [
-                {
-                    "type": "s3",
-                    "access_id": access_id
-                }
-            ]
-            try:
-                file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
-                obj['size'] = file.stat().st_size
-                with Path.open(file, "rb") as fp:
-                    res = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
-            except Exception as e:
-                print(str(e))
-                assert False
-                return {"message": str(e)}, 500
+            if client is not None:
+                # create access_methods:
+                access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
+                if VAULT_URL is None and client['access'] and client['secret']:
+                    access_id += f"?access={client['access']}&secret={client['secret']}"
+                obj["access_methods"] = [
+                    {
+                        "type": "s3",
+                        "access_id": access_id
+                    }
+                ]
+                try:
+                    file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
+                    obj['size'] = file.stat().st_size
+                    with Path.open(file, "rb") as fp:
+                        res = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
+                except Exception as e:
+                    print(str(e))
+                    assert False
+                    return {"message": str(e)}, 500
+            else:
+                access_url = f"file:///{SERVER_LOCAL_DATA}/files/{obj['id']}" # this is local within the htsget server container, not from where we're running pytest
+                obj["access_methods"] = [
+                    {
+                        "type": "file",
+                        "access_url": {
+                            "url": access_url
+                        }
+                    }
+                ]
+
     return result
 
 
