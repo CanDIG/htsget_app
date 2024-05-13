@@ -7,7 +7,7 @@ services:
   - docker
 
 env:
-  - HTSGET_TEST_KEY=thisisatest DB_PATH=localhost SERVER_LOCAL_DATA=/home/travis/build/CanDIG/htsget_app/data PGPASSWORD=OG0pjmnQDWUTvLotYrxPrg PGUSER=admin INDEXING_PATH=/home/travis/build/CanDIG/tmp TESTENV_URL=http://localhost:3000 AGGREGATE_COUNT_THRESHOLD=5
+  - HTSGET_TEST_KEY=thisisatest DB_PATH=localhost SERVER_LOCAL_DATA=/home/travis/build/CanDIG/htsget_app/data PGPASSWORD=OG0pjmnQDWUTvLotYrxPrg INDEXING_PATH=/home/travis/build/CanDIG/tmp TESTENV_URL=http://localhost:3000 AGGREGATE_COUNT_THRESHOLD=5 POSTGRES_USERNAME=admin
 
 before_install:
   - docker pull postgres:15-alpine
@@ -23,6 +23,7 @@ install:
 
 script:
   - sed -i s@\<AGGREGATE_COUNT_THRESHOLD\>@$AGGREGATE_COUNT_THRESHOLD@ config.ini
+  - sed -i s@\<POSTGRES_USERNAME\>@$POSTGRES_USERNAME@ config.ini
   - python htsget_server/server.py &
   - python htsget_server/indexing.py &
   - sleep 5
