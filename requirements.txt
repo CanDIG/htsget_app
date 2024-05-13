@@ -1,5 +1,5 @@
 Flask==2.2.5
-Flask-Cors==3.0.10
+Flask-Cors==4.0.1
 minio==7.1.14
 pysam==0.22.0
 sqlalchemy==1.4.44
