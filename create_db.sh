@@ -6,7 +6,7 @@ set -Euo pipefail
 db=${DB_PATH:-"metadata-db"}
 
 # PGPASSWORD is used by psql to avoid the password prompt
-export PGPASSWORD=${PGPASSWORD:-`cat $POSTGRES_PASSWORD_FILE`}
+export PGPASSWORD=${PGPASSWORD:-$(cat $POSTGRES_PASSWORD_FILE)}
 export PGUSER=$POSTGRES_USERNAME
 
 until pg_isready -h "$db" -p 5432 -U $PGUSER; do
