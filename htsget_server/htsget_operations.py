@@ -245,8 +245,8 @@ def get_sample(id_=None):
 
     # Get the SampleDrsObject. It will have a contents array of GenomicContentsObjects > GenomicDrsObjects.
     # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
-    sample_drs_obj, result_code = drs_operations.get_object(id_)
-    if result_code == 200 and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
+    sample_drs_obj = database.get_drs_object(id_)
+    if sample_drs_obj is not None and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
         result["cohort"] = sample_drs_obj["cohort"]
         for contents_obj in sample_drs_obj["contents"]:
             drs_obj = database.get_drs_object(contents_obj["id"])
@@ -262,7 +262,8 @@ def get_sample(id_=None):
                             result["variants"].append(drs_obj["id"])
                         elif content["id"] == "read":
                             result["reads"].append(drs_obj["id"])
-        return result, 200
+        if authz.is_authed(id_, request):
+            return result, 200
     return {"message": f"Could not find sample {id_}"}, 404
 
 
