@@ -115,38 +115,6 @@ def test_post_update():
     assert response.json()["access_methods"][0]["access_url"]["url"] == access_url
 
 
-def index_variants():
-    return [('sample.compressed'), ('NA18537'), ('multisample_1'), ('multisample_2'), ('test')]
-
-
-@pytest.mark.parametrize('sample', index_variants())
-def test_index_variantfile(sample):
-    url = f"{HOST}/htsget/v1/variants/{sample}/index"
-    params = {}
-    params['force'] = True
-    response = requests.get(url, params=params, headers=get_headers())
-    assert response.status_code == 200
-
-    # shouldn't take more than a second to index the tiny file, but just in case: a max 30 second check
-    for i in range(30):
-        get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
-        response = requests.get(get_url, headers=get_headers())
-        if response.status_code == 500:
-            # in case indexing is still using the database, keep looping
-            continue
-        print(response.text)
-        if response.json()["indexed"] == 1:
-            break
-        sleep(1)
-
-    get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
-    response = requests.get(get_url, headers=get_headers())
-    print(response.text)
-    assert response.json()["indexed"] == 1
-    assert len(response.json()["checksums"]) > 0
-    assert response.json()["size"] > 0
-
-
 def test_install_public_object():
 # s3://1000genomes/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
     headers = get_headers()
@@ -226,6 +194,49 @@ def test_install_public_object():
         response = requests.request("POST", url, json=obj, headers=headers)
         print(f"POST {obj['name']}: {response.text}")
         assert response.status_code == 200
+
+    # check to make sure we can get data from this
+    url = f"{HOST}/htsget/v1/variants/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes"
+    response = requests.request("GET", url, headers=headers)
+    assert response.status_code == 200
+
+    url = f"{HOST}/htsget/v1/variants/data/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes?class=header"
+    response = requests.request("GET", url, headers=headers)
+    assert response.status_code == 200
+
+    assert response.text.startswith("##fileformat=VCFv4.1")
+
+
+def index_variants():
+    return [('sample.compressed'), ('NA18537'), ('multisample_1'), ('multisample_2'), ('test')]
+
+
+@pytest.mark.parametrize('sample', index_variants())
+def test_index_variantfile(sample):
+    url = f"{HOST}/htsget/v1/variants/{sample}/index"
+    params = {}
+    params['force'] = True
+    response = requests.get(url, params=params, headers=get_headers())
+    assert response.status_code == 200
+
+    # shouldn't take more than a second to index the tiny file, but just in case: a max 30 second check
+    for i in range(30):
+        get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
+        response = requests.get(get_url, headers=get_headers())
+        if response.status_code == 500:
+            # in case indexing is still using the database, keep looping
+            continue
+        print(response.text)
+        if response.json()["indexed"] == 1:
+            break
+        sleep(1)
+
+    get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
+    response = requests.get(get_url, headers=get_headers())
+    print(response.text)
+    assert response.json()["indexed"] == 1
+    assert len(response.json()["checksums"]) > 0
+    assert response.json()["size"] > 0
 
 
 def get_ingest_file():
@@ -616,30 +627,42 @@ def drs_objects():
             "name": data_file,
             "id": type
         })
-
-    client = get_client()
+    # removing minio step
+    client = None
 
     for obj in result:
         if "contents" not in obj:
-            # create access_methods:
-            access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
-            if VAULT_URL is None and client['access'] and client['secret']:
-                access_id += f"?access={client['access']}&secret={client['secret']}"
-            obj["access_methods"] = [
-                {
-                    "type": "s3",
-                    "access_id": access_id
-                }
-            ]
-            try:
-                file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
-                obj['size'] = file.stat().st_size
-                with Path.open(file, "rb") as fp:
-                    res = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
-            except Exception as e:
-                print(str(e))
-                assert False
-                return {"message": str(e)}, 500
+            if client is not None:
+                # create access_methods:
+                access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
+                if VAULT_URL is None and client['access'] and client['secret']:
+                    access_id += f"?access={client['access']}&secret={client['secret']}"
+                obj["access_methods"] = [
+                    {
+                        "type": "s3",
+                        "access_id": access_id
+                    }
+                ]
+                try:
+                    file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
+                    obj['size'] = file.stat().st_size
+                    with Path.open(file, "rb") as fp:
+                        res = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
+                except Exception as e:
+                    print(str(e))
+                    assert False
+                    return {"message": str(e)}, 500
+            else:
+                access_url = f"file:///{SERVER_LOCAL_DATA}/files/{obj['id']}" # this is local within the htsget server container, not from where we're running pytest
+                obj["access_methods"] = [
+                    {
+                        "type": "file",
+                        "access_url": {
+                            "url": access_url
+                        }
+                    }
+                ]
+
     return result
 
 
