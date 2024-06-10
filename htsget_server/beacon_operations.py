@@ -449,6 +449,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
         if 'caseLevelData' in resultset[variant] and len(resultset[variant]['caseLevelData']) > 0:
             resultset[variant]['variantInternalId'] = variant
             final_resultset.append(resultset[variant])
+    final_resultset.sort(key=lambda x: x['variantInternalId'])
     return final_resultset
 
 
