@@ -2,7 +2,6 @@ from flask import Flask
 import variants
 import drs_operations
 import htsget_operations
-import variants
 import database
 import json
 import re
