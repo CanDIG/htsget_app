@@ -424,7 +424,7 @@ def create_drs_object(obj):
         if len(new_object.access_methods) != 0:
             for method in new_object.access_methods:
                 session.delete(method)
-            session.commit()
+                session.commit()
         for method in obj['access_methods']:
             new_method = AccessMethod()
             new_method.drs_object_id = new_object.id
@@ -445,6 +445,7 @@ def create_drs_object(obj):
         if len(new_object.contents) != 0:
             for contents in new_object.contents:
                 session.delete(contents)
+                session.commit()
         for contents in obj['contents']:
             new_contents = ContentsObject()
             new_contents.drs_object_id = new_object.id
@@ -476,6 +477,7 @@ def delete_drs_object(obj_id):
             variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
             for vf in variantfiles:
                 session.delete(vf)
+                session.commit()
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))
@@ -523,7 +525,9 @@ def delete_cohort(cohort_id):
         for cohort_obj in cohort_objs:
             for drs_obj in cohort_obj.associated_drs:
                 session.delete(drs_obj)
+                session.commit()
             session.delete(cohort_obj)
+            session.commit()
         session.commit()
         return json.loads(str(cohort_objs))
 
