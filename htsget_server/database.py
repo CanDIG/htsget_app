@@ -273,7 +273,7 @@ class DrsObject(ObjectDBBase):
     contents = relationship("ContentsObject", cascade="all, delete, delete-orphan")
     cohort_id = Column(String, ForeignKey('cohort.id'))
     cohort = relationship("Cohort", back_populates="associated_drs")
-    variantfile = relationship("VariantFile", back_populates="drs_object")
+    variantfile = relationship("VariantFile", back_populates="drs_object", cascade="all, delete")
 
     def __repr__(self):
         result = {
