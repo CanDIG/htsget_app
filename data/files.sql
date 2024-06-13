@@ -7,7 +7,7 @@ CREATE TABLE drs_object (
         id VARCHAR NOT NULL,
         name VARCHAR,
         self_uri VARCHAR,
-        size INTEGER,
+        size BIGINT,
         created_time VARCHAR,
         updated_time VARCHAR,
         version VARCHAR,
