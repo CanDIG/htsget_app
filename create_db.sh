@@ -32,8 +32,7 @@ if [[ $numgenes -lt 5 ]]; then
     echo "adding data to ncbirefseq..."
     awk '{ print "INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES (" "\047hg37\047, \047" $1 "\047, \047" $2 "\047, " $3 ", " $4 ", \047" $5 "\047) ON CONFLICT DO NOTHING;"}' data/refseq/ncbiRefSeqSelect.hg37.txt >> genes.sql
     awk '{ print "INSERT INTO ncbirefseq (reference_genome, transcript_name, contig, start, endpos, gene_name) VALUES (" "\047hg38\047, \047" $1 "\047, \047" $2 "\047, " $3 ", " $4 ", \047" $5 "\047) ON CONFLICT DO NOTHING;"}' data/refseq/ncbiRefSeqSelect.hg38.txt >> genes.sql
-
-    psql --quiet -h "$db" -U $PGUSER -d genomic -a -f genes.sql >>setup_out.txt
+    psql --quiet -h "$db" -U $PGUSER -d genomic -a -c 'SET synchronous_commit TO off;' -c '\i genes.sql' -c 'SET synchronous_commit TO on;' >> setup_out.txt
     # rm genes.sql
     echo "...done"
 fi
@@ -41,4 +40,5 @@ fi
 # run any migrations:
 echo "running migrations..."
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_288.sql >>setup_out.txt
+psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_315.sql >>setup_out.txt
 echo "...done"

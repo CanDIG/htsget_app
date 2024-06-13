@@ -472,7 +472,7 @@ def get_beacon_post_search():
     return [
         (
             # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
-            # first variation, corresponding to "NC_000021.9:g.5030847=", should contain two cases
+            # first variation, corresponding to "NC_000021.9:g.5030551=", should contain two cases
             {
                 "query": {
                     "requestParameters": {

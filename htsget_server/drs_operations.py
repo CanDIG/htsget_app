@@ -9,6 +9,8 @@ from markupsafe import escape
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import parse_qs, urlparse, urlencode
 from config import INDEXING_PATH
+from time import sleep
+from random import randint
 
 
 app = Flask(__name__)
@@ -72,11 +74,21 @@ def get_access_url(object_id, access_id, request=request):
     return _get_access_url(access_id)
 
 
-def post_object():
+def post_object(tries=1):
     cohort_id = connexion.request.json["cohort"]
+    object_id = connexion.request.json['id']
     if not authz.is_cohort_authorized(request, cohort_id):
         return {"message": "User is not authorized to POST"}, 403
-    new_object = database.create_drs_object(connexion.request.json)
+    if tries > 3:
+        raise Exception(f"Exception in post_object {object_id}, too many tries")
+    elif tries > 1:
+        # if this isn't the first try, pause for a bit and then try again
+        sleep(randint(1,10)/2)
+    try:
+        new_object = database.create_drs_object(connexion.request.json)
+    except Exception as e:
+        app.logger.info(f"Exception in post_object {object_id}: {str(e)}, trying again")
+        return post_object(tries=tries+1)
     return new_object, 200
 
 
