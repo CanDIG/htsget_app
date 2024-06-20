@@ -1,7 +1,6 @@
 import configparser
 import os
 import re
-from minio import Minio
 
 config = configparser.ConfigParser(interpolation=None)
 config.read(os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/../config.ini"))
@@ -30,12 +29,6 @@ PORT = config['DEFAULT']['Port']
 AGGREGATE_COUNT_THRESHOLD = config['DEFAULT']['AGGREGATE_COUNT_THRESHOLD']
 
 TEST_KEY = os.getenv("HTSGET_TEST_KEY", "testtesttest")
-
-USE_MINIO_SANDBOX = False
-if os.environ.get("USE_MINIO_SANDBOX") == "True":
-    USE_MINIO_SANDBOX = True
-
-VAULT_S3_TOKEN = os.getenv("VAULT_S3_TOKEN", "none")
 
 DEBUG_MODE = False
 if os.getenv("DEBUG_MODE", "1") == "1":
