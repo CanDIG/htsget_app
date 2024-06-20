@@ -10,7 +10,6 @@ from flask import Flask
 import logging
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO, format=f'%(threadName)s %(asctime)s %(levelname)s %(name)s : %(message)s')
 
 engine = create_engine(DB_PATH, echo=False)
 
