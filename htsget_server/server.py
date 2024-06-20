@@ -1,7 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
 import connexion
-import logging
 from config import PORT, DEBUG_MODE
 
 # Create the application instance
