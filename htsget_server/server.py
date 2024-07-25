@@ -2,6 +2,9 @@ from flask import Flask
 from flask_cors import CORS
 import connexion
 from config import PORT, DEBUG_MODE
+import candigv2_logging.logging
+
+candigv2_logging.logging.initialize()
 
 # Create the application instance
 app = connexion.App(__name__, specification_dir='./')
@@ -21,4 +24,4 @@ def index():
     return 'INDEX'
 
 if __name__ == '__main__':
-    app.run(port = PORT, debug=DEBUG_MODE)
+    app.run(port = PORT)
