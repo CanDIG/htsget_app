@@ -3,6 +3,7 @@ from config import AUTHZ, TEST_KEY
 from flask import Flask
 import database
 import authx.auth
+from candigv2_logging.logging import log_message
 
 
 app = Flask(__name__)
@@ -10,8 +11,7 @@ app = Flask(__name__)
 
 def is_testing(request):
     if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
-        print("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
-        app.logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        log_message("WARNING","WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return True
 
 
@@ -39,8 +39,7 @@ def get_authorized_cohorts(request):
     try:
         return authx.auth.get_opa_datasets(request)
     except Exception as e:
-        print(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
-        app.logger.warning(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
+        log_message("WARNING",f"Couldn't authorize cohorts: {type(e)} {str(e)}")
         return []
 
 
@@ -60,8 +59,7 @@ def is_site_admin(request):
         try:
             return authx.auth.is_site_admin(request)
         except Exception as e:
-            print(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
-            app.logger.warning(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
+            log_message("WARNING",f"Couldn't authorize site_admin: {type(e)} {str(e)}")
             return False
     return False
 

@@ -11,10 +11,8 @@ from urllib.parse import parse_qs, urlparse, urlencode
 from config import INDEXING_PATH
 from time import sleep
 from random import randint
-import logging
+from candigv2_logging.logging import log_message
 
-
-logger = logging.getLogger(__file__)
 
 app = Flask(__name__)
 
@@ -40,7 +38,7 @@ def get_service_info():
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def get_object(object_id, expand=False):
-    logger.debug(f"looking for object {object_id}")
+    log_message("DEBUG",f"looking for object {object_id}")
     access_url_parse = re.match(r"(.+?)/access_url/(.+)", escape(object_id))
     if access_url_parse is not None:
         return get_access_url(access_url_parse.group(1), access_url_parse.group(2))
@@ -90,7 +88,7 @@ def post_object(tries=1):
     try:
         new_object = database.create_drs_object(connexion.request.json)
     except Exception as e:
-        logger.debug(f"Exception in post_object {object_id}: {str(e)}, trying again")
+        log_message("DEBUG",f"Exception in post_object {object_id}: {str(e)}, trying again")
         return post_object(tries=tries+1)
     return new_object, 200
 
@@ -305,7 +303,7 @@ def _get_file_path(drs_file_obj_id):
 
 
 def _get_access_url(access_id):
-    logger.debug(f"looking for url {access_id}")
+    log_message("DEBUG",f"looking for url {access_id}")
     id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
     if id_parse is not None:
         endpoint = id_parse.group(1)

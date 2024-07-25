@@ -11,10 +11,10 @@ import connexion
 import variants
 import indexing
 from pathlib import Path
+from candigv2_logging.logging import log_message
 
 
 app = Flask(__name__)
-
 
 # Endpoints
 def get_read_service_info():
@@ -122,6 +122,7 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
     if id_ is not None:
         auth_code = authz.is_authed(escape(id_), request)
         if auth_code == 200:
+            log_message("INFO", f"getting variants for {id_}", request)
             return _get_urls("variant", escape(id_), reference_name, start, end, class_)
     else:
         return None, 404

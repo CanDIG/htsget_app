@@ -9,6 +9,7 @@ import connexion
 from functools import reduce
 import authz
 from config import AGGREGATE_COUNT_THRESHOLD
+from candigv2_logging.logging import log_message
 
 
 app = Flask(__name__)
