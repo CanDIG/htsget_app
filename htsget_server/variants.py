@@ -2,6 +2,10 @@ import os
 import re
 import database
 import drs_operations
+from candigv2_logging.logging import CanDIGLogger
+
+
+logger = CanDIGLogger(__file__)
 
 
 def find_variants_in_region(reference_name=None, start=None, end=None):

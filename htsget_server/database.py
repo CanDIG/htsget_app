@@ -7,10 +7,11 @@ from random import randint
 from time import sleep
 from config import DB_PATH, BUCKET_SIZE, HTSGET_URL
 from flask import Flask
-import logging
+from candigv2_logging.logging import CanDIGLogger
 
-app = Flask(__name__)
-logging.basicConfig(level=logging.INFO, format=f'%(threadName)s %(asctime)s %(levelname)s %(name)s : %(message)s')
+
+logger = CanDIGLogger(__file__)
+
 
 engine = create_engine(DB_PATH, echo=False)
 
@@ -376,7 +377,7 @@ def get_drs_object(object_id, expand=False, tries=1):
     #             expand doesn't do anything on this DRS server
                 return new_obj
         except Exception as e:
-            app.logger.info(f"Exception in get_drs_object {object_id}: {str(e)}, trying again")
+            logger.log_message("DEBUG",f"Exception in get_drs_object {object_id}: {str(e)}, trying again")
             return get_drs_object(object_id, expand, tries=tries+1)
         return None
 
@@ -599,7 +600,7 @@ def get_variantfile(variantfile_id, tries=1):
                 new_obj = json.loads(str(result))
                 return new_obj
         except Exception as e:
-            app.logger.info(f"Exception in get_variantfile {variantfile_id}: {str(e)}, trying again")
+            logger.log_message("DEBUG",f"Exception in get_variantfile {variantfile_id}: {str(e)}, trying again")
             return get_variantfile(variantfile_id, tries=tries+1)
         return None
 
@@ -942,6 +943,6 @@ def search(obj, tries=1):
                 results.append(curr_result)
             return results
         except Exception as e:
-            app.logger.info(f"Exception in search: {str(e)}, trying again")
+            logger.log_message("DEBUG",f"Exception in search: {str(e)}, trying again")
             return search(obj, tries=tries+1)
     return None

@@ -16,6 +16,9 @@ if [[ -f "initial_setup" ]]; then
     rm initial_setup
 fi
 
+python -c "import candigv2_logging.logging
+candigv2_logging.logging.initialize()"
+
 # use the following for development
 #python3 htsget_server/server.py
 
