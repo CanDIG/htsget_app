@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 def is_testing(request):
     if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
-        logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        logger.warning("TEST MODE, AUTHORIZATION IS DISABLED")
         return True
 
 
