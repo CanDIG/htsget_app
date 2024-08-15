@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 def is_testing(request):
     if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
-        logger.log_message("WARNING","WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
+        logger.warning("WARNING: TEST MODE, AUTHORIZATION IS DISABLED")
         return True
 
 
@@ -42,7 +42,7 @@ def get_authorized_cohorts(request):
     try:
         return authx.auth.get_opa_datasets(request)
     except Exception as e:
-        logger.log_message("WARNING",f"Couldn't authorize cohorts: {type(e)} {str(e)}")
+        logger.warning(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
         return []
 
 
@@ -62,7 +62,7 @@ def is_site_admin(request):
         try:
             return authx.auth.is_site_admin(request)
         except Exception as e:
-            logger.log_message("WARNING",f"Couldn't authorize site_admin: {type(e)} {str(e)}")
+            logger.warning(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
             return False
     return False
 
