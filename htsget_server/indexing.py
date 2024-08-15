@@ -10,7 +10,10 @@ import watchdog.events
 import hashlib
 import re
 import datetime
-from candigv2_logging.logging import initialize, log_message
+from candigv2_logging.logging import initialize, CanDIGLogger
+
+
+logger = CanDIGLogger(__file__)
 
 initialize()
 
@@ -24,9 +27,9 @@ def index_variants(file_name=None):
     else:
         return {"message": f"Format of file name is wrong: {file_name}"}, 500
 
-    log_message("INFO",f"adding stats to {drs_obj_id}")
+    logger.log_message("INFO",f"adding stats to {drs_obj_id}")
     calculate_stats(drs_obj_id)
-    log_message("INFO",f"{drs_obj_id} stats done")
+    logger.log_message("INFO",f"{drs_obj_id} stats done")
 
     gen_obj = drs_operations._get_genomic_obj(drs_obj_id)
     if gen_obj is None:
@@ -37,19 +40,19 @@ def index_variants(file_name=None):
     if gen_obj['type'] == 'read':
         return {"message": f"Read object {drs_obj_id} stats calculated"}, 200
 
-    log_message("INFO",f"{drs_obj_id} starting indexing")
+    logger.log_message("INFO",f"{drs_obj_id} starting indexing")
 
     headers = str(gen_obj['file'].header).split('\n')
 
     database.add_header_for_variantfile({'texts': headers, 'variantfile_id': drs_obj_id})
-    log_message("INFO",f"{drs_obj_id} indexed {len(headers)} headers")
+    logger.log_message("INFO",f"{drs_obj_id} indexed {len(headers)} headers")
 
     samples = list(gen_obj['file'].header.samples)
     for sample in samples:
         if database.create_sample({'id': sample, 'variantfile_id': drs_obj_id}) is None:
-            log_message("WARNING",f"Could not add sample {sample} to variantfile {drs_obj_id}")
+            logger.log_message("WARNING",f"Could not add sample {sample} to variantfile {drs_obj_id}")
 
-    log_message("INFO",f"{drs_obj_id} indexed {len(samples)} samples in file")
+    logger.log_message("INFO",f"{drs_obj_id} indexed {len(samples)} samples in file")
 
     contigs = {}
     for contig in list(gen_obj['file'].header.contigs):
@@ -71,14 +74,14 @@ def index_variants(file_name=None):
             positions.append(record.pos)
             normalized_contigs.append(normalized_contig_id)
         else:
-            log_message("WARNING",f"referenceName {record.contig} in {drs_obj_id} does not correspond to a known chromosome.")
+            logger.log_message("WARNING",f"referenceName {record.contig} in {drs_obj_id} does not correspond to a known chromosome.")
     res = create_position(to_create)
 
-    log_message("INFO",f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
+    logger.log_message("INFO",f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
     database.create_pos_bucket(res)
 
     database.mark_variantfile_as_indexed(drs_obj_id)
-    log_message("INFO",f"{drs_obj_id} done")
+    logger.log_message("INFO",f"{drs_obj_id} done")
 
     return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200
 
@@ -126,7 +129,7 @@ def calculate_stats(obj_id):
         # if there are access methods, it's a file object
         file_obj = drs_operations._get_file_path(drs_json["id"])
         if file_obj["checksum"] is None:
-            log_message("DEBUG",f"calculating checksum for {drs_json['id']}")
+            logger.log_message("DEBUG",f"calculating checksum for {drs_json['id']}")
             checksum = []
             with open(file_obj["path"], "rb") as f:
                 bytes = f.read()  # read file as bytes
@@ -134,7 +137,7 @@ def calculate_stats(obj_id):
                     "type": "sha-256",
                     "checksum": hashlib.sha256(bytes).hexdigest()
                 }]
-            log_message("DEBUG",f"done calculating checksum for {drs_json['id']}")
+            logger.log_message("DEBUG",f"done calculating checksum for {drs_json['id']}")
             drs_json["checksums"] = checksum
         else:
             drs_json["checksums"] = [file_obj["checksum"]]
@@ -170,12 +173,12 @@ def index_touch_file(file_path):
         if status_code != 200:
             with open(file_path, "a") as f:
                 f.write(f"{datetime.datetime.today()} {response['message']}")
-        log_message("INFO",response)
+        logger.log_message("INFO",response)
         os.remove(file_path)
     except Exception as e:
         with open(file_path, "a") as f:
             f.write(f"{datetime.datetime.today()} {str(e)}")
-        log_message("WARNING",str(e))
+        logger.log_message("WARNING",str(e))
 
 
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
@@ -205,19 +208,19 @@ if __name__ == "__main__":
         sys.exit()
 
     ## Otherwise, look for any backlog IDs, index those, then listen for new IDs to index.
-    log_message("INFO",f"indexing started on {INDEXING_PATH}")
+    logger.log_message("INFO",f"indexing started on {INDEXING_PATH}")
     to_index = os.listdir(INDEXING_PATH)
-    log_message("INFO",f"Finishing backlog: indexing {to_index}")
+    logger.log_message("INFO",f"Finishing backlog: indexing {to_index}")
     while len(to_index) > 0:
         try:
             file_path = f"{INDEXING_PATH}/{to_index.pop()}"
             index_touch_file(file_path)
         except Exception as e:
-            log_message("WARNING",str(e))
+            logger.log_message("WARNING",str(e))
         to_index = os.listdir(INDEXING_PATH)
 
     # now that the backlog is complete, listen for new files created:
-    log_message("INFO",f"listening for new files at {INDEXING_PATH}")
+    logger.log_message("INFO",f"listening for new files at {INDEXING_PATH}")
     event_handler = IndexingHandler()
     observer = Observer()
     observer.schedule(event_handler, INDEXING_PATH, recursive=False)
