@@ -377,7 +377,7 @@ def get_drs_object(object_id, expand=False, tries=1):
     #             expand doesn't do anything on this DRS server
                 return new_obj
         except Exception as e:
-            logger.log_message("DEBUG",f"Exception in get_drs_object {object_id}: {str(e)}, trying again")
+            logger.debug(f"Exception in get_drs_object {object_id}: {str(e)}, trying again")
             return get_drs_object(object_id, expand, tries=tries+1)
         return None
 
@@ -600,7 +600,7 @@ def get_variantfile(variantfile_id, tries=1):
                 new_obj = json.loads(str(result))
                 return new_obj
         except Exception as e:
-            logger.log_message("DEBUG",f"Exception in get_variantfile {variantfile_id}: {str(e)}, trying again")
+            logger.debug(f"Exception in get_variantfile {variantfile_id}: {str(e)}, trying again")
             return get_variantfile(variantfile_id, tries=tries+1)
         return None
 
@@ -943,6 +943,6 @@ def search(obj, tries=1):
                 results.append(curr_result)
             return results
         except Exception as e:
-            logger.log_message("DEBUG",f"Exception in search: {str(e)}, trying again")
+            logger.debug(f"Exception in search: {str(e)}, trying again")
             return search(obj, tries=tries+1)
     return None
