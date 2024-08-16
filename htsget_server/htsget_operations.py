@@ -103,7 +103,7 @@ def index_reads(id_=None):
         if "cohort" in drs_obj:
             cohort = drs_obj['cohort']
         try:
-            Path(f"{INDEXING_PATH}/{cohort}_{id_}").touch()
+            Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -174,7 +174,7 @@ def index_variants(id_=None, force=False, genome='hg38'):
                     return varfile, 200
                 # clear the indexed bit:
                 database.mark_variantfile_as_not_indexed(id_)
-            Path(f"{INDEXING_PATH}/{cohort}_{id_}").touch()
+            Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500

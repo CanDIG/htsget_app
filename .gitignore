@@ -9,3 +9,6 @@ htsget_server/__pycache__/
 *.pyc
 __pycache__
 .nova/Configuration.json
+
+.DS_Store
+.idea/

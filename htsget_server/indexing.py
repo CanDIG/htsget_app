@@ -20,7 +20,7 @@ initialize()
 
 def index_variants(file_name=None):
     # split file name into cohort and drs_obj_id
-    file_parse = re.match(r"(.*?)_(.+)", file_name)
+    file_parse = re.match(r"(.*?)~(.+)", file_name)
     if file_parse is not None:
         cohort = file_parse.group(1)
         drs_obj_id = file_parse.group(2)
