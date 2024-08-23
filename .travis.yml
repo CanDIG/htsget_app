@@ -11,9 +11,9 @@ env:
 
 before_install:
   - docker pull postgres:15-alpine
-  - docker create -p5433:5432 -p5432:5432 --env POSTGRES_USER=admin --env POSTGRES_DB=metadata --env POSTGRES_PASSWORD=OG0pjmnQDWUTvLotYrxPrg --env POSTGRES_HOST_AUTH_METHOD=password --name metadata-db postgres:15-alpine | xargs -I{} docker start {}
+  - docker create -p5433:5432 -p5432:5432 --env POSTGRES_USER=admin --env POSTGRES_DB=metadata --env POSTGRES_PASSWORD=OG0pjmnQDWUTvLotYrxPrg --env POSTGRES_HOST_AUTH_METHOD=password --name postgres-db postgres:15-alpine | xargs -I{} docker start {}
   - docker ps -a
-  - docker logs metadata-db
+  - docker logs postgres-db
 
 cache: pip
 install:
