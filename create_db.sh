@@ -3,7 +3,7 @@
 set -Euo pipefail
 
 # db=${DB_PATH:-data/files.db}
-db=${DB_PATH:-"metadata-db"}
+db=${DB_PATH:-"postgres-db"}
 
 # PGPASSWORD is used by psql to avoid the password prompt
 export PGPASSWORD=${PGPASSWORD:-$(cat $POSTGRES_PASSWORD_FILE)}
