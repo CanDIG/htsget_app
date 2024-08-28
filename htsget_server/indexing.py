@@ -128,19 +128,22 @@ def calculate_stats(obj_id):
     if "access_methods" in drs_json:
         # if there are access methods, it's a file object
         file_obj = drs_operations._get_file_path(drs_json["id"])
-        if file_obj["checksum"] is None:
-            logger.debug(f"calculating checksum for {drs_json['id']}")
-            checksum = []
-            with open(file_obj["path"], "rb") as f:
-                bytes = f.read()  # read file as bytes
-                checksum = [{
-                    "type": "sha-256",
-                    "checksum": hashlib.sha256(bytes).hexdigest()
-                }]
-            logger.debug(f"done calculating checksum for {drs_json['id']}")
-            drs_json["checksums"] = checksum
-        else:
-            drs_json["checksums"] = [file_obj["checksum"]]
+        ## This block is commented out because it takes too much resource and currently isn't useful, see DIG-1718
+        # if file_obj["checksum"] is None:
+        #     logger.debug(f"calculating checksum for {drs_json['id']}")
+        #     checksum = []
+        #     with open(file_obj["path"], "rb") as f:
+        #         bytes = f.read()  # read file as bytes
+        #         checksum = [{
+        #             "type": "sha-256",
+        #             "checksum": hashlib.sha256(bytes).hexdigest()
+        #         }]
+        #     logger.debug(f"done calculating checksum for {drs_json['id']}")
+        #     drs_json["checksums"] = checksum
+        # else:
+        #     drs_json["checksums"] = [file_obj["checksum"]]
+        ## Still save the checksum in case someone actually ingested the checksum
+        drs_json["checksums"] = [file_obj["checksum"]]
         drs_json["size"] = file_obj["size"]
     elif "contents" in drs_json:
         drs_json["size"] = 0
