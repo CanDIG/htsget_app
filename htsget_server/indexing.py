@@ -143,8 +143,10 @@ def calculate_stats(obj_id):
         # else:
         #     drs_json["checksums"] = [file_obj["checksum"]]
         ## Still save the checksum in case someone actually ingested the checksum
-        drs_json["checksums"] = [file_obj["checksum"]]
-        drs_json["size"] = file_obj["size"]
+        if "checksums" in drs_json.keys():
+            drs_json["checksums"] = [file_obj["checksum"]]
+        if "size" in drs_json.keys():
+            drs_json["size"] = file_obj["size"]
     elif "contents" in drs_json:
         drs_json["size"] = 0
         checksum = {
