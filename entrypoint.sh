@@ -25,4 +25,5 @@ candigv2_logging.logging.initialize()"
 python htsget_server/indexing.py &
 
 # use the following instead for production deployment
-uwsgi uwsgi.ini
+cd htsget_server
+gunicorn server:app
