@@ -143,6 +143,7 @@ def calculate_stats(obj_id):
             drs_json["checksums"] = checksum
         else:
             drs_json["checksums"] = [file_obj["checksum"]]
+        drs_json["size"] = file_obj["size"]
     elif "contents" in drs_json:
         drs_json["size"] = 0
         checksum = {
