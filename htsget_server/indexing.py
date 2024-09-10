@@ -28,7 +28,7 @@ def index_variants(file_name=None):
         return {"message": f"Format of file name is wrong: {file_name}"}, 500
 
     logger.info(f"adding stats to {drs_obj_id}")
-    calculate_stats(drs_obj_id)
+    # calculate_stats(drs_obj_id) Don't calculate checksums, too slow
     logger.info(f"{drs_obj_id} stats done")
 
     gen_obj = drs_operations._get_genomic_obj(drs_obj_id)
@@ -122,31 +122,27 @@ def create_position(obj):
 
 
 ## Given a DrsObject in json, compute its size and checksums
+# This block doesn't run as we have disabled it by commenting line 31, see DIG-1718
 def calculate_stats(obj_id):
     drs_json = database.get_drs_object(obj_id)
     # a DrsObject either has access methods or contents
     if "access_methods" in drs_json:
         # if there are access methods, it's a file object
         file_obj = drs_operations._get_file_path(drs_json["id"])
-        ## This block is commented out because it takes too much resource and currently isn't useful, see DIG-1718
-        # if file_obj["checksum"] is None:
-        #     logger.debug(f"calculating checksum for {drs_json['id']}")
-        #     checksum = []
-        #     with open(file_obj["path"], "rb") as f:
-        #         bytes = f.read()  # read file as bytes
-        #         checksum = [{
-        #             "type": "sha-256",
-        #             "checksum": hashlib.sha256(bytes).hexdigest()
-        #         }]
-        #     logger.debug(f"done calculating checksum for {drs_json['id']}")
-        #     drs_json["checksums"] = checksum
-        # else:
-        #     drs_json["checksums"] = [file_obj["checksum"]]
-        ## Still save the checksum in case someone actually ingested the checksum
-        if "checksums" in drs_json.keys():
+
+        if file_obj["checksum"] is None:
+            logger.debug(f"calculating checksum for {drs_json['id']}")
+            checksum = []
+            with open(file_obj["path"], "rb") as f:
+                bytes = f.read()  # read file as bytes
+                checksum = [{
+                    "type": "sha-256",
+                    "checksum": hashlib.sha256(bytes).hexdigest()
+                }]
+            logger.debug(f"done calculating checksum for {drs_json['id']}")
+            drs_json["checksums"] = checksum
+        else:
             drs_json["checksums"] = [file_obj["checksum"]]
-        if "size" in drs_json.keys():
-            drs_json["size"] = file_obj["size"]
     elif "contents" in drs_json:
         drs_json["size"] = 0
         checksum = {
