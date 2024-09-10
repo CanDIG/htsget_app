@@ -28,7 +28,7 @@ def index_variants(file_name=None):
         return {"message": f"Format of file name is wrong: {file_name}"}, 500
 
     logger.info(f"adding stats to {drs_obj_id}")
-    calculate_stats(drs_obj_id)
+    # calculate_stats(drs_obj_id) Don't calculate checksums, too slow
     logger.info(f"{drs_obj_id} stats done")
 
     gen_obj = drs_operations._get_genomic_obj(drs_obj_id)
@@ -122,12 +122,14 @@ def create_position(obj):
 
 
 ## Given a DrsObject in json, compute its size and checksums
+# This block doesn't run as we have disabled it by commenting line 31, see DIG-1718
 def calculate_stats(obj_id):
     drs_json = database.get_drs_object(obj_id)
     # a DrsObject either has access methods or contents
     if "access_methods" in drs_json:
         # if there are access methods, it's a file object
         file_obj = drs_operations._get_file_path(drs_json["id"])
+
         if file_obj["checksum"] is None:
             logger.debug(f"calculating checksum for {drs_json['id']}")
             checksum = []
