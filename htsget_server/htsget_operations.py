@@ -155,7 +155,7 @@ def verify_variants_genomic_drs_object(id_):
 
 
 @app.route('/variants/<path:id_>/index')
-def index_variants(id_=None, force=False, genome='hg38'):
+def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
@@ -169,12 +169,13 @@ def index_variants(id_=None, force=False, genome='hg38'):
         params = {"id": id_, "reference_genome": genome}
         try:
             varfile = database.create_variantfile(params)
-            if varfile is not None:
-                if varfile['indexed'] == 1 and not force:
-                    return varfile, 200
-                # clear the indexed bit:
-                database.mark_variantfile_as_not_indexed(id_)
-            Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
+            if not do_not_index:
+                if varfile is not None:
+                    if varfile['indexed'] == 1 and not force:
+                        return varfile, 200
+                    # clear the indexed bit:
+                    database.mark_variantfile_as_not_indexed(id_)
+                Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
