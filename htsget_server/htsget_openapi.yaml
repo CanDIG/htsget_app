@@ -237,6 +237,7 @@ paths:
             parameters:
                 - $ref: '#/components/parameters/idPathParam'
                 - $ref: '#/components/parameters/forceParam'
+                - $ref: '#/components/parameters/doNotIndexParam'
                 - $ref: '#/components/parameters/refGenomeParam'
             responses:
                 200:
@@ -951,6 +952,13 @@ components:
             in: query
             name: force
             description: force indexing
+            required: false
+            schema:
+                type: boolean
+        doNotIndexParam:
+            in: query
+            name: do_not_index
+            description: do not index
             required: false
             schema:
                 type: boolean

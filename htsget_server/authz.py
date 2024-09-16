@@ -23,6 +23,8 @@ def is_authed(id_, request):
         return 401
     if is_testing(request):
         return 200 # no auth
+    if request_is_from_ingest(request):
+        return 200
     if "Authorization" in request.headers:
         obj = database.get_drs_object(id_)
         if obj is not None and 'cohort' in obj:
@@ -49,6 +51,8 @@ def get_authorized_cohorts(request):
 def is_cohort_authorized(request, cohort_id):
     if is_testing(request):
         return True
+    if request_is_from_ingest(request):
+        return True
     return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(request), method=request.method, path=request.path, program=cohort_id)
 
 
@@ -57,6 +61,8 @@ def is_site_admin(request):
     Is the user associated with the token a site admin?
     """
     if is_testing(request):
+        return True
+    if request_is_from_ingest(request):
         return True
     if "Authorization" in request.headers:
         try:
@@ -74,4 +80,10 @@ def get_s3_url(s3_endpoint=None, bucket=None, object_id=None, access_key=None, s
 def request_is_from_query(request):
     if "X-Service-Token" in request.headers:
         return authx.auth.verify_service_token(service="query", token=request.headers["X-Service-Token"])
+    return False
+
+
+def request_is_from_ingest(request):
+    if "X-Service-Token" in request.headers:
+        return authx.auth.verify_service_token(service="candig-ingest", token=request.headers["X-Service-Token"])
     return False
