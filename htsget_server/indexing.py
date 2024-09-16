@@ -11,6 +11,8 @@ import hashlib
 import re
 import datetime
 from candigv2_logging.logging import initialize, CanDIGLogger
+from time import sleep
+from random import randint
 
 
 logger = CanDIGLogger(__file__)
@@ -33,7 +35,7 @@ def index_variants(file_name=None):
 
     gen_obj = drs_operations._get_genomic_obj(drs_obj_id)
     if gen_obj is None:
-        return {"message": f"No variant with id {drs_obj_id} exists"}, 404
+        return {"message": f"No id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
         return {"message": gen_obj['message']}, 500
 
@@ -78,12 +80,24 @@ def index_variants(file_name=None):
     res = create_position(to_create)
 
     logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
-    database.create_pos_bucket(res)
-
+    write_pos_bucket(res, drs_obj_id)
     database.mark_variantfile_as_indexed(drs_obj_id)
-    logger.info(f"{drs_obj_id} done")
+    logger.info(f"{drs_obj_id} indexing done")
 
     return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200
+
+
+def write_pos_bucket(obj, object_id, tries=1):
+    if tries > 3:
+        raise Exception(f"Exception in write_pos_bucket {object_id}, too many tries")
+    elif tries > 1:
+        # if this isn't the first try, pause for a bit and then try again
+        sleep(randint(1,10)/2)
+    try:
+        database.create_pos_bucket(obj)
+    except Exception as e:
+        logger.debug(f"Exception in write_pos_bucket {object_id}: {str(e)}, trying again")
+        return write_pos_bucket(obj, object_id, tries=tries+1)
 
 
 def create_position(obj):
@@ -171,6 +185,7 @@ def calculate_stats(obj_id):
 def index_touch_file(file_path):
     try:
         name = file_path.replace(INDEXING_PATH, "").replace("/", "")
+        logger.info(f"indexing {name}, files to index: " + str(os.listdir(INDEXING_PATH)))
         response, status_code = index_variants(file_name=name)
         if status_code != 200:
             with open(file_path, "a") as f:
