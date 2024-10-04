@@ -11,10 +11,13 @@ import connexion
 import variants
 import indexing
 from pathlib import Path
+from candigv2_logging.logging import CanDIGLogger
+
+
+logger = CanDIGLogger(__file__)
 
 
 app = Flask(__name__)
-
 
 # Endpoints
 def get_read_service_info():
@@ -100,7 +103,7 @@ def index_reads(id_=None):
         if "cohort" in drs_obj:
             cohort = drs_obj['cohort']
         try:
-            Path(f"{INDEXING_PATH}/{cohort}_{id_}").touch()
+            Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -122,6 +125,7 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
     if id_ is not None:
         auth_code = authz.is_authed(escape(id_), request)
         if auth_code == 200:
+            logger.debug(f"getting variants for {id_}", request)
             return _get_urls("variant", escape(id_), reference_name, start, end, class_)
     else:
         return None, 404
@@ -151,7 +155,7 @@ def verify_variants_genomic_drs_object(id_):
 
 
 @app.route('/variants/<path:id_>/index')
-def index_variants(id_=None, force=False, genome='hg38'):
+def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
     if not authz.is_site_admin(request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
@@ -165,12 +169,13 @@ def index_variants(id_=None, force=False, genome='hg38'):
         params = {"id": id_, "reference_genome": genome}
         try:
             varfile = database.create_variantfile(params)
-            if varfile is not None:
-                if varfile['indexed'] == 1 and not force:
-                    return varfile, 200
-                # clear the indexed bit:
-                database.mark_variantfile_as_not_indexed(id_)
-            Path(f"{INDEXING_PATH}/{cohort}_{id_}").touch()
+            if not do_not_index:
+                if varfile is not None:
+                    if varfile['indexed'] == 1 and not force:
+                        return varfile, 200
+                    # clear the indexed bit:
+                    database.mark_variantfile_as_not_indexed(id_)
+                Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -245,8 +250,8 @@ def get_sample(id_=None):
 
     # Get the SampleDrsObject. It will have a contents array of GenomicContentsObjects > GenomicDrsObjects.
     # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
-    sample_drs_obj, result_code = drs_operations.get_object(id_)
-    if result_code == 200 and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
+    sample_drs_obj = database.get_drs_object(id_)
+    if sample_drs_obj is not None and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
         result["cohort"] = sample_drs_obj["cohort"]
         for contents_obj in sample_drs_obj["contents"]:
             drs_obj = database.get_drs_object(contents_obj["id"])
@@ -262,7 +267,8 @@ def get_sample(id_=None):
                             result["variants"].append(drs_obj["id"])
                         elif content["id"] == "read":
                             result["reads"].append(drs_obj["id"])
-        return result, 200
+        if authz.is_authed(id_, request):
+            return result, 200
     return {"message": f"Could not find sample {id_}"}, 404
 
 

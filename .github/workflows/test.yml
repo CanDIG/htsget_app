@@ -1,0 +1,61 @@
+name: Github Actions Test
+
+on: [push]
+jobs:
+  build:
+    env:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: OG0pjmnQDWUTvLotYrxPrg
+      POSTGRES_HOST: localhost
+      POSTGRES_HOST_AUTH_METHOD: password
+      POSTGRES_DB: metadata
+      POSTGRES_PORT: 5432
+      HTSGET_TEST_KEY: thisisatest
+      DB_PATH: localhost
+      SERVER_LOCAL_DATA: ${{github.workspace}}/data
+      PGPASSWORD: OG0pjmnQDWUTvLotYrxPrg
+      INDEXING_PATH: ${{github.workspace}}/tmp
+      TESTENV_URL: http://localhost:3000
+      AGGREGATE_COUNT_THRESHOLD: 5
+      POSTGRES_USERNAME: admin
+    runs-on: ubuntu-latest
+    # Add in environment variables for the entire "build" job
+    services:
+      postgres_main:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    strategy:
+      matrix:
+        python-version: ['3.12']
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install requirements
+      run: |
+        pip install -r requirements.txt
+        bash create_db.sh
+        mkdir -p ${{ env.INDEXING_PATH }}
+        sed -i s@\<AGGREGATE_COUNT_THRESHOLD\>@${{env.AGGREGATE_COUNT_THRESHOLD}}@ config.ini
+        sed -i s@\<POSTGRES_USERNAME\>@${{env.POSTGRES_USERNAME}}@ config.ini
+    - name: Test
+      run: |
+        python htsget_server/server.py &
+        python htsget_server/indexing.py &
+        sleep 5
+        pytest tests/test_htsget_server.py

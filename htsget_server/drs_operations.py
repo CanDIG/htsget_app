@@ -9,6 +9,12 @@ from markupsafe import escape
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import parse_qs, urlparse, urlencode
 from config import INDEXING_PATH
+from time import sleep
+from random import randint
+from candigv2_logging.logging import CanDIGLogger
+
+
+logger = CanDIGLogger(__file__)
 
 
 app = Flask(__name__)
@@ -35,7 +41,7 @@ def get_service_info():
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def get_object(object_id, expand=False):
-    app.logger.debug(f"looking for object {object_id}")
+    logger.debug(f"looking for object {object_id}")
     access_url_parse = re.match(r"(.+?)/access_url/(.+)", escape(object_id))
     if access_url_parse is not None:
         return get_access_url(access_url_parse.group(1), access_url_parse.group(2))
@@ -72,11 +78,21 @@ def get_access_url(object_id, access_id, request=request):
     return _get_access_url(access_id)
 
 
-def post_object():
+def post_object(tries=1):
     cohort_id = connexion.request.json["cohort"]
+    object_id = connexion.request.json['id']
     if not authz.is_cohort_authorized(request, cohort_id):
         return {"message": "User is not authorized to POST"}, 403
-    new_object = database.create_drs_object(connexion.request.json)
+    if tries > 3:
+        raise Exception(f"Exception in post_object {object_id}, too many tries")
+    elif tries > 1:
+        # if this isn't the first try, pause for a bit and then try again
+        sleep(randint(1,10)/2)
+    try:
+        new_object = database.create_drs_object(connexion.request.json)
+    except Exception as e:
+        logger.debug(f"Exception in post_object {object_id}: {str(e)}, trying again")
+        return post_object(tries=tries+1)
     return new_object, 200
 
 
@@ -214,13 +230,13 @@ def _describe_drs_object(object_id):
         for contents in drs_obj["contents"]:
             # get each drs object (should be the genomic file and its index)
             # if sub_obj.name matches an index file regex, it's an index file
-            index_match = re.fullmatch('.+\.(...*i)$', contents["name"])
+            index_match = re.fullmatch(r'.+\.(...*i)$', contents["name"])
 
             # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
-            read_match = re.fullmatch('.+\.(.+?am)$', contents["name"])
+            read_match = re.fullmatch(r'.+\.(.+?am)$', contents["name"])
 
             # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
-            variant_match = re.fullmatch('.+\.(.cf)(\.gz)*$', contents["name"])
+            variant_match = re.fullmatch(r'.+\.(.cf)(\.gz)*$', contents["name"])
 
             if read_match is not None:
                 result['format'] = read_match.group(1).upper()
@@ -290,7 +306,7 @@ def _get_file_path(drs_file_obj_id):
 
 
 def _get_access_url(access_id):
-    app.logger.debug(f"looking for url {access_id}")
+    logger.debug(f"looking for url {access_id}")
     id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
     if id_parse is not None:
         endpoint = id_parse.group(1)

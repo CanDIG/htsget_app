@@ -1,7 +1,6 @@
 import configparser
 import os
 import re
-from minio import Minio
 
 config = configparser.ConfigParser(interpolation=None)
 config.read(os.path.abspath(f"{os.path.dirname(os.path.realpath(__file__))}/../config.ini"))
@@ -19,7 +18,6 @@ else:
 
 DB_PATH = re.sub("PASSWORD", password, config['paths']['PGPath'])
 DB_PATH = re.sub("HOST", os.environ.get("DB_PATH"), DB_PATH)
-print(f"Password is: {password}")
 
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 
@@ -27,13 +25,9 @@ BUCKET_SIZE = int(config['DEFAULT']['BucketSize'])
 
 PORT = config['DEFAULT']['Port']
 
+AGGREGATE_COUNT_THRESHOLD = config['DEFAULT']['AGGREGATE_COUNT_THRESHOLD']
+
 TEST_KEY = os.getenv("HTSGET_TEST_KEY", "testtesttest")
-
-USE_MINIO_SANDBOX = False
-if os.environ.get("USE_MINIO_SANDBOX") == "True":
-    USE_MINIO_SANDBOX = True
-
-VAULT_S3_TOKEN = os.getenv("VAULT_S3_TOKEN", "none")
 
 DEBUG_MODE = False
 if os.getenv("DEBUG_MODE", "1") == "1":

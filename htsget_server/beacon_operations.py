@@ -2,13 +2,17 @@ from flask import Flask
 import variants
 import drs_operations
 import htsget_operations
-import variants
 import database
 import json
 import re
 import connexion
 from functools import reduce
 import authz
+from config import AGGREGATE_COUNT_THRESHOLD
+from candigv2_logging.logging import CanDIGLogger
+
+
+logger = CanDIGLogger(__file__)
 
 
 app = Flask(__name__)
@@ -197,26 +201,32 @@ def search(raw_req):
     if 'end' in req and len(req['end']) > 0:
         actual_params['end'] = req['end'].pop(0)
     if 'gene_id' in req:
-        genes = database.search_refseqs(req['gene_id'].upper(), 'gene_name')
-        if len(genes) > 0:
-            for gene in genes:
-                if gene['reference_genome'] == actual_params['reference_genome']:
-                    actual_params['reference_name'] = database.normalize_contig(gene['contig'])
-                    if actual_params['reference_name'] is not None:
-                        actual_params['start'] = gene['start']
-                        actual_params['end'] = gene['end']
-                        break
-        else:
-            response = {
-                    'error': {
-                        'errorMessage': f"no region was found for geneId {req['gene_id']}",
-                        'errorCode': 404
-                    },
-                    'meta': meta
-                }
-            return response
+        try:
+            genes = database.search_refseqs(req['gene_id'].upper(), 'gene_name')
+            if len(genes) > 0:
+                for gene in genes:
+                    if gene['reference_genome'] == actual_params['reference_genome']:
+                        actual_params['reference_name'] = database.normalize_contig(gene['contig'])
+                        if actual_params['reference_name'] is not None:
+                            actual_params['start'] = gene['start']
+                            actual_params['end'] = gene['end']
+                            break
+            else:
+                response = {
+                        'error': {
+                            'errorMessage': f"no region was found for geneId {req['gene_id']}",
+                            'errorCode': 404
+                        },
+                        'meta': meta
+                    }
+                return response
+        except Exception as e:
+            raise Exception(f"exception finding refseq for {req['gene_id']}: {type(e)} {str(e)}")
     if 'genomic_allele_short_form' in req:
-        allele_loc = variants.convert_hgvsid_to_location(req['genomic_allele_short_form'], reference_genome=actual_params['reference_genome'])
+        try:
+            allele_loc = variants.convert_hgvsid_to_location(req['genomic_allele_short_form'], reference_genome=actual_params['reference_genome'])
+        except Exception as e:
+            raise Exception(f"exception in convert_hgvsid_to_location for {req['genomic_allele_short_form']}: {type(e)} {str(e)}")
         if allele_loc is not None:
             actual_params['reference_name'] = allele_loc['reference_name']
             actual_params['start'] = allele_loc['start']
@@ -233,10 +243,14 @@ def search(raw_req):
         # if there is no end specified, assume the end is same as start:
         if 'end' not in actual_params:
             actual_params['end'] = actual_params['start']
-
-        variants_by_file = variants.find_variants_in_region(reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
-
-        resultset = compile_beacon_resultset(variants_by_file, reference_genome=actual_params['reference_genome'])
+        try:
+            variants_by_file = variants.find_variants_in_region(reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+        except Exception as e:
+            raise Exception(f"exception in find_variants_in_region for {actual_params}: {type(e)} {str(e)}")
+        try:
+            resultset = compile_beacon_resultset(variants_by_file, reference_genome=actual_params['reference_genome'])
+        except Exception as e:
+            raise Exception(f"exception in compile_beacon_resultset for {actual_params}: {type(e)} {str(e)}")
         # others are for filtering after:
         #         aminoacidChange: string,
         #         alternate_bases: string,
@@ -272,7 +286,10 @@ def search(raw_req):
 
 
         if len(resultset) > 0:
-            response['responseSummary']['numTotalResults'] = len(resultset)
+            if len(resultset) < int(AGGREGATE_COUNT_THRESHOLD):
+                response['responseSummary']['numTotalResults'] = f"<{AGGREGATE_COUNT_THRESHOLD}"
+            else:
+                response['responseSummary']['numTotalResults'] = len(resultset)
             response['responseSummary']['exists'] = True
 
         # if the request granularity was "record", check to see that the user is actually authorized to see any cohorts:
@@ -291,12 +308,18 @@ def search(raw_req):
                             query_info[drs_obj["cohort"]].append(c["name"])
 
             # fill in handover data
-            handover, status_code = htsget_operations.get_variants(id_=drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+            try:
+                handover, status_code = htsget_operations.get_variants(id_=drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+            except Exception as e:
+                raise Exception(f"exception in get_variants for {drs_obj_id}: {type(e)} {str(e)}")
             if handover is not None:
                 handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
                 response['beaconHandovers'].append(handover)
         if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
             response['response'] = resultset
+            if len(resultset) > 0: # use true number if we're authorized, even if below AGGREGATE_COUNT_THRESHOLD
+                response['responseSummary']['numTotalResults'] = len(resultset)
+
         else:
             response.pop('beaconHandovers')
             if meta['returnedGranularity'] == 'boolean':
@@ -442,6 +465,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
         if 'caseLevelData' in resultset[variant] and len(resultset[variant]['caseLevelData']) > 0:
             resultset[variant]['variantInternalId'] = variant
             final_resultset.append(resultset[variant])
+    final_resultset.sort(key=lambda x: x['variantInternalId'])
     return final_resultset
 
 

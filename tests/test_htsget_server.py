@@ -235,9 +235,9 @@ def test_index_variantfile(sample):
     response = requests.get(get_url, headers=get_headers())
     print(response.text)
     assert response.json()["indexed"] == 1
-    assert len(response.json()["checksums"]) > 0
-    assert response.json()["size"] > 0
-
+    # comment these out since we don't calculate checksums or sizes anymore
+    # assert len(response.json()["checksums"]) > 0
+    # assert response.json()["size"] > 0
 
 def get_ingest_file():
     return [
@@ -472,7 +472,7 @@ def get_beacon_post_search():
     return [
         (
             # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
-            # first variation, corresponding to "NC_000021.9:g.5030847=", should contain two cases
+            # first variation, corresponding to "NC_000021.9:g.5030551=", should contain two cases
             {
                 "query": {
                     "requestParameters": {
@@ -559,7 +559,6 @@ def drs_objects():
     drs_objects = {}
     for root, dirs, files in os.walk(LOCAL_FILE_PATH):
         for f in files:
-            print(f)
             name_match = re.match(r"^(.+?)\.(vcf|vcf\.gz|bcf|bcf\.gz|sam|bam)(\.tbi|\.bai)*$", f)
             if name_match is not None:
                 genomic_id = name_match.group(1)
@@ -627,74 +626,17 @@ def drs_objects():
             "name": data_file,
             "id": type
         })
-    # removing minio step
-    client = None
 
     for obj in result:
         if "contents" not in obj:
-            if client is not None:
-                # create access_methods:
-                access_id = f"{client['endpoint']}/{client['bucket']}/{obj['id']}"
-                if VAULT_URL is None and client['access'] and client['secret']:
-                    access_id += f"?access={client['access']}&secret={client['secret']}"
-                obj["access_methods"] = [
-                    {
-                        "type": "s3",
-                        "access_id": access_id
+            access_url = f"file:///{SERVER_LOCAL_DATA}/files/{obj['id']}" # this is local within the htsget server container, not from where we're running pytest
+            obj["access_methods"] = [
+                {
+                    "type": "file",
+                    "access_url": {
+                        "url": access_url
                     }
-                ]
-                try:
-                    file = Path(LOCAL_FILE_PATH).joinpath(obj['id'])
-                    obj['size'] = file.stat().st_size
-                    with Path.open(file, "rb") as fp:
-                        res = client['client'].put_object(client['bucket'], obj['id'], fp, file.stat().st_size)
-                except Exception as e:
-                    print(str(e))
-                    assert False
-                    return {"message": str(e)}, 500
-            else:
-                access_url = f"file:///{SERVER_LOCAL_DATA}/files/{obj['id']}" # this is local within the htsget server container, not from where we're running pytest
-                obj["access_methods"] = [
-                    {
-                        "type": "file",
-                        "access_url": {
-                            "url": access_url
-                        }
-                    }
-                ]
+                }
+            ]
 
     return result
-
-
-def get_client():
-        # in case we're running on the container itself, which might have secrets
-        try:
-            with open("/run/secrets/minio-access-key", "r") as f:
-                minio_access_key = f.read().strip()
-        except Exception as e:
-            minio_access_key = MINIO_ACCESS_KEY
-        try:
-            with open("/run/secrets/minio-secret-key", "r") as f:
-                minio_secret_key = f.read().strip()
-        except Exception as e:
-            minio_secret_key = MINIO_SECRET_KEY
-
-        client = None
-        try:
-            bucket = 'testhtsget'
-            if MINIO_URL and minio_access_key and minio_secret_key:
-                if VAULT_URL:
-                    token = get_site_admin_token()
-                    credential, status_code = store_aws_credential(token=token, endpoint=MINIO_URL, bucket=bucket, access=minio_access_key, secret=minio_secret_key, vault_url=VAULT_URL)
-                    if status_code == 200:
-                        client = get_minio_client(token=token, s3_endpoint=credential["endpoint"], bucket=bucket)
-                else:
-                    client = get_minio_client(token=None, s3_endpoint=MINIO_URL, bucket=bucket, access_key=minio_access_key, secret_key=minio_secret_key)
-            if client is None:
-                client = get_minio_client(bucket=bucket)
-        except Exception as e:
-            print(str(e))
-            assert False
-            return {"message": str(e)}, 500
-
-        return client
