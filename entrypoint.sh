@@ -22,7 +22,7 @@ candigv2_logging.logging.initialize()"
 # use the following for development
 #python3 htsget_server/server.py
 
-python htsget_server/indexing.py &
+bash htsget_server/indexing.sh &
 
 # use the following instead for production deployment
 cd htsget_server
