@@ -27,6 +27,8 @@ PORT = config['DEFAULT']['Port']
 
 AGGREGATE_COUNT_THRESHOLD = config['DEFAULT']['AGGREGATE_COUNT_THRESHOLD']
 
+MAX_TRIES = int(config['DEFAULT']['MaxTries'])
+
 TEST_KEY = os.getenv("HTSGET_TEST_KEY", "testtesttest")
 
 DEBUG_MODE = False
