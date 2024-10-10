@@ -13,7 +13,7 @@ from candigv2_logging.logging import CanDIGLogger
 logger = CanDIGLogger(__file__)
 
 
-engine = create_engine(DB_PATH, echo=False)
+engine = create_engine(DB_PATH, echo=False, pool_timeout=5)
 
 ObjectDBBase = declarative_base()
 
