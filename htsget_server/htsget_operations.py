@@ -271,10 +271,14 @@ def _get_samples(samples):
             if res["cohort"] not in samples_by_cohort:
                 samples_by_cohort[res["cohort"]] = []
             samples_by_cohort[res["cohort"]].append(res)
-    authz_cohorts = authz.get_authorized_cohorts(request)
-    for cohort in authz_cohorts:
-        if cohort in samples_by_cohort:
+    if authz.is_testing():
+        for cohort in samples_by_cohort:
             result.extend(samples_by_cohort[cohort])
+    else:
+        authz_cohorts = authz.get_authorized_cohorts(request)
+        for cohort in authz_cohorts:
+            if cohort in samples_by_cohort:
+                result.extend(samples_by_cohort[cohort])
     return result
 
 
