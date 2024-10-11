@@ -271,7 +271,7 @@ def _get_samples(samples):
             if res["cohort"] not in samples_by_cohort:
                 samples_by_cohort[res["cohort"]] = []
             samples_by_cohort[res["cohort"]].append(res)
-    if authz.is_testing():
+    if authz.is_testing(request):
         for cohort in samples_by_cohort:
             result.extend(samples_by_cohort[cohort])
     else:
