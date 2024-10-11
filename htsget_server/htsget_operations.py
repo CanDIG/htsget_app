@@ -240,6 +240,49 @@ def get_matching_transcripts(id_=None):
 
 @app.route('/samples/<path:id_>')
 def get_sample(id_=None):
+    result, status_code = _get_sample(id_)
+    if authz.is_authed(id_, request):
+        return result, 200
+    return {"message": f"Could not find sample {id_}"}, 404
+
+
+def get_multiple_samples():
+    req = connexion.request.json
+    return _get_samples(req["samples"]), 200
+
+
+def get_cohort_samples(cohort=None):
+    if cohort is None:
+        sample_drs_objs = database.list_drs_objects()
+    else:
+        sample_drs_objs = database.list_drs_objects(cohort)
+    samples = list(map(lambda y: y["id"], filter(lambda x: x["description"] == "sample", sample_drs_objs)))
+    result = []
+    samples_by_cohort = {}
+    return _get_samples(samples), 200
+
+
+def _get_samples(samples):
+    result = []
+    samples_by_cohort = {}
+    for sample in samples:
+        res, status_code = _get_sample(sample)
+        if status_code == 200:
+            if res["cohort"] not in samples_by_cohort:
+                samples_by_cohort[res["cohort"]] = []
+            samples_by_cohort[res["cohort"]].append(res)
+    if authz.is_testing(request):
+        for cohort in samples_by_cohort:
+            result.extend(samples_by_cohort[cohort])
+    else:
+        authz_cohorts = authz.get_authorized_cohorts(request)
+        for cohort in authz_cohorts:
+            if cohort in samples_by_cohort:
+                result.extend(samples_by_cohort[cohort])
+    return result
+
+
+def _get_sample(id_=None):
     result = {
         "sample_id": id_,
         "genomes": [],
@@ -267,33 +310,7 @@ def get_sample(id_=None):
                             result["variants"].append(drs_obj["id"])
                         elif content["id"] == "read":
                             result["reads"].append(drs_obj["id"])
-        if authz.is_authed(id_, request):
             return result, 200
-    return {"message": f"Could not find sample {id_}"}, 404
-
-
-def get_multiple_samples():
-    req = connexion.request.json
-    result = []
-    for sample in req["samples"]:
-        res, status_code = get_sample(sample)
-        if status_code == 200:
-            result.append(res)
-    return result, 200
-
-
-def get_cohort_samples(cohort=None):
-    if cohort is None:
-        sample_drs_objs = database.list_drs_objects()
-    else:
-        sample_drs_objs = database.list_drs_objects(cohort)
-    samples = list(map(lambda y: y["id"], filter(lambda x: x["description"] == "sample", sample_drs_objs)))
-    result = []
-    for sample in samples:
-        res, status_code = get_sample(sample)
-        if status_code == 200:
-            result.append(res)
-    return result, 200
 
 
 def _get_htsget_url(id, reference_name, slice_start, slice_end, file_type, data=True):
