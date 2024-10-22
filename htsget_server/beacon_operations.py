@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 import variants
 import drs_operations
 import htsget_operations
@@ -293,6 +293,7 @@ def search(raw_req):
             response['responseSummary']['exists'] = True
 
         # if the request granularity was "record", check to see that the user is actually authorized to see any cohorts:
+        authed_cohorts = authz.get_authorized_cohorts(request)
         response['beaconHandovers'] = []
         query_info = {} # program_id and submitter_sample_id
         for drs_obj_id in variants_by_file.keys():
@@ -307,14 +308,15 @@ def search(raw_req):
                         if c["name"] not in query_info[drs_obj["cohort"]]:
                             query_info[drs_obj["cohort"]].append(c["name"])
 
-            # fill in handover data
-            try:
-                handover, status_code = htsget_operations.get_variants(id_=drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
-            except Exception as e:
-                raise Exception(f"exception in get_variants for {drs_obj_id}: {type(e)} {str(e)}")
-            if handover is not None:
-                handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
-                response['beaconHandovers'].append(handover)
+                if drs_obj["cohort"] in authed_cohorts:
+                    # fill in handover data
+                    try:
+                        handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+                    except Exception as e:
+                        raise Exception(f"exception in get_variants for {drs_obj_id}: {type(e)} {str(e)}")
+                    if handover is not None:
+                        handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
+                        response['beaconHandovers'].append(handover)
         if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
             response['response'] = resultset
             if len(resultset) > 0: # use true number if we're authorized, even if below AGGREGATE_COUNT_THRESHOLD
@@ -374,10 +376,13 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
       ]
     """
     resultset = {}
+    authed_cohorts = authz.get_authorized_cohorts(request)
     for drs_obj in variants_by_obj.keys():
         # check to see if this drs_object is authorized:
-        x, status_code = drs_operations.get_object(drs_obj)
-        is_authed = (status_code == 200)
+        x = database.get_drs_object(drs_obj)
+        is_authed = False
+        if x["cohort"] in authed_cohorts:
+            is_authed = True
         if database.get_variantfile(drs_obj)['reference_genome'] != reference_genome:
             continue
         for variant in variants_by_obj[drs_obj]['variants']:

@@ -40,7 +40,7 @@ def is_authed(id_, request):
 
 def get_authorized_cohorts(request):
     if is_testing(request):
-        return []
+        return ["test-htsget"]
     try:
         return authx.auth.get_opa_datasets(request)
     except Exception as e:
