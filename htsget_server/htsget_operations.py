@@ -148,7 +148,11 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 @app.route('/variants/<path:id_>/verify')
 def verify_variants_genomic_drs_object(id_):
     try:
-        _verify_genomic_drs_object(id_)
+        auth_code = authz.is_authed(escape(id_), request)
+        if auth_code == 200:
+            _verify_genomic_drs_object(id_)
+        else:
+            return {"message": "User is not authorized to verify variants"}, 403
     except Exception as e:
         return {"result": False, "message": str(e)}, 200
     return {"result": True}, 200
@@ -538,8 +542,8 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 
 def _verify_genomic_drs_object(id_):
     # get the listed samples that the GenomicDrsObject says should be in the file
-    gen_drs_obj, status_code = drs_operations.get_object(id_)
-    if status_code != 200:
+    gen_drs_obj = database.get_drs_object(id_)
+    if gen_drs_obj is None:
         raise Exception(f"Could not find object {id_}")
     drs_samples = set()
     file_type = None
