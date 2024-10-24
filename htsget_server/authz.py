@@ -25,11 +25,12 @@ def is_authed(id_, request):
         return 200 # no auth
     if request_is_from_ingest(request):
         return 200
+    if request_is_from_query(request):
+        return 200
     if "Authorization" in request.headers:
         obj = database.get_drs_object(id_)
         if obj is not None and 'cohort' in obj:
-            if is_cohort_authorized(request, obj['cohort']) \
-                or request_is_from_query(request):
+            if is_cohort_authorized(request, obj['cohort']):
                 return 200
         else:
             return 404
