@@ -279,10 +279,14 @@ def _get_samples(samples):
         for cohort in samples_by_cohort:
             result.extend(samples_by_cohort[cohort])
     else:
-        authz_cohorts = authz.get_authorized_cohorts(request)
-        for cohort in authz_cohorts:
-            if cohort in samples_by_cohort:
+        if authz.request_is_from_query(request):
+            for cohort in samples_by_cohort:
                 result.extend(samples_by_cohort[cohort])
+        else:
+            authz_cohorts = authz.get_authorized_cohorts(request)
+            for cohort in authz_cohorts:
+                if cohort in samples_by_cohort:
+                    result.extend(samples_by_cohort[cohort])
     return result
 
 
