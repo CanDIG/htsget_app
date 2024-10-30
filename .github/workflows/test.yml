@@ -52,6 +52,7 @@ jobs:
         pip install -r requirements.txt
         bash create_db.sh
         mkdir -p ${{ env.INDEXING_PATH }}
+        touch ${{ env.INDEXING_SWITCH_FILE }}
         sed -i s@\<AGGREGATE_COUNT_THRESHOLD\>@${{env.AGGREGATE_COUNT_THRESHOLD}}@ config.ini
         sed -i s@\<POSTGRES_USERNAME\>@${{env.POSTGRES_USERNAME}}@ config.ini
     - name: Test
