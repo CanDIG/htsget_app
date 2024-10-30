@@ -183,11 +183,6 @@ def calculate_stats(obj_id):
 ## When a file is created, index the variant with the ID of that filename.
 ## These are created at htsget_operations.index_variants.
 def index_touch_file(file_path):
-    ## if the indexing_on file is not present, exit
-    if not os.path.isfile(INDEXING_SWITCH_FILE):
-        logger.debug(f"{INDEXING_SWITCH_FILE} is not present; exiting")
-        sys.exit(10)
-
     try:
         name = file_path.replace(INDEXING_PATH, "").replace("/", "")
         logger.info(f"indexing {name}, files to index: " + str(os.listdir(INDEXING_PATH)))
@@ -254,6 +249,10 @@ if __name__ == "__main__":
     observer.start()
     try:
         while observer.is_alive():
+            ## if the indexing_on file is not present, exit
+            if not os.path.isfile(INDEXING_SWITCH_FILE):
+                logger.debug(f"{INDEXING_SWITCH_FILE} is not present; exiting")
+                sys.exit(10)
             observer.join(1)
     finally:
         observer.stop()
