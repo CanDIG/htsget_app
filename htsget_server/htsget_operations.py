@@ -189,6 +189,8 @@ def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
         drs_obj = database.get_drs_object(id_)
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
+        if drs_obj['description'] not in ['wgs', 'wts']:
+            return {"message": f"DRS object {id_} is not a genomic object"}, 404
         cohort = ""
         if "cohort" in drs_obj:
             cohort = drs_obj['cohort']
