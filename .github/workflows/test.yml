@@ -15,6 +15,7 @@ jobs:
       SERVER_LOCAL_DATA: ${{github.workspace}}/data
       PGPASSWORD: OG0pjmnQDWUTvLotYrxPrg
       INDEXING_PATH: ${{github.workspace}}/tmp
+      INDEXING_SWITCH_FILE: ${{github.workspace}}/indexer_on
       TESTENV_URL: http://localhost:3000
       AGGREGATE_COUNT_THRESHOLD: 5
       POSTGRES_USERNAME: admin
