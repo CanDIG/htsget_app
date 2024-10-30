@@ -36,7 +36,7 @@ paths:
                                 type: object
         post:
             operationId: "htsget_operations.indexer_switch"
-            description: Get the status of the indexer
+            description: Set the indexer on or off
             parameters:
                 - in: query
                   name: status
