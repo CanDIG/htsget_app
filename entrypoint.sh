@@ -13,6 +13,7 @@ if [[ -f "initial_setup" ]]; then
 
     bash create_db.sh
     mkdir $INDEXING_PATH
+    touch $INDEXING_SWITCH_FILE
     rm initial_setup
 fi
 

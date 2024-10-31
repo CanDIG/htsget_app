@@ -193,7 +193,7 @@ def get_cohort_status(cohort_id):
 def _get_genomic_obj(object_id):
     result = {'status_code': 200}
     drs_obj = _describe_drs_object(object_id)
-    if drs_obj is None:
+    if drs_obj is None or 'message' in drs_obj:
         return { "message": f"{object_id} not found", "status_code": 404}
     index_result = _get_file_path(drs_obj['index'])
     if 'message' in index_result:

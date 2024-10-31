@@ -1,6 +1,6 @@
 import drs_operations
 import database
-from config import INDEXING_PATH
+from config import INDEXING_PATH, INDEXING_SWITCH_FILE
 from pysam import VariantFile, AlignmentFile
 import argparse
 import os
@@ -195,7 +195,7 @@ def index_touch_file(file_path):
     except Exception as e:
         with open(file_path, "a") as f:
             f.write(f"{datetime.datetime.today()} {str(e)}")
-        logger.warning(str(e))
+        logger.warning(f"indexing error! {type(e)} {str(e)}")
 
 
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
@@ -224,6 +224,11 @@ if __name__ == "__main__":
         index_variants(drs_obj_id=f"{cohort}_{args.id}")
         sys.exit()
 
+    ## if the indexing_on file is not present, exit
+    if not os.path.isfile(INDEXING_SWITCH_FILE):
+        logger.debug(f"{INDEXING_SWITCH_FILE} is not present; exiting")
+        sys.exit(10)
+
     ## Otherwise, look for any backlog IDs, index those, then listen for new IDs to index.
     logger.info(f"indexing started on {INDEXING_PATH}")
     to_index = os.listdir(INDEXING_PATH)
@@ -244,6 +249,10 @@ if __name__ == "__main__":
     observer.start()
     try:
         while observer.is_alive():
+            ## if the indexing_on file is not present, exit
+            if not os.path.isfile(INDEXING_SWITCH_FILE):
+                logger.debug(f"{INDEXING_SWITCH_FILE} is not present; exiting")
+                sys.exit(10)
             observer.join(1)
     finally:
         observer.stop()

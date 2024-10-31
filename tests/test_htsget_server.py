@@ -37,6 +37,14 @@ def get_headers():
     return headers
 
 
+def test_indexer_on():
+    headers = get_headers()
+    url = f"{HOST}/htsget/v1/indexer"
+    response = requests.request("GET", url, headers=headers)
+    if response.status_code == 200:
+        assert response.json()['status'] == "ON"
+
+
 def test_remove_objects(cohorts):
     headers = get_headers()
     candig_url = os.getenv("CANDIG_URL")
