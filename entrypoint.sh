@@ -27,4 +27,4 @@ bash htsget_server/indexing.sh &
 
 # use the following instead for production deployment
 cd htsget_server
-gunicorn server:app
+gunicorn -k uvicorn.workers.UvicornWorker server:app
