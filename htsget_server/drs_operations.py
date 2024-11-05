@@ -1,6 +1,6 @@
 import connexion
 import database
-from flask import request, Flask
+from flask import Flask
 import os
 import os.path
 import re
@@ -48,7 +48,7 @@ def get_object(object_id, expand=False):
     new_object = None
     if object_id is not None:
         new_object = database.get_drs_object(escape(object_id), expand)
-        auth_code = authz.is_authed(escape(object_id), request)
+        auth_code = authz.is_authed(escape(object_id), connexion.request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     if new_object is None:
@@ -70,18 +70,19 @@ def list_objects(cohort_id=None):
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
-def get_access_url(object_id, access_id, request=request):
+def get_access_url(object_id, access_id, request=connexion.request):
     if object_id is not None:
-        auth_code = authz.is_authed(escape(object_id), request)
+        auth_code = authz.is_authed(escape(object_id), connexion.request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     return _get_access_url(access_id)
 
 
-def post_object(tries=1):
-    cohort_id = connexion.request.json["cohort"]
-    object_id = connexion.request.json['id']
-    if not authz.is_cohort_authorized(request, cohort_id):
+async def post_object(tries=1):
+    req = await connexion.request.json()
+    cohort_id = req["cohort"]
+    object_id = req['id']
+    if not authz.is_cohort_authorized(connexion.request, cohort_id):
         return {"message": "User is not authorized to POST"}, 403
     if tries > 3:
         raise Exception(f"Exception in post_object {object_id}, too many tries")
@@ -89,7 +90,7 @@ def post_object(tries=1):
         # if this isn't the first try, pause for a bit and then try again
         sleep(randint(1,10)/2)
     try:
-        new_object = database.create_drs_object(connexion.request.json)
+        new_object = database.create_drs_object(req)
     except Exception as e:
         logger.debug(f"Exception in post_object {object_id}: {str(e)}, trying again")
         return post_object(tries=tries+1)
@@ -101,7 +102,7 @@ def delete_object(object_id):
     obj = database.get_drs_object(object_id)
     if obj is not None:
         cohort_id = obj["cohort"]
-        if not authz.is_cohort_authorized(request, cohort_id):
+        if not authz.is_cohort_authorized(connexion.request, cohort_id):
             return {"message": "User is not authorized to POST"}, 403
         try:
             new_object = database.delete_drs_object(escape(object_id))
@@ -117,18 +118,19 @@ def list_cohorts():
     if cohorts is None:
         return [], 404
     try:
-        if authz.is_site_admin(request):
+        if authz.is_site_admin(connexion.request):
             return list(map(lambda x: x['id'], cohorts)), 200
-        authorized_cohorts = authz.get_authorized_cohorts(request)
+        authorized_cohorts = authz.get_authorized_cohorts(connexion.request)
         return list(set(map(lambda x: x['id'], cohorts)).intersection(set(authorized_cohorts))), 200
     except Exception as e:
         return [], 500
 
 
-def post_cohort():
-    if not authz.is_cohort_authorized(request, connexion.request.json['id']):
+async def post_cohort():
+    req = await connexion.request.json()
+    if not authz.is_cohort_authorized(connexion.request, req['id']):
         return {"message": "User is not authorized to POST"}, 403
-    new_cohort = database.create_cohort(connexion.request.json)
+    new_cohort = database.create_cohort(req)
     return new_cohort, 200
 
 
@@ -136,13 +138,13 @@ def get_cohort(cohort_id):
     new_cohort = database.get_cohort(cohort_id)
     if new_cohort is None:
         return {"message": "No matching cohort found"}, 404
-    if authz.is_cohort_authorized(request, cohort_id):
+    if authz.is_cohort_authorized(connexion.request, cohort_id):
         return new_cohort, 200
     return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
 
 
 def delete_cohort(cohort_id):
-    if not authz.is_cohort_authorized(request, cohort_id):
+    if not authz.is_cohort_authorized(connexion.request, cohort_id):
         return {"message": "User is not authorized to POST"}, 403
     try:
         new_cohort = database.delete_cohort(cohort_id)
@@ -155,7 +157,7 @@ def get_cohort_status(cohort_id):
     new_cohort = database.get_cohort(cohort_id)
     if new_cohort is None:
         return {"message": "No matching cohort found"}, 404
-    if not authz.is_cohort_authorized(request, cohort_id):
+    if not authz.is_cohort_authorized(connexion.request, cohort_id):
         return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
 
     # get the objects in the cohort:

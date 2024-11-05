@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask
 import variants
 import drs_operations
 import htsget_operations
@@ -119,8 +119,8 @@ def get_search(
         return {'message': f"{type(e)}: {str(e)}"}, 500
 
 
-def post_search():
-    req = connexion.request.json
+async def post_search():
+    req = await connexion.request.json()
     # includeResultsetResponses:
     #   $ref: '#/components/schemas/IncludeResultsetResponses'
     # pagination:
@@ -293,7 +293,7 @@ def search(raw_req):
             response['responseSummary']['exists'] = True
 
         # if the request granularity was "record", check to see that the user is actually authorized to see any cohorts:
-        authed_cohorts = authz.get_authorized_cohorts(request)
+        authed_cohorts = authz.get_authorized_cohorts(connexion.request)
         response['beaconHandovers'] = []
         query_info = {} # program_id and submitter_sample_id
         for drs_obj_id in variants_by_file.keys():
@@ -376,7 +376,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
       ]
     """
     resultset = {}
-    authed_cohorts = authz.get_authorized_cohorts(request)
+    authed_cohorts = authz.get_authorized_cohorts(connexion.request)
     for drs_obj in variants_by_obj.keys():
         # check to see if this drs_object is authorized:
         x = database.get_drs_object(drs_obj)
