@@ -10,7 +10,7 @@ candigv2_logging.logging.initialize()
 app = connexion.App(__name__, specification_dir='./')
 CORS(app.app)
 
-app.add_api('htsget_openapi.yaml', pythonic_params=True, strict_validation=True)
+app.add_api('htsget_openapi.yaml', pythonic_params=True)
 app.add_api('drs_openapi.yaml', pythonic_params=True, strict_validation=True)
 app.add_api('beacon_openapi.yaml', pythonic_params=True, strict_validation=True)
 
@@ -24,4 +24,4 @@ def index():
     return 'INDEX'
 
 if __name__ == '__main__':
-    app.run(port = PORT)
+    app.run(port = int(PORT))
