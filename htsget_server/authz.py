@@ -12,6 +12,17 @@ logger = CanDIGLogger(__file__)
 app = Flask(__name__)
 
 
+class AuthzRequest:
+    headers = {}
+    method = None
+    path = None
+
+    def __init__(self, headers, method, path):
+        self.headers = headers
+        self.method = method
+        self.path = path
+
+
 def is_testing(request):
     if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
         logger.warning("TEST MODE, AUTHORIZATION IS DISABLED")
@@ -43,18 +54,19 @@ def get_authorized_cohorts(request):
     if is_testing(request):
         return ["test-htsget"]
     try:
-        return authx.auth.get_opa_datasets(request)
+        return authx.auth.get_opa_datasets(AuthzRequest(request.headers, request.method, request.url.path))
     except Exception as e:
         logger.warning(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
         return []
 
 
 def is_cohort_authorized(request, cohort_id):
-    if is_testing(request):
+    req = AuthzRequest(request.headers, request.method, request.url.path)
+    if is_testing(req):
         return True
-    if request_is_from_ingest(request):
+    if request_is_from_ingest(req):
         return True
-    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(request), method=request.method, path=request.path, program=cohort_id)
+    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(req), method=req.method, path=req.path, program=cohort_id)
 
 
 def is_site_admin(request):
@@ -67,7 +79,7 @@ def is_site_admin(request):
         return True
     if "Authorization" in request.headers:
         try:
-            return authx.auth.is_site_admin(request)
+            return authx.auth.is_site_admin(AuthzRequest(request.headers, request.method, request.url.path))
         except Exception as e:
             logger.warning(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
             return False
