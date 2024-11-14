@@ -286,6 +286,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DrsUri'
+        statistics:
+          type: object
     CohortIndexStatus:
       type: object
       properties:

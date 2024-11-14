@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, aliased
-from sqlalchemy import Column, Integer, String, Boolean, MetaData, ForeignKey, Table, create_engine, select
+from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, ForeignKey, Table, create_engine, select
 import json
 import re
 from datetime import datetime
@@ -251,11 +251,14 @@ class Cohort(ObjectDBBase):
     __tablename__ = 'cohort'
     id = Column(String, primary_key=True)
     associated_drs = relationship("DrsObject", back_populates="cohort", cascade="all, delete, delete-orphan")
+    statistics = Column(JSON)
     def __repr__(self):
         result = {
             'id': self.id,
             'drsobjects': []
         }
+        if self.statistics is not None:
+            result['statistics'] = self.statistics
         for drs_assoc in self.associated_drs:
             result['drsobjects'].append(drs_assoc.self_uri)
 
@@ -549,6 +552,8 @@ def create_cohort(obj, tries=1):
             new_cohort = session.query(Cohort).filter_by(id=obj['id']).one_or_none()
             if new_cohort is None:
                 new_cohort = Cohort()
+            if "statistics" in obj:
+                new_cohort.statistics = obj["statistics"]
             new_cohort.id = obj['id']
             for drs_uri in obj['drsobjects']:
                 new_drs = session.query(DrsObject).filter_by(self_uri=drs_uri).one_or_none()
