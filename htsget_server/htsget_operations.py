@@ -305,7 +305,7 @@ def _get_samples(samples):
         for cohort in samples_by_cohort:
             result.extend(samples_by_cohort[cohort])
     else:
-        if authz.request_is_from_query(connexion.request):
+        if authz.request_is_from_query(connexion.request) or authz.request_is_from_ingest(connexion.request):
             for cohort in samples_by_cohort:
                 result.extend(samples_by_cohort[cohort])
         else:
