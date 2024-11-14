@@ -1,4 +1,4 @@
--- a drs_object's size can be really big
+-- add the statistics column if it doesn't already exist
 DO
 $$
     BEGIN
