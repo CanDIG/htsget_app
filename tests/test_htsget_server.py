@@ -45,29 +45,29 @@ def test_indexer_on():
         assert response.json()['status'] == "ON"
 
 
-def test_remove_objects(cohorts):
+def test_remove_objects(programs):
     headers = get_headers()
     candig_url = os.getenv("CANDIG_URL")
 
-    for cohort in cohorts:
+    for program in programs:
         if candig_url is not None:
-            response = requests.delete(f"{candig_url}/ingest/program/{cohort}", headers=get_headers())
+            response = requests.delete(f"{candig_url}/ingest/program/{program}", headers=get_headers())
 
-        url = f"{HOST}/ga4gh/drs/v1/cohorts/{cohort}"
+        url = f"{HOST}/ga4gh/drs/v1/programs/{program}"
         response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
             response = requests.request("DELETE", url, headers=headers)
-            print(f"DELETE {cohort}: {response.text}")
+            print(f"DELETE {program}: {response.text}")
             assert response.status_code == 200
         url = f"{HOST}/ga4gh/drs/v1/objects"
-        response = requests.request("GET", url, headers=headers, params={"cohort_id": cohort})
+        response = requests.request("GET", url, headers=headers, params={"program_id": program})
         print(response.text)
         assert response.status_code == 200
         for obj in response.json():
-            assert obj["cohort"] != cohort
+            assert obj["program"] != program
 
 
-def test_post_objects(drs_objects, cohorts):
+def test_post_objects(drs_objects, programs):
     """
     Install test objects. Will fail if any post request returns an error.
     """
@@ -76,10 +76,10 @@ def test_post_objects(drs_objects, cohorts):
     headers = get_headers()
     candig_url = os.getenv("CANDIG_URL")
 
-    for cohort in cohorts:
+    for program in programs:
         if candig_url is not None:
             test_program = {
-                "program_id": cohort,
+                "program_id": program,
                 "program_curators": [USERNAME],
                 "team_members": [USERNAME]
             }
@@ -143,7 +143,7 @@ def test_install_public_object():
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz.tbi",
             "size": 0,
             "version": "v1",
-            "cohort": "1000genomes",
+            "program": "1000genomes",
             "access_methods": [
                 {
                     "type": "s3",
@@ -160,7 +160,7 @@ def test_install_public_object():
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz",
             "size": 0,
             "version": "v1",
-            "cohort": "1000genomes",
+            "program": "1000genomes",
             "access_methods": [
                 {
                     "type": "s3",
@@ -194,7 +194,7 @@ def test_install_public_object():
             "name": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "size": 0,
             "version": "v1",
-            "cohort": "1000genomes"
+            "program": "1000genomes"
         }
     ]
     for obj in pieces:
@@ -311,7 +311,7 @@ def test_add_sample_drs(input, program_id):
                 }
             ],
             "version": "v1",
-            "cohort": program_id
+            "program": program_id
         }
         response = requests.request("POST", post_url, json=sample_drs_object, headers=headers)
         print(f"POST {sample_drs_object['id']}: {response.text}")
@@ -354,13 +354,13 @@ def test_sample_stats(input, program_id):
     assert input['genomic_id'] in response.json()['genomes']
 
 
-def test_cohort_samples():
+def test_program_samples():
     headers = get_headers()
 
     get_url = f"{HOST}/htsget/v1/samples"
     response = requests.request("GET", get_url, headers=headers)
     print(response.json())
-    response = requests.request("GET", get_url, headers=headers, params={"cohort": "1000genomes"})
+    response = requests.request("GET", get_url, headers=headers, params={"program": "1000genomes"})
     assert response.status_code == 200
     print(response.json())
     assert len(response.json()) == 1
@@ -558,7 +558,7 @@ def test_vcf_json():
 
 
 @pytest.fixture
-def cohorts():
+def programs():
     return ["test-htsget", "1000genomes"]
 
 
@@ -592,7 +592,7 @@ def drs_objects():
             "contents": [],
             "version": "v1",
             "reference_genome": "hg38",
-            "cohort": "test-htsget"
+            "program": "test-htsget"
         }
         result.append(genomic_drs_obj)
 
@@ -604,7 +604,7 @@ def drs_objects():
             "mime_type": "application/octet-stream",
             "name": index_file,
             "version": "v1",
-            "cohort": "test-htsget"
+            "program": "test-htsget"
         })
         # add it to the contents of the genomic_drs_obj:
         genomic_drs_obj['contents'].append({
@@ -624,7 +624,7 @@ def drs_objects():
             "mime_type": "application/octet-stream",
             "name": data_file,
             "version": "v1",
-            "cohort": "test-htsget"
+            "program": "test-htsget"
         })
         # add it to the contents of the genomic_drs_obj:
         genomic_drs_obj['contents'].append({

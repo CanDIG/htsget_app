@@ -40,8 +40,8 @@ def is_authed(id_, request):
         return 200
     if "Authorization" in request.headers:
         obj = database.get_drs_object(id_)
-        if obj is not None and 'cohort' in obj:
-            if is_cohort_authorized(request, obj['cohort']):
+        if obj is not None and 'program' in obj:
+            if is_program_authorized(request, obj['program']):
                 return 200
         else:
             return 404
@@ -50,23 +50,23 @@ def is_authed(id_, request):
     return 403
 
 
-def get_authorized_cohorts(request):
+def get_authorized_programs(request):
     if is_testing(request):
         return ["test-htsget"]
     try:
         return authx.auth.get_opa_datasets(AuthzRequest(request.headers, request.method, request.url.path))
     except Exception as e:
-        logger.warning(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
+        logger.warning(f"Couldn't authorize programs: {type(e)} {str(e)}")
         return []
 
 
-def is_cohort_authorized(request, cohort_id):
+def is_program_authorized(request, program_id):
     req = AuthzRequest(request.headers, request.method, request.url.path)
     if is_testing(req):
         return True
     if request_is_from_ingest(req):
         return True
-    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(req), method=req.method, path=req.path, program=cohort_id)
+    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(req), method=req.method, path=req.path, program=program_id)
 
 
 def is_site_admin(request):

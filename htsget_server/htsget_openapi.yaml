@@ -438,12 +438,12 @@ paths:
                                 $ref: '#/components/schemas/SampleTicket'
     /samples:
         get:
-            summary: Get metadata about samples in a cohort
-            operationId: htsget_operations.get_cohort_samples
-            description: Get MoH-relevant genomic information about all samples in a cohort
+            summary: Get metadata about samples in a program
+            operationId: htsget_operations.get_program_samples
+            description: Get MoH-relevant genomic information about all samples in a program
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
-                - $ref: '#/components/parameters/cohortParam'
+                - $ref: '#/components/parameters/programParam'
             responses:
                 200:
                     description: Success
@@ -903,9 +903,9 @@ components:
                 sample_id:
                     type: string
                     description: MoH submitter_sample_id from a Sample Registration associated with a specimen.
-                cohort:
+                program:
                     type: string
-                    description: MoH cohort ID
+                    description: MoH program ID
                 genome:
                     type: array
                     description: An array of associated GenomicDrsObjects that describe reads, e.g. bams.
@@ -1126,10 +1126,10 @@ components:
             name: Range
             schema:
                 $ref: '#/components/schemas/Range'
-        cohortParam:
+        programParam:
             in: query
-            name: cohort
-            description: name of cohort
+            name: program
+            description: name of program
             required: false
             schema:
                 type: string
