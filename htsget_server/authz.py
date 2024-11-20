@@ -66,6 +66,8 @@ def is_cohort_authorized(request, cohort_id):
         return True
     if request_is_from_ingest(req):
         return True
+    if not "Authorization" in request.headers:
+        return False
     return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(req), method=req.method, path=req.path, program=cohort_id)
 
 
