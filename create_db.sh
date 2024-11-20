@@ -42,4 +42,5 @@ echo "running migrations..."
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_288.sql >>setup_out.txt
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_315.sql >>setup_out.txt
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_339.sql >>setup_out.txt
+psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_340.sql >>setup_out.txt
 echo "...done"

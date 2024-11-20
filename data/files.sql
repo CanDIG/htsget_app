@@ -1,5 +1,5 @@
 BEGIN TRANSACTION;
-CREATE TABLE cohort (
+CREATE TABLE program (
 	id VARCHAR NOT NULL,
 	PRIMARY KEY (id)
 );
@@ -15,9 +15,9 @@ CREATE TABLE drs_object (
         checksums VARCHAR,
         description VARCHAR,
         aliases VARCHAR,
-        cohort_id VARCHAR,
+        program_id VARCHAR,
         PRIMARY KEY (id),
-        FOREIGN KEY(cohort_id) REFERENCES cohort (id)
+        FOREIGN KEY(program_id) REFERENCES program (id)
 );
 CREATE TABLE access_method (
         id SERIAL PRIMARY KEY,
