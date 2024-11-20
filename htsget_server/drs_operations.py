@@ -118,7 +118,7 @@ def list_programs():
     if programs is None:
         return [], 404
     try:
-        if authz.is_site_admin(connexion.request):
+        if authz.is_site_admin(connexion.request) or authz.request_is_from_query(connexion.request):
             return list(map(lambda x: x['id'], programs)), 200
         authorized_programs = authz.get_authorized_programs(connexion.request)
         return list(set(map(lambda x: x['id'], programs)).intersection(set(authorized_programs))), 200
@@ -138,7 +138,7 @@ def get_program(program_id):
     new_program = database.get_program(program_id)
     if new_program is None:
         return {"message": "No matching program found"}, 404
-    if authz.is_program_authorized(connexion.request, program_id):
+    if authz.is_program_authorized(connexion.request, program_id) or authz.request_is_from_query(connexion.request):
         return new_program, 200
     return {"message": f"Not authorized to access program {program_id}"}, 403
 
