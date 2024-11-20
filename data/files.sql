@@ -1,6 +1,7 @@
 BEGIN TRANSACTION;
 CREATE TABLE program (
 	id VARCHAR NOT NULL,
+	statistics JSONB,
 	PRIMARY KEY (id)
 );
 CREATE TABLE drs_object (
