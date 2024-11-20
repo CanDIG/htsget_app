@@ -138,7 +138,7 @@ def get_cohort(cohort_id):
     new_cohort = database.get_cohort(cohort_id)
     if new_cohort is None:
         return {"message": "No matching cohort found"}, 404
-    if authz.is_cohort_authorized(connexion.request, cohort_id):
+    if authz.is_cohort_authorized(connexion.request, cohort_id) or authz.request_is_from_query(connexion.request):
         return new_cohort, 200
     return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
 
