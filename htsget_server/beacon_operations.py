@@ -292,23 +292,23 @@ def search(raw_req):
                 response['responseSummary']['numTotalResults'] = len(resultset)
             response['responseSummary']['exists'] = True
 
-        # if the request granularity was "record", check to see that the user is actually authorized to see any cohorts:
-        authed_cohorts = authz.get_authorized_cohorts(connexion.request)
+        # if the request granularity was "record", check to see that the user is actually authorized to see any programs:
+        authed_programs = authz.get_authorized_programs(connexion.request)
         response['beaconHandovers'] = []
         query_info = {} # program_id and submitter_sample_id
         for drs_obj_id in variants_by_file.keys():
-            # look for samples and cohorts for all drs objects, even if user is not authorized
+            # look for samples and programs for all drs objects, even if user is not authorized
             drs_obj = database.get_drs_object(drs_obj_id)
-            if "cohort" in drs_obj:
-                if drs_obj["cohort"] not in query_info:
-                    query_info[drs_obj["cohort"]] = []
+            if "program" in drs_obj:
+                if drs_obj["program"] not in query_info:
+                    query_info[drs_obj["program"]] = []
                 for c in drs_obj["contents"]:
                     if c["id"] not in ["variant", "read", "index"]:
                         # this is a SampleContentObject
-                        if c["name"] not in query_info[drs_obj["cohort"]]:
-                            query_info[drs_obj["cohort"]].append(c["name"])
+                        if c["name"] not in query_info[drs_obj["program"]]:
+                            query_info[drs_obj["program"]].append(c["name"])
 
-                if drs_obj["cohort"] in authed_cohorts:
+                if drs_obj["program"] in authed_programs:
                     # fill in handover data
                     try:
                         handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
@@ -376,12 +376,12 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
       ]
     """
     resultset = {}
-    authed_cohorts = authz.get_authorized_cohorts(connexion.request)
+    authed_programs = authz.get_authorized_programs(connexion.request)
     for drs_obj in variants_by_obj.keys():
         # check to see if this drs_object is authorized:
         x = database.get_drs_object(drs_obj)
         is_authed = False
-        if x["cohort"] in authed_cohorts:
+        if x["program"] in authed_programs:
             is_authed = True
         if database.get_variantfile(drs_obj)['reference_genome'] != reference_genome:
             continue
@@ -424,7 +424,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
                     # check to see that we should be processing the actual sample data:
                     if is_authed:
                         cld['analysisId'] = drs_obj
-                        cld['biosampleId'] = f"{x['cohort']}~{k}"
+                        cld['biosampleId'] = f"{x['program']}~{k}"
                     alleles = sample['GT'].split('/')
                     if len(alleles) < 2:
                         alleles = sample['GT'].split('|')

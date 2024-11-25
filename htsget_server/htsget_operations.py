@@ -123,11 +123,11 @@ def index_reads(id_=None):
         drs_obj = database.get_drs_object(id_)
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
-        cohort = ""
-        if "cohort" in drs_obj:
-            cohort = drs_obj['cohort']
+        program = ""
+        if "program" in drs_obj:
+            program = drs_obj['program']
         try:
-            Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
+            Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -193,9 +193,9 @@ def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
             return {"message": f"No DRS object exists with ID {id_}"}, 404
         if drs_obj['description'] not in ['wgs', 'wts']:
             return {"message": f"DRS object {id_} is not a genomic object"}, 404
-        cohort = ""
-        if "cohort" in drs_obj:
-            cohort = drs_obj['cohort']
+        program = ""
+        if "program" in drs_obj:
+            program = drs_obj['program']
         params = {"id": id_, "reference_genome": genome}
         try:
             varfile = database.create_variantfile(params)
@@ -205,7 +205,7 @@ def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
                         return varfile, 200
                     # clear the indexed bit:
                     database.mark_variantfile_as_not_indexed(id_)
-                Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
+                Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -281,38 +281,38 @@ async def get_multiple_samples():
     return _get_samples(req["samples"]), 200
 
 
-def get_cohort_samples(cohort=None):
-    if cohort is None:
+def get_program_samples(program=None):
+    if program is None:
         sample_drs_objs = database.list_drs_objects()
     else:
-        sample_drs_objs = database.list_drs_objects(cohort)
+        sample_drs_objs = database.list_drs_objects(program)
     samples = list(map(lambda y: y["id"], filter(lambda x: x["description"] == "sample", sample_drs_objs)))
     result = []
-    samples_by_cohort = {}
+    samples_by_program = {}
     return _get_samples(samples), 200
 
 
 def _get_samples(samples):
     result = []
-    samples_by_cohort = {}
+    samples_by_program = {}
     for sample in samples:
         res, status_code = _get_sample(sample)
         if status_code == 200:
-            if res["cohort"] not in samples_by_cohort:
-                samples_by_cohort[res["cohort"]] = []
-            samples_by_cohort[res["cohort"]].append(res)
+            if res["program"] not in samples_by_program:
+                samples_by_program[res["program"]] = []
+            samples_by_program[res["program"]].append(res)
     if authz.is_testing(connexion.request):
-        for cohort in samples_by_cohort:
-            result.extend(samples_by_cohort[cohort])
+        for program in samples_by_program:
+            result.extend(samples_by_program[program])
     else:
         if authz.request_is_from_query(connexion.request) or authz.request_is_from_ingest(connexion.request):
-            for cohort in samples_by_cohort:
-                result.extend(samples_by_cohort[cohort])
+            for program in samples_by_program:
+                result.extend(samples_by_program[program])
         else:
-            authz_cohorts = authz.get_authorized_cohorts(connexion.request)
-            for cohort in authz_cohorts:
-                if cohort in samples_by_cohort:
-                    result.extend(samples_by_cohort[cohort])
+            authz_programs = authz.get_authorized_programs(connexion.request)
+            for program in authz_programs:
+                if program in samples_by_program:
+                    result.extend(samples_by_program[program])
     return result
 
 
@@ -329,7 +329,7 @@ def _get_sample(id_=None):
     # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
     sample_drs_obj = database.get_drs_object(id_)
     if sample_drs_obj is not None and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
-        result["cohort"] = sample_drs_obj["cohort"]
+        result["program"] = sample_drs_obj["program"]
         for contents_obj in sample_drs_obj["contents"]:
             drs_obj = database.get_drs_object(contents_obj["id"])
             if drs_obj is not None:

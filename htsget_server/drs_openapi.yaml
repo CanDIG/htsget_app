@@ -31,7 +31,7 @@ paths:
     get:
       summary: List all DRS objects
       parameters:
-      - $ref: '#/components/parameters/CohortIdQuery'
+      - $ref: '#/components/parameters/ProgramIdQuery'
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.list_objects
@@ -124,12 +124,12 @@ paths:
                     description: array of strings that need to be passed with the URL to get bytes
       tags:
         - Objects
-  /cohorts:
+  /programs:
     parameters:
       - $ref: '#/components/parameters/BearerAuth'
     get:
-      description: List all cohorts available
-      operationId: drs_operations.list_cohorts
+      description: List all programs available
+      operationId: drs_operations.list_programs
       responses:
         200:
           description: ok
@@ -139,60 +139,60 @@ paths:
                 type: array
                 items:
                   type: string
-                description: array of cohorts
+                description: array of programs
     post:
-      description: Create a cohort
-      operationId: drs_operations.post_cohort
+      description: Create a program
+      operationId: drs_operations.post_program
       requestBody:
-          $ref: '#/components/requestBodies/CohortRequest'
+          $ref: '#/components/requestBodies/ProgramRequest'
       responses:
           200:
-            description: The `Cohort` was created successfully
+            description: The `Program` was created successfully
             content:
               application/json:
                   schema:
                     type: object
 
-  /cohorts/{cohort_id}:
+  /programs/{program_id}:
     parameters:
-      - $ref: "#/components/parameters/CohortId"
+      - $ref: "#/components/parameters/ProgramId"
       - $ref: '#/components/parameters/BearerAuth'
     get:
-      description: Describe a cohort
-      operationId: drs_operations.get_cohort
+      description: Describe a program
+      operationId: drs_operations.get_program
       responses:
         200:
           description: ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Cohort'
+                $ref: '#/components/schemas/Program'
     delete:
-      summary: Delete a cohort.
+      summary: Delete a program.
       description: >-
-        Delete a cohort, and all associated DRS objects.
-      operationId: drs_operations.delete_cohort
+        Delete a program, and all associated DRS objects.
+      operationId: drs_operations.delete_program
       responses:
           200:
-            description: The cohort was deleted successfully
+            description: The program was deleted successfully
             content:
               application/json:
                 schema:
                   type: object
-  /cohorts/{cohort_id}/status:
+  /programs/{program_id}/status:
     parameters:
-      - $ref: "#/components/parameters/CohortId"
+      - $ref: "#/components/parameters/ProgramId"
       - $ref: '#/components/parameters/BearerAuth'
     get:
-      description: List indexing status reports for a cohort
-      operationId: drs_operations.get_cohort_status
+      description: List indexing status reports for a program
+      operationId: drs_operations.get_program_status
       responses:
         200:
           description: ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CohortIndexStatus'
+                $ref: '#/components/schemas/ProgramIndexStatus'
 components:
   parameters:
     BearerAuth:
@@ -201,17 +201,17 @@ components:
       schema:
         type: string
         description: A string of the format 'Bearer <token>'
-    CohortId:
+    ProgramId:
       in: path
-      name: cohort_id
+      name: program_id
       required: true
-      description: CohortId
+      description: ProgramId
       schema:
         type: string
-    CohortIdQuery:
+    ProgramIdQuery:
         in: query
-        name: cohort_id
-        description: CohortId
+        name: program_id
+        description: ProgramId
         schema:
           type: string
     ObjectId:
@@ -269,26 +269,26 @@ components:
               - $ref: "#/components/schemas/GenomicDrsObject"
               - $ref: "#/components/schemas/GenomicDataDrsObject"
               - $ref: "#/components/schemas/GenomicIndexDrsObject"
-    CohortRequest:
+    ProgramRequest:
       content:
         'application/json':
           schema:
-            $ref: '#/components/schemas/Cohort'
+            $ref: '#/components/schemas/Program'
 
   schemas:
-    Cohort:
+    Program:
       type: object
       properties:
         id:
           type: string
-          description: name of cohort
+          description: name of program
         drsobjects:
           type: array
           items:
             $ref: '#/components/schemas/DrsUri'
         statistics:
           type: object
-    CohortIndexStatus:
+    ProgramIndexStatus:
       type: object
       properties:
         index_complete:
@@ -323,7 +323,7 @@ components:
         - id
         - contents
         - description
-        - cohort
+        - program
 #        - self_uri
 #        - size
 #        - created_time
@@ -392,9 +392,9 @@ components:
           type: string
           enum:
             - sample
-        cohort:
+        program:
           type: string
-          description: The cohort this object was ingested as part of
+          description: The program this object was ingested as part of
         aliases:
           type: array
           items:
@@ -411,7 +411,7 @@ components:
         - id
         - contents
         - description
-        - cohort
+        - program
         - reference_genome
 #        - self_uri
 #        - size
@@ -491,9 +491,9 @@ components:
           enum:
             - wgs
             - wts
-        cohort:
+        program:
           type: string
-          description: The cohort this object was ingested as part of
+          description: The program this object was ingested as part of
         reference_genome:
           type: string
           description: the reference genome used to compile this genomic object
@@ -519,7 +519,7 @@ components:
         - id
         - access_methods
         - description
-        - cohort
+        - program
 #        - self_uri
 #        - size
 #        - created_time
@@ -595,9 +595,9 @@ components:
           enum:
             - variant
             - read
-        cohort:
+        program:
             type: string
-            description: The cohort this object was ingested as part of
+            description: The program this object was ingested as part of
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.
@@ -617,7 +617,7 @@ components:
         - id
         - access_methods
         - description
-        - cohort
+        - program
 #        - self_uri
 #        - size
 #        - created_time
@@ -691,9 +691,9 @@ components:
           type: string
           enum:
             - index
-        cohort:
+        program:
             type: string
-            description: The cohort this object was ingested as part of
+            description: The program this object was ingested as part of
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.
