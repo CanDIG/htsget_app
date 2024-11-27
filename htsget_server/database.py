@@ -554,6 +554,8 @@ def create_program(obj, tries=1):
                 new_program = Program()
             if "statistics" in obj:
                 new_program.statistics = obj["statistics"]
+            else:
+                new_program.statistics = {}
             new_program.id = obj['id']
             for drs_uri in obj['drsobjects']:
                 new_drs = session.query(DrsObject).filter_by(self_uri=drs_uri).one_or_none()

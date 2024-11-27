@@ -45,7 +45,7 @@ def test_indexer_on():
         assert response.json()['status'] == "ON"
 
 
-def test_remove_objects(programs):
+def remove_programs(programs):
     headers = get_headers()
     candig_url = os.getenv("CANDIG_URL")
 
@@ -72,6 +72,8 @@ def test_post_objects(drs_objects, programs):
     Install test objects. Will fail if any post request returns an error.
     """
     # clean up old objects in db:
+    remove_programs(programs)
+
     url = f"{HOST}/ga4gh/drs/v1/objects"
     headers = get_headers()
     candig_url = os.getenv("CANDIG_URL")
@@ -555,6 +557,10 @@ def test_vcf_json():
     res = requests.request("GET", url, params=params, headers=get_headers())
     assert res.json()['id'] == 'test'
     assert len(res.json()['variants']) == 7
+
+
+def test_remove_programs(programs):
+    remove_programs(programs)
 
 
 @pytest.fixture
