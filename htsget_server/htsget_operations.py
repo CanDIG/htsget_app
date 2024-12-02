@@ -116,7 +116,7 @@ def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None
 
 @app.route('/reads/<path:id_>/index')
 def index_reads(id_=None):
-    if not authz.is_site_admin(connexion.request):
+    if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to index reads"}, 403
     if id_ is not None:
         # check that there is a database drs object for this:
@@ -184,7 +184,7 @@ def verify_variants_genomic_drs_object(id_):
 
 @app.route('/variants/<path:id_>/index')
 def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
-    if not authz.is_site_admin(connexion.request):
+    if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
         # check that there is a database drs object for this:
@@ -301,18 +301,10 @@ def _get_samples(samples):
             if res["program"] not in samples_by_program:
                 samples_by_program[res["program"]] = []
             samples_by_program[res["program"]].append(res)
-    if authz.is_testing(connexion.request):
-        for program in samples_by_program:
+    authz_programs = authz.get_authorized_programs(connexion.request)
+    for program in authz_programs:
+        if program in samples_by_program:
             result.extend(samples_by_program[program])
-    else:
-        if authz.request_is_from_query(connexion.request) or authz.request_is_from_ingest(connexion.request):
-            for program in samples_by_program:
-                result.extend(samples_by_program[program])
-        else:
-            authz_programs = authz.get_authorized_programs(connexion.request)
-            for program in authz_programs:
-                if program in samples_by_program:
-                    result.extend(samples_by_program[program])
     return result
 
 
