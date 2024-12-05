@@ -118,8 +118,6 @@ def list_programs():
     if programs is None:
         return [], 404
     try:
-        if authz.has_full_authz(connexion.request):
-            return list(map(lambda x: x['id'], programs)), 200
         authorized_programs = authz.get_authorized_programs(connexion.request)
         return list(set(map(lambda x: x['id'], programs)).intersection(set(authorized_programs))), 200
     except Exception as e:

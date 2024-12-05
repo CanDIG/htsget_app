@@ -51,7 +51,7 @@ def is_authed(id_, request):
 def get_authorized_programs(request):
     req = AuthzRequest(request.headers, request.method, request.url.path)
     if has_full_authz(req):
-        return map(lambda x: x['id'], database.list_programs())
+        return list(map(lambda x: x['id'], database.list_programs()))
     if is_testing(req):
         return ["test-htsget"]
     try:
@@ -82,7 +82,7 @@ def has_full_authz(request):
         return True
     if "Authorization" in request.headers:
         try:
-            return authx.auth.has_full_authz(AuthzRequest(request.headers, request.method, request.url.path))
+            return authx.auth.is_site_admin(AuthzRequest(request.headers, request.method, request.url.path))
         except Exception as e:
             logger.warning(f"Couldn't authorize for full access: {type(e)} {str(e)}")
             return False
