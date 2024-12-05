@@ -24,7 +24,7 @@ class AuthzRequest:
 
 
 def is_testing(request):
-    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
+    if "Authorization" in request.headers and request.headers["Authorization"] == f"Bearer {TEST_KEY}":
         logger.warning("TEST MODE, AUTHORIZATION IS DISABLED")
         return True
 
@@ -34,9 +34,7 @@ def is_authed(id_, request):
         return 401
     if is_testing(request):
         return 200 # no auth
-    if request_is_from_ingest(request):
-        return 200
-    if request_is_from_query(request):
+    if has_full_authz(request):
         return 200
     if "Authorization" in request.headers:
         obj = database.get_drs_object(id_)
@@ -51,10 +49,13 @@ def is_authed(id_, request):
 
 
 def get_authorized_programs(request):
-    if is_testing(request):
+    req = AuthzRequest(request.headers, request.method, request.url.path)
+    if has_full_authz(req):
+        return list(map(lambda x: x['id'], database.list_programs()))
+    if is_testing(req):
         return ["test-htsget"]
     try:
-        return authx.auth.get_opa_datasets(AuthzRequest(request.headers, request.method, request.url.path))
+        return authx.auth.get_opa_datasets(req)
     except Exception as e:
         logger.warning(f"Couldn't authorize programs: {type(e)} {str(e)}")
         return []
@@ -64,26 +65,26 @@ def is_program_authorized(request, program_id):
     req = AuthzRequest(request.headers, request.method, request.url.path)
     if is_testing(req):
         return True
-    if request_is_from_ingest(req):
+    if has_full_authz(req):
         return True
     if not "Authorization" in request.headers:
         return False
     return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(req), method=req.method, path=req.path, program=program_id)
 
 
-def is_site_admin(request):
+def has_full_authz(request):
     """
-    Is the user associated with the token a site admin?
+    Is the user associated with the token a site admin? Alternately, is this request from query or ingest?
     """
     if is_testing(request):
         return True
-    if request_is_from_ingest(request):
+    if request_is_from_ingest(request) or request_is_from_query(request):
         return True
     if "Authorization" in request.headers:
         try:
             return authx.auth.is_site_admin(AuthzRequest(request.headers, request.method, request.url.path))
         except Exception as e:
-            logger.warning(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
+            logger.warning(f"Couldn't authorize for full access: {type(e)} {str(e)}")
             return False
     return False
 
