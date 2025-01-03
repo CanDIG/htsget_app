@@ -82,7 +82,10 @@ def has_full_authz(request):
         return True
     if "Authorization" in request.headers:
         try:
-            return authx.auth.is_site_admin(AuthzRequest(request.headers, request.method, request.url.path))
+            if hasattr(request, "url"):
+                return authx.auth.is_site_admin(AuthzRequest(request.headers, request.method, request.url.path))
+            else:
+                return authx.auth.is_site_admin(AuthzRequest(request.headers, request.method, request.path))
         except Exception as e:
             logger.warning(f"Couldn't authorize for full access: {type(e)} {str(e)}")
             return False
