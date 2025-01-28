@@ -75,6 +75,8 @@ def indexer_status():
 
 
 def indexer_switch(status=None):
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to switch indexer"}, 403
     if status == "ON":
         try:
             open(INDEXING_SWITCH_FILE, "x")
