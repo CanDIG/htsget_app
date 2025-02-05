@@ -426,6 +426,42 @@ components:
           description: |-
             The filename for this entity, not including its file extensions.
             This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
+        contents:
+          type: array
+          description: The specific analysis contents objects that comprise this analysis DRS entity. Should contain a AnalysisDataContentsObject, an optional AnalysisIndexContentsObject, and SampleContentsObjects corresponding to the samples analyzed in the analysis data object.
+          minItems: 1
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/AnalysisDataContentsObject'
+              - $ref: '#/components/schemas/AnalysisIndexContentsObject'
+              - $ref: '#/components/schemas/SampleContentsObject'
+        description:
+          type: string
+          description: type of sequencing analysis
+          enum:
+            - wgs
+            - wts
+        program:
+          type: string
+          description: The program this object was ingested as part of
+        reference_genome:
+          type: string
+          description: the reference genome used to compile this analysis
+          enum:
+            - hg37
+            - hg38
+        indexed:
+          type: integer
+          description: 1 if the object has been indexed for search, 0 if not
+        aliases:
+          type: array
+          items:
+            type: string
+          description: >-
+            A list of strings that can be used to find other metadata
+            about this `DrsObject` from external metadata sources. These
+            aliases can be used to represent secondary
+            accession numbers or external GUIDs.
         self_uri:
           type: string
           description: |-
@@ -476,43 +512,7 @@ components:
             = md5( concat( 5e089d29, 72794b6d ) )
             = md5( 5e089d2972794b6d )
             = f7a29a04
-        contents:
-          type: array
-          description: The specific genomic contents objects that comprise this genomic DRS entity. Should contain a GenomicDataContentsObject, an optional GenomicIndexContentsObject, and SampleContentsObjects corresponding to the samples analyzed in the genomic data object.
-          minItems: 1
-          items:
-            anyOf:
-              - $ref: '#/components/schemas/GenomicDataContentsObject'
-              - $ref: '#/components/schemas/GenomicIndexContentsObject'
-              - $ref: '#/components/schemas/SampleContentsObject'
-        description:
-          type: string
-          description: type of sequencing data
-          enum:
-            - wgs
-            - wts
-        program:
-          type: string
-          description: The program this object was ingested as part of
-        reference_genome:
-          type: string
-          description: the reference genome used to compile this genomic object
-          enum:
-            - hg37
-            - hg38
-        indexed:
-          type: integer
-          description: 1 if the object has been indexed for search, 0 if not
-        aliases:
-          type: array
-          items:
-            type: string
-          description: >-
-            A list of strings that can be used to find other metadata
-            about this `DrsObject` from external metadata sources. These
-            aliases can be used to represent secondary
-            accession numbers or external GUIDs.
-    GenomicDataDrsObject:
+    AnalysisDataDrsObject:
       type: object
       description: A DrsObject that describes a analysis data file, e.g. a variant or read file.
       required:
@@ -533,6 +533,21 @@ components:
           description: |-
             The filename for this entity, not including its file extensions.
             This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
+        access_methods:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/AccessMethod"
+          description: |-
+            The list of access methods that can be used to fetch the `DrsObject`.
+        description:
+          type: string
+          enum:
+            - variant
+            - read
+        program:
+            type: string
+            description: The program this object was ingested as part of
         self_uri:
           type: string
           description: |-
@@ -583,21 +598,6 @@ components:
             = md5( concat( 5e089d29, 72794b6d ) )
             = md5( 5e089d2972794b6d )
             = f7a29a04
-        access_methods:
-          type: array
-          minItems: 1
-          items:
-            $ref: "#/components/schemas/AccessMethod"
-          description: |-
-            The list of access methods that can be used to fetch the `DrsObject`.
-        description:
-          type: string
-          enum:
-            - variant
-            - read
-        program:
-            type: string
-            description: The program this object was ingested as part of
         mime_type:
           type: string
           description: A string providing the mime-type of the DrsObject.
