@@ -441,6 +441,7 @@ components:
           enum:
             - wgs
             - wts
+            - downstream
         program:
           type: string
           description: The program this object was ingested as part of
@@ -545,6 +546,7 @@ components:
           enum:
             - variant
             - read
+            - transcript
         program:
             type: string
             description: The program this object was ingested as part of
@@ -816,6 +818,7 @@ components:
           enum:
             - variant
             - read
+            - transcript
         drs_uri:
           type: array
           description: The DRS uri(s) to the AnalysisDataDrsObject
