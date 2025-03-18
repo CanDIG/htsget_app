@@ -1,6 +1,6 @@
 import connexion
 import database
-from flask import request, Flask
+from flask import Flask
 import os
 import os.path
 import re
@@ -48,7 +48,7 @@ def get_object(object_id, expand=False):
     new_object = None
     if object_id is not None:
         new_object = database.get_drs_object(escape(object_id), expand)
-        auth_code = authz.is_authed(escape(object_id), request)
+        auth_code = authz.is_authed(escape(object_id), connexion.request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     if new_object is None:
@@ -65,23 +65,24 @@ def get_object_for_drs_uri(drs_uri):
     return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}, 401
 
 
-def list_objects(cohort_id=None):
-    return database.list_drs_objects(cohort_id=cohort_id), 200
+def list_objects(program_id=None):
+    return database.list_drs_objects(program_id=program_id), 200
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
-def get_access_url(object_id, access_id, request=request):
+def get_access_url(object_id, access_id, request=connexion.request):
     if object_id is not None:
-        auth_code = authz.is_authed(escape(object_id), request)
+        auth_code = authz.is_authed(escape(object_id), connexion.request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     return _get_access_url(access_id)
 
 
-def post_object(tries=1):
-    cohort_id = connexion.request.json["cohort"]
-    object_id = connexion.request.json['id']
-    if not authz.is_cohort_authorized(request, cohort_id):
+async def post_object(tries=1):
+    req = await connexion.request.json()
+    program_id = req["program"]
+    object_id = req['id']
+    if not authz.is_program_authorized(connexion.request, program_id):
         return {"message": "User is not authorized to POST"}, 403
     if tries > 3:
         raise Exception(f"Exception in post_object {object_id}, too many tries")
@@ -89,7 +90,7 @@ def post_object(tries=1):
         # if this isn't the first try, pause for a bit and then try again
         sleep(randint(1,10)/2)
     try:
-        new_object = database.create_drs_object(connexion.request.json)
+        new_object = database.create_drs_object(req)
     except Exception as e:
         logger.debug(f"Exception in post_object {object_id}: {str(e)}, trying again")
         return post_object(tries=tries+1)
@@ -100,8 +101,8 @@ def post_object(tries=1):
 def delete_object(object_id):
     obj = database.get_drs_object(object_id)
     if obj is not None:
-        cohort_id = obj["cohort"]
-        if not authz.is_cohort_authorized(request, cohort_id):
+        program_id = obj["program"]
+        if not authz.is_program_authorized(connexion.request, program_id):
             return {"message": "User is not authorized to POST"}, 403
         try:
             new_object = database.delete_drs_object(escape(object_id))
@@ -112,66 +113,65 @@ def delete_object(object_id):
         return {"message": f"object {object_id} not found"}, 404
 
 
-def list_cohorts():
-    cohorts = database.list_cohorts()
-    if cohorts is None:
+def list_programs():
+    programs = database.list_programs()
+    if programs is None:
         return [], 404
     try:
-        if authz.is_site_admin(request):
-            return list(map(lambda x: x['id'], cohorts)), 200
-        authorized_cohorts = authz.get_authorized_cohorts(request)
-        return list(set(map(lambda x: x['id'], cohorts)).intersection(set(authorized_cohorts))), 200
+        authorized_programs = authz.get_authorized_programs(connexion.request)
+        return list(set(map(lambda x: x['id'], programs)).intersection(set(authorized_programs))), 200
     except Exception as e:
         return [], 500
 
 
-def post_cohort():
-    if not authz.is_cohort_authorized(request, connexion.request.json['id']):
+async def post_program():
+    req = await connexion.request.json()
+    if not authz.is_program_authorized(connexion.request, req['id']):
         return {"message": "User is not authorized to POST"}, 403
-    new_cohort = database.create_cohort(connexion.request.json)
-    return new_cohort, 200
+    new_program = database.create_program(req)
+    return new_program, 200
 
 
-def get_cohort(cohort_id):
-    new_cohort = database.get_cohort(cohort_id)
-    if new_cohort is None:
-        return {"message": "No matching cohort found"}, 404
-    if authz.is_cohort_authorized(request, cohort_id):
-        return new_cohort, 200
-    return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
+def get_program(program_id):
+    new_program = database.get_program(program_id)
+    if new_program is None:
+        return {"message": "No matching program found"}, 404
+    if authz.is_program_authorized(connexion.request, program_id):
+        return new_program, 200
+    return {"message": f"Not authorized to access program {program_id}"}, 403
 
 
-def delete_cohort(cohort_id):
-    if not authz.is_cohort_authorized(request, cohort_id):
+def delete_program(program_id):
+    if not authz.is_program_authorized(connexion.request, program_id):
         return {"message": "User is not authorized to POST"}, 403
     try:
-        new_cohort = database.delete_cohort(cohort_id)
-        return new_cohort, 200
+        new_program = database.delete_program(program_id)
+        return new_program, 200
     except Exception as e:
         return {"message": str(e)}, 500
 
 
-def get_cohort_status(cohort_id):
-    new_cohort = database.get_cohort(cohort_id)
-    if new_cohort is None:
-        return {"message": "No matching cohort found"}, 404
-    if not authz.is_cohort_authorized(request, cohort_id):
-        return {"message": f"Not authorized to access cohort {cohort_id}"}, 403
+def get_program_status(program_id):
+    new_program = database.get_program(program_id)
+    if new_program is None:
+        return {"message": "No matching program found"}, 404
+    if not authz.is_program_authorized(connexion.request, program_id):
+        return {"message": f"Not authorized to access program {program_id}"}, 403
 
-    # get the objects in the cohort:
+    # get the objects in the program:
     result = {
         "index_complete": [],
         "index_in_progress": [],
         "index_errored": []
     }
-    for drs_uri in new_cohort['drsobjects']:
+    for drs_uri in new_program['drsobjects']:
         drs_obj, status_code = get_object_for_drs_uri(drs_uri)
         if "indexed" in drs_obj:
             if drs_obj['indexed'] == 1:
                 result['index_complete'].append(drs_uri)
             else:
                 # look for index touch file, see if there are errors there:
-                file_path = os.path.join(INDEXING_PATH, f"{cohort_id}_{drs_obj['id']}")
+                file_path = os.path.join(INDEXING_PATH, f"{program_id}_{drs_obj['id']}")
                 err_obj = {
                     "drs_uri": drs_uri,
                     "errors": []
@@ -193,7 +193,7 @@ def get_cohort_status(cohort_id):
 def _get_genomic_obj(object_id):
     result = {'status_code': 200}
     drs_obj = _describe_drs_object(object_id)
-    if drs_obj is None:
+    if drs_obj is None or 'message' in drs_obj:
         return { "message": f"{object_id} not found", "status_code": 404}
     index_result = _get_file_path(drs_obj['index'])
     if 'message' in index_result:

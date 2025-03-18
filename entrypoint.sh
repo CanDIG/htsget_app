@@ -13,6 +13,7 @@ if [[ -f "initial_setup" ]]; then
 
     bash create_db.sh
     mkdir $INDEXING_PATH
+    touch $INDEXING_SWITCH_FILE
     rm initial_setup
 fi
 
@@ -26,4 +27,4 @@ bash htsget_server/indexing.sh &
 
 # use the following instead for production deployment
 cd htsget_server
-gunicorn server:app
+gunicorn -k uvicorn.workers.UvicornWorker server:app

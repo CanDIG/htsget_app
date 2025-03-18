@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, aliased
-from sqlalchemy import Column, Integer, String, Boolean, MetaData, ForeignKey, Table, create_engine, select
+from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, ForeignKey, Table, create_engine, select
 import json
 import re
 from datetime import datetime
@@ -246,16 +246,19 @@ class NCBIRefSeq(ObjectDBBase):
         return json.dumps(result)
 
 
-## CanDIG cohorts entities
-class Cohort(ObjectDBBase):
-    __tablename__ = 'cohort'
+## CanDIG programs entities
+class Program(ObjectDBBase):
+    __tablename__ = 'program'
     id = Column(String, primary_key=True)
-    associated_drs = relationship("DrsObject", back_populates="cohort", cascade="all, delete, delete-orphan")
+    associated_drs = relationship("DrsObject", back_populates="program", cascade="all, delete, delete-orphan")
+    statistics = Column(JSON)
     def __repr__(self):
         result = {
             'id': self.id,
             'drsobjects': []
         }
+        if self.statistics is not None:
+            result['statistics'] = self.statistics
         for drs_assoc in self.associated_drs:
             result['drsobjects'].append(drs_assoc.self_uri)
 
@@ -278,8 +281,8 @@ class DrsObject(ObjectDBBase):
     description = Column(String, default='')
     aliases = Column(String, default='[]') # JSON array of strings of aliases
     contents = relationship("ContentsObject", cascade="all, delete, delete-orphan")
-    cohort_id = Column(String, ForeignKey('cohort.id'))
-    cohort = relationship("Cohort", back_populates="associated_drs")
+    program_id = Column(String, ForeignKey('program.id'))
+    program = relationship("Program", back_populates="associated_drs")
     variantfile = relationship("VariantFile", back_populates="drs_object", cascade="all, delete")
 
     def __repr__(self):
@@ -300,8 +303,8 @@ class DrsObject(ObjectDBBase):
             result['contents'] = json.loads(self.contents.__repr__())
         if len(list(self.access_methods)) > 0:
             result['access_methods'] = json.loads(self.access_methods.__repr__())
-        if self.cohort is not None:
-            result['cohort'] = self.cohort_id
+        if self.program is not None:
+            result['program'] = self.program_id
         if self.variantfile is not None and len(self.variantfile) > 0:
             result['indexed'] = self.variantfile[0].indexed
             result['reference_genome'] = self.variantfile[0].reference_genome
@@ -382,10 +385,10 @@ def get_drs_object(object_id, expand=False, tries=1):
     return None
 
 
-def list_drs_objects(cohort_id=None):
+def list_drs_objects(program_id=None):
     with Session() as session:
-        if cohort_id is not None:
-            result = session.query(DrsObject).filter_by(cohort_id=cohort_id).all()
+        if program_id is not None:
+            result = session.query(DrsObject).filter_by(program_id=program_id).all()
         else:
             result = session.query(DrsObject).all()
         if result is not None:
@@ -428,11 +431,11 @@ def create_drs_object(obj, tries=1):
                 new_object.size = obj['size']
             if 'description' in obj:
                 new_object.description = obj['description']
-            if 'cohort' in obj:
-                cohort = session.query(Cohort).filter_by(id=obj['cohort']).one_or_none()
-                if cohort is None:
-                    create_cohort({"id": obj["cohort"], "drsobjects": []})
-                new_object.cohort_id = obj['cohort']
+            if 'program' in obj:
+                program = session.query(Program).filter_by(id=obj['program']).one_or_none()
+                if program is None:
+                    create_program({"id": obj["program"], "drsobjects": []})
+                new_object.program_id = obj['program']
 
             # json arrays stored as strings
             if 'checksums' in obj:
@@ -504,7 +507,7 @@ def delete_drs_object(obj_id, tries=1):
     try:
         with Session() as session:
             new_object = session.query(DrsObject).filter_by(id=obj_id).one()
-            cohort = session.query(Cohort).filter_by(id=new_object.cohort_id).one_or_none()
+            program = session.query(Program).filter_by(id=new_object.program_id).one_or_none()
             if new_object.description in ["wgs", "wts"]:
                 # this is a GenomicDrsObject; we need to delete any indexed variantfiles
                 variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
@@ -520,71 +523,75 @@ def delete_drs_object(obj_id, tries=1):
     return None
 
 
-def get_cohort(cohort_id):
+def get_program(program_id):
     with Session() as session:
-        result = session.query(Cohort).filter_by(id=cohort_id).one_or_none()
+        result = session.query(Program).filter_by(id=program_id).one_or_none()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
         return None
 
 
-def list_cohorts():
+def list_programs():
     with Session() as session:
-        result = session.query(Cohort).all()
+        result = session.query(Program).all()
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
         return None
 
 
-def create_cohort(obj, tries=1):
+def create_program(obj, tries=1):
     if tries > MAX_TRIES:
-        raise Exception(f"Exception in create_cohort {obj['id']}, too many tries")
+        raise Exception(f"Exception in create_program {obj['id']}, too many tries")
     elif tries > 1:
         # if this isn't the first try, pause for a bit and then try again
         sleep(randint(1,10)/2)
     try:
         with Session() as session:
-            new_cohort = session.query(Cohort).filter_by(id=obj['id']).one_or_none()
-            if new_cohort is None:
-                new_cohort = Cohort()
-            new_cohort.id = obj['id']
+            new_program = session.query(Program).filter_by(id=obj['id']).one_or_none()
+            if new_program is None:
+                new_program = Program()
+            if "statistics" in obj:
+                new_program.statistics = obj["statistics"]
+            else:
+                new_program.statistics = {}
+            new_program.id = obj['id']
             for drs_uri in obj['drsobjects']:
                 new_drs = session.query(DrsObject).filter_by(self_uri=drs_uri).one_or_none()
                 if new_drs is not None:
-                    new_cohort.associated_drs.append(new_drs)
-            session.add(new_cohort)
+                    new_program.associated_drs.append(new_drs)
+            session.add(new_program)
             session.commit()
-            result = session.query(Cohort).filter_by(id=obj['id']).one_or_none()
+            result = session.query(Program).filter_by(id=obj['id']).one_or_none()
             if result is not None:
                 return json.loads(str(result))
     except Exception as e:
-        logger.debug(f"Exception in create_cohort {obj['id']}: {str(e)}, trying again")
-        return create_cohort(obj, tries=tries+1)
+        logger.debug(f"Exception in create_program {obj['id']}: {str(e)}, trying again")
+        return create_program(obj, tries=tries+1)
     return None
 
 
-def delete_cohort(cohort_id, tries=1):
+def delete_program(program_id, tries=1):
     if tries > MAX_TRIES:
-        raise Exception(f"Exception in delete_cohort {cohort_id}, too many tries")
+        raise Exception(f"Exception in delete_program {program_id}, too many tries")
     elif tries > 1:
         # if this isn't the first try, pause for a bit and then try again
         sleep(randint(1,10)/2)
     try:
         with Session() as session:
-            cohort_objs = session.query(Cohort).filter_by(id=cohort_id).all()
-            for cohort_obj in cohort_objs:
-                for drs_obj in cohort_obj.associated_drs:
+            program_objs = session.query(Program).filter_by(id=program_id).all()
+            for program_obj in program_objs:
+                for drs_obj in program_obj.associated_drs:
                     session.delete(drs_obj)
                     session.commit()
-                session.delete(cohort_obj)
+                session.delete(program_obj)
                 session.commit()
             session.commit()
-            return json.loads(str(cohort_objs))
+            return json.loads(str(program_objs))
     except Exception as e:
-        logger.debug(f"Exception in delete_cohort {cohort_id}: {str(e)}, trying again")
-        return delete_cohort(cohort_id, tries=tries+1)
+        logger.debug(f"Exception in delete_program {program_id}: {str(e)}, trying again")
+        return delete_program(program_id, tries=tries+1)
     return None
 
 

@@ -15,6 +15,7 @@ jobs:
       SERVER_LOCAL_DATA: ${{github.workspace}}/data
       PGPASSWORD: OG0pjmnQDWUTvLotYrxPrg
       INDEXING_PATH: ${{github.workspace}}/tmp
+      INDEXING_SWITCH_FILE: ${{github.workspace}}/indexer_on
       TESTENV_URL: http://localhost:3000
       AGGREGATE_COUNT_THRESHOLD: 5
       POSTGRES_USERNAME: admin
@@ -51,6 +52,7 @@ jobs:
         pip install -r requirements.txt
         bash create_db.sh
         mkdir -p ${{ env.INDEXING_PATH }}
+        touch ${{ env.INDEXING_SWITCH_FILE }}
         sed -i s@\<AGGREGATE_COUNT_THRESHOLD\>@${{env.AGGREGATE_COUNT_THRESHOLD}}@ config.ini
         sed -i s@\<POSTGRES_USERNAME\>@${{env.POSTGRES_USERNAME}}@ config.ini
     - name: Test

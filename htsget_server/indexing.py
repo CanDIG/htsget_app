@@ -1,6 +1,6 @@
 import drs_operations
 import database
-from config import INDEXING_PATH
+from config import INDEXING_PATH, INDEXING_SWITCH_FILE
 from pysam import VariantFile, AlignmentFile
 import argparse
 import os
@@ -21,10 +21,10 @@ initialize()
 
 
 def index_variants(file_name=None):
-    # split file name into cohort and drs_obj_id
+    # split file name into program and drs_obj_id
     file_parse = re.match(r"(.*?)~(.+)", file_name)
     if file_parse is not None:
-        cohort = file_parse.group(1)
+        program = file_parse.group(1)
         drs_obj_id = file_parse.group(2)
     else:
         return {"message": f"Format of file name is wrong: {file_name}"}, 500
@@ -195,7 +195,7 @@ def index_touch_file(file_path):
     except Exception as e:
         with open(file_path, "a") as f:
             f.write(f"{datetime.datetime.today()} {str(e)}")
-        logger.warning(str(e))
+        logger.warning(f"indexing error! {type(e)} {str(e)}")
 
 
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
@@ -217,12 +217,17 @@ if __name__ == "__main__":
         if drs_obj is None:
             print(f"No DRS object with id {args.id}")
             sys.exit()
-        cohort = ""
-        if "cohort" in drs_obj:
-            cohort = drs_obj["cohort"]
+        program = ""
+        if "program" in drs_obj:
+            program = drs_obj["program"]
         varfile = database.create_variantfile({"id": args.id, "reference_genome": args.genome})
-        index_variants(drs_obj_id=f"{cohort}_{args.id}")
+        index_variants(drs_obj_id=f"{program}_{args.id}")
         sys.exit()
+
+    ## if the indexing_on file is not present, exit
+    if not os.path.isfile(INDEXING_SWITCH_FILE):
+        logger.debug(f"{INDEXING_SWITCH_FILE} is not present; exiting")
+        sys.exit(10)
 
     ## Otherwise, look for any backlog IDs, index those, then listen for new IDs to index.
     logger.info(f"indexing started on {INDEXING_PATH}")
@@ -244,6 +249,10 @@ if __name__ == "__main__":
     observer.start()
     try:
         while observer.is_alive():
+            ## if the indexing_on file is not present, exit
+            if not os.path.isfile(INDEXING_SWITCH_FILE):
+                logger.debug(f"{INDEXING_SWITCH_FILE} is not present; exiting")
+                sys.exit(10)
             observer.join(1)
     finally:
         observer.stop()

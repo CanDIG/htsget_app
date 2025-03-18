@@ -1,11 +1,11 @@
 import os
 import tempfile
-from flask import request, send_file, Flask
+from flask import send_file, Flask
 from urllib.parse import urlencode
 import drs_operations
 import database
 import authz
-from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH
+from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH, INDEXING_SWITCH_FILE
 from markupsafe import escape
 import connexion
 import variants
@@ -68,10 +68,36 @@ def get_variant_service_info():
     }
 
 
+def indexer_status():
+    if os.path.isfile(INDEXING_SWITCH_FILE):
+        return {"status": "ON"}, 200
+    return {"status": "OFF"}, 200
+
+
+def indexer_switch(status=None):
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to switch indexer"}, 403
+    if status == "ON":
+        try:
+            open(INDEXING_SWITCH_FILE, "x")
+            return {"status": "ON"}, 200
+        except FileExistsError:
+            pass
+        except Exception as e:
+            return {"error": f"indexer switch error {status}:  {type(e)} {str(e)}"}, 500
+    if status == "OFF":
+        try:
+            if os.path.isfile(INDEXING_SWITCH_FILE):
+                os.remove(INDEXING_SWITCH_FILE)
+            return {"status": "OFF"}, 200
+        except Exception as e:
+            return {"error": f"indexer switch error {status}: {type(e)} {str(e)}"}, 500
+
+
 @app.route('/reads/<path:id_>')
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), request)
+        auth_code = authz.is_authed(escape(id_), connexion.request)
         if auth_code == 200:
             return _get_urls("read", escape(id_), reference_name, start, end, class_)
     else:
@@ -82,7 +108,7 @@ def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, 
 @app.route('/reads/data/<path:id_>')
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), request)
+        auth_code = authz.is_authed(escape(id_), connexion.request)
         if auth_code == 200:
             return _get_data(escape(id_), reference_name, start, end, class_, format_)
     else:
@@ -92,18 +118,18 @@ def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None
 
 @app.route('/reads/<path:id_>/index')
 def index_reads(id_=None):
-    if not authz.is_site_admin(request):
+    if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to index reads"}, 403
     if id_ is not None:
         # check that there is a database drs object for this:
         drs_obj = database.get_drs_object(id_)
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
-        cohort = ""
-        if "cohort" in drs_obj:
-            cohort = drs_obj['cohort']
+        program = ""
+        if "program" in drs_obj:
+            program = drs_obj['program']
         try:
-            Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
+            Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -123,9 +149,9 @@ def verify_reads_genomic_drs_object(id_):
 @app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), request)
+        auth_code = authz.is_authed(escape(id_), connexion.request)
         if auth_code == 200:
-            logger.debug(f"getting variants for {id_}", request)
+            logger.debug(f"getting variants for {id_}")
             return _get_urls("variant", escape(id_), reference_name, start, end, class_)
     else:
         return None, 404
@@ -135,7 +161,7 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
 @app.route('/variants/data/<path:id_>')
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), request)
+        auth_code = authz.is_authed(escape(id_), connexion.request)
         if auth_code == 200:
             if format_ == "VCF-JSON":
                 return variants.parse_vcf_file(id_, reference_name=reference_name, start=start, end=end)
@@ -148,7 +174,7 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 @app.route('/variants/<path:id_>/verify')
 def verify_variants_genomic_drs_object(id_):
     try:
-        auth_code = authz.is_authed(escape(id_), request)
+        auth_code = authz.is_authed(escape(id_), connexion.request)
         if auth_code == 200:
             _verify_genomic_drs_object(id_)
         else:
@@ -160,16 +186,18 @@ def verify_variants_genomic_drs_object(id_):
 
 @app.route('/variants/<path:id_>/index')
 def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
-    if not authz.is_site_admin(request):
+    if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
         # check that there is a database drs object for this:
         drs_obj = database.get_drs_object(id_)
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
-        cohort = ""
-        if "cohort" in drs_obj:
-            cohort = drs_obj['cohort']
+        if drs_obj['description'] not in ['wgs', 'wts']:
+            return {"message": f"DRS object {id_} is not a genomic object"}, 404
+        program = ""
+        if "program" in drs_obj:
+            program = drs_obj['program']
         params = {"id": id_, "reference_genome": genome}
         try:
             varfile = database.create_variantfile(params)
@@ -179,7 +207,7 @@ def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
                         return varfile, 200
                     # clear the indexed bit:
                     database.mark_variantfile_as_not_indexed(id_)
-                Path(f"{INDEXING_PATH}/{cohort}~{id_}").touch()
+                Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -245,48 +273,40 @@ def get_matching_transcripts(id_=None):
 @app.route('/samples/<path:id_>')
 def get_sample(id_=None):
     result, status_code = _get_sample(id_)
-    if authz.is_authed(id_, request):
+    if authz.is_authed(id_, connexion.request):
         return result, 200
     return {"message": f"Could not find sample {id_}"}, 404
 
 
-def get_multiple_samples():
-    req = connexion.request.json
+async def get_multiple_samples():
+    req = await connexion.request.json()
     return _get_samples(req["samples"]), 200
 
 
-def get_cohort_samples(cohort=None):
-    if cohort is None:
+def get_program_samples(program=None):
+    if program is None:
         sample_drs_objs = database.list_drs_objects()
     else:
-        sample_drs_objs = database.list_drs_objects(cohort)
+        sample_drs_objs = database.list_drs_objects(program)
     samples = list(map(lambda y: y["id"], filter(lambda x: x["description"] == "sample", sample_drs_objs)))
     result = []
-    samples_by_cohort = {}
+    samples_by_program = {}
     return _get_samples(samples), 200
 
 
 def _get_samples(samples):
     result = []
-    samples_by_cohort = {}
+    samples_by_program = {}
     for sample in samples:
         res, status_code = _get_sample(sample)
         if status_code == 200:
-            if res["cohort"] not in samples_by_cohort:
-                samples_by_cohort[res["cohort"]] = []
-            samples_by_cohort[res["cohort"]].append(res)
-    if authz.is_testing(request):
-        for cohort in samples_by_cohort:
-            result.extend(samples_by_cohort[cohort])
-    else:
-        if authz.request_is_from_query(request):
-            for cohort in samples_by_cohort:
-                result.extend(samples_by_cohort[cohort])
-        else:
-            authz_cohorts = authz.get_authorized_cohorts(request)
-            for cohort in authz_cohorts:
-                if cohort in samples_by_cohort:
-                    result.extend(samples_by_cohort[cohort])
+            if res["program"] not in samples_by_program:
+                samples_by_program[res["program"]] = []
+            samples_by_program[res["program"]].append(res)
+    authz_programs = authz.get_authorized_programs(connexion.request)
+    for program in authz_programs:
+        if program in samples_by_program:
+            result.extend(samples_by_program[program])
     return result
 
 
@@ -303,7 +323,7 @@ def _get_sample(id_=None):
     # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
     sample_drs_obj = database.get_drs_object(id_)
     if sample_drs_obj is not None and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
-        result["cohort"] = sample_drs_obj["cohort"]
+        result["program"] = sample_drs_obj["program"]
         for contents_obj in sample_drs_obj["contents"]:
             drs_obj = database.get_drs_object(contents_obj["id"])
             if drs_obj is not None:
@@ -489,8 +509,6 @@ def _get_base_url(file_type, id, data=False, testing=False):
     :param testing: if this is for testing
     """
     url = HTSGET_URL
-    if authz.is_testing(request):
-        url = os.getenv("TESTENV_URL", f"http://localhost:{PORT}")
     if data:
         return f"{url}/htsget/v1/{file_type}s/data/{id}"
     return f"{url}/htsget/v1/{file_type}s/{id}"

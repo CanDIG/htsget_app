@@ -12,8 +12,19 @@ logger = CanDIGLogger(__file__)
 app = Flask(__name__)
 
 
+class AuthzRequest:
+    headers = {}
+    method = None
+    path = None
+
+    def __init__(self, headers, method, path):
+        self.headers = headers
+        self.method = method
+        self.path = path
+
+
 def is_testing(request):
-    if request.headers.get("Authorization") == f"Bearer {TEST_KEY}":
+    if "Authorization" in request.headers and request.headers["Authorization"] == f"Bearer {TEST_KEY}":
         logger.warning("TEST MODE, AUTHORIZATION IS DISABLED")
         return True
 
@@ -23,14 +34,12 @@ def is_authed(id_, request):
         return 401
     if is_testing(request):
         return 200 # no auth
-    if request_is_from_ingest(request):
-        return 200
-    if request_is_from_query(request):
+    if has_full_authz(request):
         return 200
     if "Authorization" in request.headers:
         obj = database.get_drs_object(id_)
-        if obj is not None and 'cohort' in obj:
-            if is_cohort_authorized(request, obj['cohort']):
+        if obj is not None and 'program' in obj:
+            if is_program_authorized(request, obj['program']):
                 return 200
         else:
             return 404
@@ -39,37 +48,46 @@ def is_authed(id_, request):
     return 403
 
 
-def get_authorized_cohorts(request):
-    if is_testing(request):
+def get_authorized_programs(request):
+    req = AuthzRequest(request.headers, request.method, request.url.path)
+    if has_full_authz(req):
+        return list(map(lambda x: x['id'], database.list_programs()))
+    if is_testing(req):
         return ["test-htsget"]
     try:
-        return authx.auth.get_opa_datasets(request)
+        return authx.auth.get_opa_datasets(req)
     except Exception as e:
-        logger.warning(f"Couldn't authorize cohorts: {type(e)} {str(e)}")
+        logger.warning(f"Couldn't authorize programs: {type(e)} {str(e)}")
         return []
 
 
-def is_cohort_authorized(request, cohort_id):
-    if is_testing(request):
+def is_program_authorized(request, program_id):
+    req = AuthzRequest(request.headers, request.method, request.url.path)
+    if is_testing(req):
         return True
-    if request_is_from_ingest(request):
+    if has_full_authz(req):
         return True
-    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(request), method=request.method, path=request.path, program=cohort_id)
+    if not "Authorization" in request.headers:
+        return False
+    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(req), method=req.method, path=req.path, program=program_id)
 
 
-def is_site_admin(request):
+def has_full_authz(request):
     """
-    Is the user associated with the token a site admin?
+    Is the user associated with the token a site admin? Alternately, is this request from query or ingest?
     """
     if is_testing(request):
         return True
-    if request_is_from_ingest(request):
+    if request_is_from_ingest(request) or request_is_from_query(request):
         return True
     if "Authorization" in request.headers:
         try:
-            return authx.auth.is_site_admin(request)
+            if hasattr(request, "url"):
+                return authx.auth.is_site_admin(AuthzRequest(request.headers, request.method, request.url.path))
+            else:
+                return authx.auth.is_site_admin(AuthzRequest(request.headers, request.method, request.path))
         except Exception as e:
-            logger.warning(f"Couldn't authorize site_admin: {type(e)} {str(e)}")
+            logger.warning(f"Couldn't authorize for full access: {type(e)} {str(e)}")
             return False
     return False
 
