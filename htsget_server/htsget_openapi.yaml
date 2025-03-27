@@ -186,7 +186,7 @@ paths:
            tags:
                - Reads
            summary: Verify the integrity of the read object
-           operationId: "htsget_operations.verify_reads_genomic_drs_object"
+           operationId: "htsget_operations.verify_reads_analysis_drs_object"
            description: |
                Verify the integrity of the read object
            parameters:
@@ -289,7 +289,7 @@ paths:
             tags:
                 - Variants
             summary: Verify the integrity of the variant object
-            operationId: "htsget_operations.verify_variants_genomic_drs_object"
+            operationId: "htsget_operations.verify_variants_analysis_drs_object"
             description: |
                 Verify the integrity of the variant object
             parameters:
@@ -332,7 +332,7 @@ paths:
                 - $ref: '#/components/parameters/endParam'
             responses:
                 200:
-                    description: Successfully streamed file part of large genomic variant file
+                    description: Successfully streamed file part of large variant file
                     content:
                         application/octet-stream:
                             schema:
@@ -908,22 +908,22 @@ components:
                     description: MoH program ID
                 genome:
                     type: array
-                    description: An array of associated GenomicDrsObjects that describe reads, e.g. bams.
+                    description: An array of associated AnalysisDrsObjects that describe reads, e.g. fastqs.
                     items:
                         type: string
                 transcriptome:
                     type: array
-                    description: An array of associated GenomicDrsObjects that describe transcriptome data.
+                    description: An array of associated AnalysisDrsObjects that describe transcriptome data.
                     items:
                         type: string
                 variants:
                     type: array
-                    description: An array of associated GenomicDataDrsObjects that describe variant files.
+                    description: An array of associated AnalysisDataDrsObjects that describe variant files.
                     items:
                         type: string
                 reads:
                     type: array
-                    description: An array of associated GenomicDataDrsObjects that describe read files.
+                    description: An array of associated AnalysisDataDrsObjects that describe read files, e.g. bams.
                     items:
                         type: string
 

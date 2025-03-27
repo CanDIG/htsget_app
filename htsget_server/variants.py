@@ -39,7 +39,7 @@ def find_variants_in_region(reference_name=None, start=None, end=None):
 
 
 def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
-    gen_obj = drs_operations._get_genomic_obj(drs_object_id)
+    gen_obj = drs_operations._get_analysis_obj(drs_object_id)
     if "message" in gen_obj:
         raise Exception(f"error parsing vcf file for {drs_object_id}: {gen_obj['message']}")
     if reference_name is not None:
