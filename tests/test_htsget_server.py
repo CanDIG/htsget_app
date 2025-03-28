@@ -589,8 +589,12 @@ def drs_objects():
     result = []
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for drs_obj in drs_objects:
-        # make a genomicdrsobj:
-        genomic_drs_obj = {
+        index_file = drs_objects[drs_obj].pop("index")
+        type = list(drs_objects[drs_obj].keys()).pop()
+        data_file = drs_objects[drs_obj].pop(type)
+
+        # make a analysisdrsobj:
+        analysis_drs_obj = {
             "id": drs_obj,
             "description": "wgs",
             "mime_type": "application/octet-stream",
@@ -600,10 +604,8 @@ def drs_objects():
             "reference_genome": "hg38",
             "program": "test-htsget"
         }
-        result.append(genomic_drs_obj)
+        result.append(analysis_drs_obj)
 
-        # make a genomicindexdrsobj:
-        index_file = drs_objects[drs_obj].pop("index")
         result.append({
             "id": index_file,
             "description": "index",
@@ -613,7 +615,7 @@ def drs_objects():
             "program": "test-htsget"
         })
         # add it to the contents of the genomic_drs_obj:
-        genomic_drs_obj['contents'].append({
+        analysis_drs_obj['contents'].append({
             "drs_uri": [
                 f"{drs_url}/{index_file}"
             ],
@@ -621,9 +623,7 @@ def drs_objects():
             "id": "index"
         })
 
-        # make a genomicdatadrsobj:
-        type = list(drs_objects[drs_obj].keys()).pop()
-        data_file = drs_objects[drs_obj].pop(type)
+        # make a analysisdatadrsobj:
         result.append({
             "id": data_file,
             "description": type,
@@ -633,7 +633,7 @@ def drs_objects():
             "program": "test-htsget"
         })
         # add it to the contents of the genomic_drs_obj:
-        genomic_drs_obj['contents'].append({
+        analysis_drs_obj['contents'].append({
             "drs_uri": [
                 f"{drs_url}/{data_file}"
             ],
