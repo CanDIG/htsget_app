@@ -302,7 +302,7 @@ def test_add_sample_drs(input, program_id):
         # create a experimentdrsobject to correspond to each sample:
         experiment_drs_object = {
             "id": sample_id,
-            "description": "sample",
+            "description": "experiment",
             "contents": [
                 {
                     "drs_uri": [
