@@ -190,7 +190,7 @@ def get_program_status(program_id):
 # particular sample can have a variant or read file and an associated index file.
 # We need to query DRS to get the bundling object, which should contain links to
 # two contents objects.
-def _get_genomic_obj(object_id):
+def _get_analysis_obj(object_id):
     result = {'status_code': 200}
     drs_obj = _describe_drs_object(object_id)
     if drs_obj is None or 'message' in drs_obj:
@@ -213,7 +213,7 @@ def _get_genomic_obj(object_id):
                 else:
                     result['file'] = VariantFile(main_result['path'], index_filename=index_result['path'])
             except Exception as e:
-                return { "message": str(e), "status_code": 500, "method": f"_get_genomic_obj({object_id})"}
+                return { "message": str(e), "status_code": 500, "method": f"_get_analysis_obj({object_id})"}
     return result
 
 
@@ -228,7 +228,7 @@ def _describe_drs_object(object_id):
     # drs_obj should have a main contents, index contents, and sample contents
     if "contents" in drs_obj:
         for contents in drs_obj["contents"]:
-            # get each drs object (should be the genomic file and its index)
+            # get each drs object (should be the analysis file and its index)
             # if sub_obj.name matches an index file regex, it's an index file
             index_match = re.fullmatch(r'.+\.(...*i)$', contents["name"])
 

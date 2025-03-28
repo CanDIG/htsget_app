@@ -486,7 +486,7 @@ def create_drs_object(obj, tries=1):
             session.add(new_object)
             session.commit()
 
-            # if we have reference_genome info, it's a GenomicDrsObject and needs a variantfile:
+            # if we have reference_genome info, it's a AnalysisDrsObject and needs a variantfile:
             if 'reference_genome' in obj:
                 create_variantfile({"id": obj["id"], "reference_genome": obj["reference_genome"]})
 
@@ -509,7 +509,7 @@ def delete_drs_object(obj_id, tries=1):
             new_object = session.query(DrsObject).filter_by(id=obj_id).one()
             program = session.query(Program).filter_by(id=new_object.program_id).one_or_none()
             if new_object.description in ["wgs", "wts"]:
-                # this is a GenomicDrsObject; we need to delete any indexed variantfiles
+                # this is a AnalysisDrsObject; we need to delete any indexed variantfiles
                 variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
                 for vf in variantfiles:
                     session.delete(vf)

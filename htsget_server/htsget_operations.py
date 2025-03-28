@@ -138,9 +138,9 @@ def index_reads(id_=None):
 
 
 @app.route('/reads/<path:id_>/verify')
-def verify_reads_genomic_drs_object(id_):
+def verify_reads_analysis_drs_object(id_):
     try:
-        _verify_genomic_drs_object(id_)
+        _verify_analysis_drs_object(id_)
     except Exception as e:
         return {"result": False, "message": str(e)}, 200
     return {"result": True}, 200
@@ -172,11 +172,11 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 
 
 @app.route('/variants/<path:id_>/verify')
-def verify_variants_genomic_drs_object(id_):
+def verify_variants_analysis_drs_object(id_):
     try:
         auth_code = authz.is_authed(escape(id_), connexion.request)
         if auth_code == 200:
-            _verify_genomic_drs_object(id_)
+            _verify_analysis_drs_object(id_)
         else:
             return {"message": "User is not authorized to verify variants"}, 403
     except Exception as e:
@@ -194,7 +194,7 @@ def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
         if drs_obj['description'] not in ['wgs', 'wts']:
-            return {"message": f"DRS object {id_} is not a genomic object"}, 404
+            return {"message": f"DRS object {id_} is not a analysis object"}, 404
         program = ""
         if "program" in drs_obj:
             program = drs_obj['program']
@@ -319,8 +319,8 @@ def _get_sample(id_=None):
         "reads": []
     }
 
-    # Get the SampleDrsObject. It will have a contents array of GenomicContentsObjects > GenomicDrsObjects.
-    # Each of those GenomicDrsObjects will have a description that is either 'wgs' or 'wts'.
+    # Get the SampleDrsObject. It will have a contents array of AnalysisContentsObjects > AnalysisDrsObjects.
+    # Each of those AnalysisDrsObjects will have a description that is either 'wgs' or 'wts'.
     sample_drs_obj = database.get_drs_object(id_)
     if sample_drs_obj is not None and "contents" in sample_drs_obj and sample_drs_obj["description"] == "sample":
         result["program"] = sample_drs_obj["program"]
@@ -331,7 +331,7 @@ def _get_sample(id_=None):
                     result["genomes"].append(drs_obj["id"])
                 elif drs_obj["description"] == "wts":
                     result["transcriptomes"].append(drs_obj["id"])
-                # check the contents of this genomic drs object and see if it contains variants or reads
+                # check the contents of this analysis drs object and see if it contains variants or reads
                 if "contents" in drs_obj:
                     for content in drs_obj["contents"]:
                         if content["id"] == "variant":
@@ -459,7 +459,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
     file_name = f"{id_}.{format_}"
 
     # get a file and index from drs, based on the id_
-    gen_obj = drs_operations._get_genomic_obj(id_)
+    gen_obj = drs_operations._get_analysis_obj(id_)
     if gen_obj is not None:
         if "message" in gen_obj:
             return gen_obj['message'], gen_obj['status_code']
@@ -562,8 +562,8 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     return {"message": f"No {file_type} found for id: {id}, try using the other endpoint"}, 404
 
 
-def _verify_genomic_drs_object(id_):
-    # get the listed samples that the GenomicDrsObject says should be in the file
+def _verify_analysis_drs_object(id_):
+    # get the listed samples that the AnalysisDrsObject says should be in the file
     gen_drs_obj = database.get_drs_object(id_)
     if gen_drs_obj is None:
         raise Exception(f"Could not find object {id_}")
@@ -576,30 +576,30 @@ def _verify_genomic_drs_object(id_):
             if c["id"] in ["variant", "read"]:
                 file_type = c["id"]
     else:
-        raise Exception(f"Object {id_} is not a GenomicDrsObject")
+        raise Exception(f"Object {id_} is not a AnalysisDrsObject")
     if file_type is None:
-        raise Exception(f"Object {id_} should be a GenomicDrsObject, but does not link to a variant or read file")
+        raise Exception(f"Object {id_} should be a AnalysisDrsObject, but does not link to a variant or read file")
 
     # get the samples that are in the linked files
-    gen_obj = drs_operations._get_genomic_obj(id_)
+    gen_obj = drs_operations._get_analysis_obj(id_)
     if gen_obj is None:
-        raise Exception(f"No genomic object with id {id_} exists")
+        raise Exception(f"No analysis object with id {id_} exists")
     if "message" in gen_obj:
         raise Exception(f"{gen_obj['message']}")
     if file_type == "variant":
         # for variant files, we can test whether the linked file is readable by querying it for its samples.
         file_samples = set(gen_obj['file'].header.samples)
         test = drs_samples.difference(file_samples)
-        # the GenomicDrsObject's listed SamplesContentsObjects should match the samples in the VCF file.
+        # the AnalysisDrsObject's listed SamplesContentsObjects should match the samples in the VCF file.
         if len(test) > 0:
-            raise Exception(f"GenomicDrsObject {id_} lists samples {test} that are not in the linked genomic file")
+            raise Exception(f"AnalysisDrsObject {id_} lists samples {test} that are not in the linked analysis file")
     else:
         # for read files, we can test whether the linked file is readable by checking for references in the header.
         try:
             if len(gen_obj['file'].header.references) == 0:
-                raise Exception(f"GenomicDrsObject {id_} links to a read file with no reference sequences")
+                raise Exception(f"AnalysisDrsObject {id_} links to a read file with no reference sequences")
         except Exception as e:
-            raise Exception(f"GenomicDrsObject {id_} links to a read file that could not be read: {str(e)}")
+            raise Exception(f"AnalysisDrsObject {id_} links to a read file that could not be read: {str(e)}")
         if len(drs_samples) > 1:
-            raise Exception(f"GenomicDrsObject {id_} lists multiple samples, but only one can be in the read file")
+            raise Exception(f"AnalysisDrsObject {id_} lists multiple samples, but only one can be in the read file")
     return None
