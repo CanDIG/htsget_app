@@ -441,9 +441,9 @@ components:
           type: string
           description: type of sequencing analysis
           enum:
-            - wgs
-            - wts
-            - downstream
+            - variant
+            - read
+            - transcript
         program:
           type: string
           description: The program this object was ingested as part of

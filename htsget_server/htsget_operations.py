@@ -193,8 +193,8 @@ def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
         drs_obj = database.get_drs_object(id_)
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
-        if drs_obj['description'] not in ['wgs', 'wts']:
-            return {"message": f"DRS object {id_} is not a analysis object"}, 404
+        if drs_obj['description'] not in ['variant']:
+            return {"message": f"DRS object {id_} is not an analysis object: {drs_obj['description']}"}, 404
         program = ""
         if "program" in drs_obj:
             program = drs_obj['program']
@@ -288,7 +288,7 @@ def get_program_experiments(program=None):
         experiment_drs_objs = database.list_drs_objects()
     else:
         experiment_drs_objs = database.list_drs_objects(program)
-    experiments = list(map(lambda y: y["id"], filter(lambda x: x["description"] == "experiment", experiment_drs_objs)))
+    experiments = list(map(lambda y: y["id"], filter(lambda x: x["description"] in ["wgs", "wts"], experiment_drs_objs)))
     result = []
     experiments_by_program = {}
     return _get_experiments(experiments), 200
@@ -320,17 +320,16 @@ def _get_experiment(id_=None):
     }
 
     # Get the ExperimentDrsObject. It will have a contents array of AnalysisContentsObjects > AnalysisDrsObjects.
-    # Each of those AnalysisDrsObjects will have a description that is either 'wgs' or 'wts'.
     experiment_drs_obj = database.get_drs_object(id_)
-    if experiment_drs_obj is not None and "contents" in experiment_drs_obj and experiment_drs_obj["description"] == "experiment":
+    if experiment_drs_obj is not None and "contents" in experiment_drs_obj and experiment_drs_obj["description"] in ["wgs", "wts"]:
+        if experiment_drs_obj["description"] == "wgs":
+            result["genomes"].append(experiment_drs_obj["id"])
+        elif experiment_drs_obj["description"] == "wts":
+            result["transcriptomes"].append(experiment_drs_obj["id"])
         result["program"] = experiment_drs_obj["program"]
         for contents_obj in experiment_drs_obj["contents"]:
             drs_obj = database.get_drs_object(contents_obj["id"])
             if drs_obj is not None:
-                if drs_obj["description"] == "wgs":
-                    result["genomes"].append(drs_obj["id"])
-                elif drs_obj["description"] == "wts":
-                    result["transcriptomes"].append(drs_obj["id"])
                 # check the contents of this analysis drs object and see if it contains variants or reads
                 if "contents" in drs_obj:
                     for content in drs_obj["contents"]:

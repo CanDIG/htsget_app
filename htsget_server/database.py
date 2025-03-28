@@ -509,7 +509,7 @@ def delete_drs_object(obj_id, tries=1):
         with Session() as session:
             new_object = session.query(DrsObject).filter_by(id=obj_id).one()
             program = session.query(Program).filter_by(id=new_object.program_id).one_or_none()
-            if new_object.description in ["wgs", "wts"]:
+            if new_object.description in ["variant"]:
                 # this is a AnalysisDrsObject; we need to delete any indexed variantfiles
                 variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
                 for vf in variantfiles:

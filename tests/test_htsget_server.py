@@ -302,7 +302,7 @@ def test_add_sample_drs(input, program_id):
         # create a experimentdrsobject to correspond to each sample:
         experiment_drs_object = {
             "id": sample_id,
-            "description": "experiment",
+            "description": "wgs",
             "contents": [
                 {
                     "drs_uri": [
@@ -596,7 +596,7 @@ def drs_objects():
         # make a analysisdrsobj:
         analysis_drs_obj = {
             "id": drs_obj,
-            "description": "wgs",
+            "description": type,
             "mime_type": "application/octet-stream",
             "name": drs_obj,
             "contents": [],
