@@ -299,8 +299,8 @@ def test_add_sample_drs(input, program_id):
             print(f"DELETE {sample_id}: {response.text}")
             assert response.status_code == 200
 
-        # create a sampledrsobject to correspond to each sample:
-        sample_drs_object = {
+        # create a experimentdrsobject to correspond to each sample:
+        experiment_drs_object = {
             "id": sample_id,
             "description": "sample",
             "contents": [
@@ -315,19 +315,19 @@ def test_add_sample_drs(input, program_id):
             "version": "v1",
             "program": program_id
         }
-        response = requests.request("POST", post_url, json=sample_drs_object, headers=headers)
-        print(f"POST {sample_drs_object['id']}: {response.text}")
+        response = requests.request("POST", post_url, json=experiment_drs_object, headers=headers)
+        print(f"POST {experiment_drs_object['id']}: {response.text}")
         assert response.status_code == 200
 
-        # add the sample contents to the genomic_drs_object's contents
-        sample_contents = {
+        # add the experiment contents to the genomic_drs_object's contents
+        experiment_contents = {
             "drs_uri": [
                 f"{drs_url}/{sample_id}"
             ],
             "name": sample_id,
             "id": sample['sample_name_in_file']
         }
-        genomic_drs_obj["contents"].append(sample_contents)
+        genomic_drs_obj["contents"].append(experiment_contents)
 
     response = requests.post(post_url, json=genomic_drs_obj, headers=get_headers())
     print(response.text)
@@ -349,7 +349,7 @@ def test_sample_stats(input, program_id):
     sample = get_ingest_sample_names(input['genomic_id'])
     print(sample)
     # look for the sample
-    get_url = f"{HOST}/htsget/v1/samples/{sample[list(sample.keys()).pop()]}"
+    get_url = f"{HOST}/htsget/v1/experiments/{sample[list(sample.keys()).pop()]}"
     response = requests.request("GET", get_url, headers=headers)
     assert response.status_code == 200
 
@@ -359,7 +359,7 @@ def test_sample_stats(input, program_id):
 def test_program_samples():
     headers = get_headers()
 
-    get_url = f"{HOST}/htsget/v1/samples"
+    get_url = f"{HOST}/htsget/v1/experiments"
     response = requests.request("GET", get_url, headers=headers)
     print(response.json())
     response = requests.request("GET", get_url, headers=headers, params={"program": "1000genomes"})
