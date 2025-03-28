@@ -390,8 +390,10 @@ components:
             $ref: '#/components/schemas/AnalysisContentsObject'
         description:
           type: string
+          description: the library strategy used in this experiment
           enum:
-            - experiment
+            - wgs
+            - wts
         program:
           type: string
           description: The program this object was ingested as part of
