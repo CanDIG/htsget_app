@@ -421,11 +421,11 @@ paths:
                                 type: object
                                 $ref: '#/components/schemas/GeneSearchResultsTicket'
 
-    /samples/{id}:
+    /experiments/{id}:
         get:
-            summary: Get metadata about a sample
-            operationId: htsget_operations.get_sample
-            description: Get MoH-relevant genomic information about a sample
+            summary: Get metadata about a experiment
+            operationId: htsget_operations.get_experiment
+            description: Get MoH-relevant genomic information about an experiment
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: "#/components/parameters/idPathParam"
@@ -435,12 +435,12 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/SampleTicket'
-    /samples:
+                                $ref: '#/components/schemas/ExperimentTicket'
+    /experiments:
         get:
-            summary: Get metadata about samples in a program
-            operationId: htsget_operations.get_program_samples
-            description: Get MoH-relevant genomic information about all samples in a program
+            summary: Get metadata about experiments in a program
+            operationId: htsget_operations.get_program_experiments
+            description: Get MoH-relevant genomic information about all experiments in a program
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/programParam'
@@ -452,15 +452,15 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: '#/components/schemas/SampleTicket'
+                                    $ref: '#/components/schemas/ExperimentTicket'
         post:
-            summary: Get metadata about multiple samples
-            operationId: htsget_operations.get_multiple_samples
-            description: Get MoH-relevant genomic information about a list of samples
+            summary: Get metadata about multiple experiments
+            operationId: htsget_operations.get_multiple_experiments
+            description: Get MoH-relevant genomic information about a list of experiments
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
             requestBody:
-                $ref: '#/components/requestBodies/SamplesRequestBody'
+                $ref: '#/components/requestBodies/ExperimentsRequestBody'
             responses:
                 200:
                     description: Success
@@ -469,7 +469,7 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: '#/components/schemas/SampleTicket'
+                                    $ref: '#/components/schemas/ExperimentTicket'
 
 tags:
     - name: Reads
@@ -707,7 +707,7 @@ components:
               type: array
               items:
                 type: object
-            samples:
+            experiments:
               type: array
               items:
                 type: object
@@ -897,10 +897,10 @@ components:
                                                 - hg38
                                         region:
                                             $ref: '#/components/schemas/Region'
-        SampleTicket:
+        ExperimentTicket:
             type: object
             properties:
-                sample_id:
+                experiment_id:
                     type: string
                     description: MoH submitter_sample_id from a Sample Registration associated with a specimen.
                 program:
@@ -1000,14 +1000,6 @@ components:
             required: false
             schema:
                 $ref: '#/components/schemas/ReferenceGenome'
-        sampleIdPathParam:
-            in: path
-            name: id
-            description: MoH Sample Registration ID for a sample with associated genomic data
-            required: true
-            schema:
-                type: string
-                format: path
         readsFormatParam:
             in: query
             name: format
@@ -1141,15 +1133,15 @@ components:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ReadsRequestBody'
-        SamplesRequestBody:
-            description: List of samples requested
+        ExperimentsRequestBody:
+            description: List of experiments requested
             required: false
             content:
                 application/json:
                     schema:
                         type: object
                         properties:
-                            samples:
+                            experiments:
                                 type: array
                                 items:
                                     type: string

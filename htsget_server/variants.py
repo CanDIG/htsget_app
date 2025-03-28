@@ -39,14 +39,14 @@ def find_variants_in_region(reference_name=None, start=None, end=None):
 
 
 def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
-    gen_obj = drs_operations._get_analysis_obj(drs_object_id)
-    if "message" in gen_obj:
-        raise Exception(f"error parsing vcf file for {drs_object_id}: {gen_obj['message']}")
+    analysis_obj = drs_operations._get_analysis_obj(drs_object_id)
+    if "message" in analysis_obj:
+        raise Exception(f"error parsing vcf file for {drs_object_id}: {analysis_obj['message']}")
     if reference_name is not None:
         ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': drs_object_id})
-        records = gen_obj['file'].fetch(contig=ref_name, start=start, end=end)
+        records = analysis_obj['file'].fetch(contig=ref_name, start=start, end=end)
     else:
-        records = gen_obj['file'].fetch()
+        records = analysis_obj['file'].fetch()
     headers = parse_headers(database.get_headers({'variantfile_id': drs_object_id}))
 
     variants_by_file = {
@@ -69,13 +69,15 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
     if 'contig' in headers:
         variants_by_file['contig'] = headers.pop('contig')
     for r in records:
-        samples = []
-        for s in r.samples:
-            if "samples" in gen_obj and s in gen_obj['samples']:
-                samples.append(gen_obj['samples'][s])
+        experiments = []
+        for vcf_sample in r.samples:
+            # experiments in analysis_obj are listed as {vcf_sample: experiment_id}
+            if "experiments" in analysis_obj and vcf_sample in analysis_obj['experiments']:
+                experiment_id = analysis_obj['experiments'][vcf_sample]
+                experiments.append(experiment_id)
             else:
-                samples.append(s)
-        variant_record = parse_variant_record(str(r), samples, variants_by_file['info'])
+                experiments.append(vcf_sample)
+        variant_record = parse_variant_record(str(r), experiments, variants_by_file['info'])
         variants_by_file['variants'].append(variant_record)
     return variants_by_file
 

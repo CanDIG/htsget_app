@@ -44,7 +44,7 @@ paths:
                 type: array
                 items:
                   anyOf:
-                    - $ref: '#/components/schemas/SampleDrsObject'
+                    - $ref: '#/components/schemas/ExperimentDrsObject'
                     - $ref: '#/components/schemas/AnalysisDrsObject'
                     - $ref: '#/components/schemas/AnalysisDataDrsObject'
                     - $ref: '#/components/schemas/AnalysisIndexDrsObject'
@@ -265,7 +265,7 @@ components:
         'application/json':
           schema:
             anyOf:
-              - $ref: "#/components/schemas/SampleDrsObject"
+              - $ref: "#/components/schemas/ExperimentDrsObject"
               - $ref: "#/components/schemas/AnalysisDrsObject"
               - $ref: "#/components/schemas/AnalysisDataDrsObject"
               - $ref: "#/components/schemas/AnalysisIndexDrsObject"
@@ -316,9 +316,9 @@ components:
     DrsUri:
       type: string
       description: a DRS object's self_uri
-    SampleDrsObject:
+    ExperimentDrsObject:
       type: object
-      description: A DrsObject that describes the clinical sample used for sequencing.
+      description: A DrsObject that describes the sequencing experiment.
       required:
         - id
         - contents
@@ -331,7 +331,7 @@ components:
       properties:
         id:
           type: string
-          description: The identifier for the sample, as defined in sample_registration in the MOHCCN data model.
+          description: The identifier for the experiment, as defined in sample_registration in the MOHCCN data model.
         self_uri:
           type: string
           description: |-
@@ -384,14 +384,14 @@ components:
             = f7a29a04
         contents:
           type: array
-          description: The specific analysis contents objects that were generated from this sample.
+          description: The specific analysis contents objects that were generated from this experiment.
           minItems: 1
           items:
             $ref: '#/components/schemas/AnalysisContentsObject'
         description:
           type: string
           enum:
-            - sample
+            - experiment
         program:
           type: string
           description: The program this object was ingested as part of
@@ -406,7 +406,7 @@ components:
             accession numbers or external GUIDs.
     AnalysisDrsObject:
       type: object
-      description: A DrsObject that describes a sequencing analysis. It usually will consist of a data file, e.g. a variant or read file, and its associated index file. Its contents should also include any associated Samples (as SampleContentObjects), ordered in order of appearance in the associated variant/read files.
+      description: A DrsObject that describes a sequencing analysis. It usually will consist of a data file, e.g. a variant or read file, and its associated index file. Its contents should also include any associated Experiments (as ExperimentContentObjects), ordered in order of appearance in the associated variant/read files.
       required:
         - id
         - contents
@@ -428,13 +428,13 @@ components:
             This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
         contents:
           type: array
-          description: The specific analysis contents objects that comprise this analysis DRS entity. Should contain a AnalysisDataContentsObject, an optional AnalysisIndexContentsObject, and SampleContentsObjects corresponding to the samples analyzed in the analysis data object.
+          description: The specific analysis contents objects that comprise this analysis DRS entity. Should contain a AnalysisDataContentsObject, an optional AnalysisIndexContentsObject, and ExperimentContentsObjects corresponding to the experiments analyzed in the analysis data object.
           minItems: 1
           items:
             anyOf:
               - $ref: '#/components/schemas/AnalysisDataContentsObject'
               - $ref: '#/components/schemas/AnalysisIndexContentsObject'
-              - $ref: '#/components/schemas/SampleContentsObject'
+              - $ref: '#/components/schemas/ExperimentContentsObject'
         description:
           type: string
           description: type of sequencing analysis
@@ -787,7 +787,7 @@ components:
           description: The DRS uri(s) to the AnalysisDrsObject
           items:
             type: string
-    SampleContentsObject:
+    ExperimentContentsObject:
       type: object
       required:
         - name
@@ -795,13 +795,13 @@ components:
       properties:
         name:
           type: string
-          description: The submitter_sample_id of the sample in the MoH model
+          description: The submitter_sample_id of the experiment in the MoH model
         id:
           type: string
-          description: The id of the SampleDrsObject, corresponding to the sample's name in the VCF file
+          description: The id of the ExperimentDrsObject, corresponding to the sample's name in the VCF file
         drs_uri:
           type: array
-          description: The DRS uri(s) to the SampleDrsObject
+          description: The DRS uri(s) to the ExperimentDrsObject
           items:
             type: string
     AnalysisDataContentsObject:
