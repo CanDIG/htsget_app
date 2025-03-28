@@ -180,6 +180,7 @@ class PositionBucket(ObjectDBBase):
         return json.dumps(result)
 
 
+# these are samples in variantfiles
 class Sample(ObjectDBBase):
     __tablename__ = 'sample'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -773,16 +774,6 @@ def list_samples():
             new_obj = json.loads(str(result))
             return new_obj
         return None
-
-
-def get_samples_in_drs_objects(obj):
-    # obj = {'drs_object_ids'}
-    with Session() as session:
-        result = []
-        q = select(Sample.sample_id).where(Sample.variantfile_id.in_(set(obj['drs_object_ids']))).distinct()
-        for row in session.execute(q):
-            result.append(str(row._mapping['sample_id']))
-        return result
 
 
 def get_headers(obj):

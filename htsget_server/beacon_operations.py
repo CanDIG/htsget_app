@@ -297,14 +297,14 @@ def search(raw_req):
         response['beaconHandovers'] = []
         query_info = {} # program_id and submitter_sample_id
         for drs_obj_id in variants_by_file.keys():
-            # look for samples and programs for all drs objects, even if user is not authorized
+            # look for experiments and programs for all drs objects, even if user is not authorized
             drs_obj = database.get_drs_object(drs_obj_id)
             if "program" in drs_obj:
                 if drs_obj["program"] not in query_info:
                     query_info[drs_obj["program"]] = []
                 for c in drs_obj["contents"]:
                     if c["id"] not in ["variant", "read", "index"]:
-                        # this is a SampleContentObject
+                        # this is a ExperimentContentObject
                         if c["name"] not in query_info[drs_obj["program"]]:
                             query_info[drs_obj["program"]].append(c["name"])
 
