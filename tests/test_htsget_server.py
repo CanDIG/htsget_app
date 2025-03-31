@@ -280,13 +280,13 @@ def test_add_sample_drs(input, program_id):
     post_url = f"{HOST}/ga4gh/drs/v1/objects"
     headers = get_headers()
 
-    # look for the main genomic drs object
+    # look for the main analysis drs object
     get_url = f"{HOST}/ga4gh/drs/v1/objects/{input['genomic_id']}"
     response = requests.request("GET", get_url, headers=headers)
     if response.status_code == 200:
         assert response.status_code == 200
-    genomic_drs_obj = response.json()
-    contents_count = len(genomic_drs_obj["contents"])
+    analysis_drs_obj = response.json()
+    contents_count = len(analysis_drs_obj["contents"])
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for sample in input['samples']:
@@ -319,7 +319,7 @@ def test_add_sample_drs(input, program_id):
         print(f"POST {experiment_drs_object['id']}: {response.text}")
         assert response.status_code == 200
 
-        # add the experiment contents to the genomic_drs_object's contents
+        # add the experiment contents to the analysis_drs_object's contents
         experiment_contents = {
             "drs_uri": [
                 f"{drs_url}/{sample_id}"
@@ -327,14 +327,14 @@ def test_add_sample_drs(input, program_id):
             "name": sample_id,
             "id": sample['sample_name_in_file']
         }
-        genomic_drs_obj["contents"].append(experiment_contents)
+        analysis_drs_obj["contents"].append(experiment_contents)
 
-    response = requests.post(post_url, json=genomic_drs_obj, headers=get_headers())
+    response = requests.post(post_url, json=analysis_drs_obj, headers=get_headers())
     print(response.text)
     response = requests.request("GET", get_url, headers=get_headers())
     if response.status_code == 200:
         assert response.status_code == 200
-    assert len(genomic_drs_obj["contents"]) == contents_count + 1
+    assert len(analysis_drs_obj["contents"]) == contents_count + 1
 
     verify_url = f"{HOST}/htsget/v1/variants/{input['genomic_id']}/verify"
     response = requests.get(verify_url, headers=get_headers())
@@ -614,7 +614,7 @@ def drs_objects():
             "version": "v1",
             "program": "test-htsget"
         })
-        # add it to the contents of the genomic_drs_obj:
+        # add it to the contents of the analysis_drs_obj:
         analysis_drs_obj['contents'].append({
             "drs_uri": [
                 f"{drs_url}/{index_file}"
@@ -632,7 +632,7 @@ def drs_objects():
             "version": "v1",
             "program": "test-htsget"
         })
-        # add it to the contents of the genomic_drs_obj:
+        # add it to the contents of the analysis_drs_obj:
         analysis_drs_obj['contents'].append({
             "drs_uri": [
                 f"{drs_url}/{data_file}"
