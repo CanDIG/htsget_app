@@ -187,7 +187,7 @@ def get_program_status(program_id):
 
 
 # This is specific to our particular use case: a DRS object that represents a
-# particular sample can have a variant or read file and an associated index file.
+# particular experiment can have a variant or read file and an associated index file.
 # We need to query DRS to get the bundling object, which should contain links to
 # two contents objects.
 def _get_analysis_obj(object_id):
@@ -204,8 +204,11 @@ def _get_analysis_obj(object_id):
         if 'message' in main_result:
             result = main_result
         else:
+            ## this is for migration: experiments used to be samples
             if "samples" in drs_obj:
-                result['samples'] = drs_obj['samples']
+                result['experiments'] = drs_obj['samples']
+            elif "experiments" in drs_obj:
+                result['experiments'] = drs_obj['experiments']
             try:
                 result['file_format'] = drs_obj['format']
                 if drs_obj['type'] == 'read':
@@ -225,7 +228,7 @@ def _describe_drs_object(object_id):
     result = {
         "name": object_id
     }
-    # drs_obj should have a main contents, index contents, and sample contents
+    # drs_obj should have a main contents, index contents, and experiment contents
     if "contents" in drs_obj:
         for contents in drs_obj["contents"]:
             # get each drs object (should be the analysis file and its index)
@@ -249,9 +252,12 @@ def _describe_drs_object(object_id):
             elif index_match is not None:
                 result['index'] = contents['name']
             else:
-                if "samples" not in result:
-                    result['samples'] = {}
-                result['samples'][contents['id']] = contents['name']
+                ## this is for migration: experiments used to be samples
+                if "samples" in result:
+                    result["experiments"] = result["samples"]
+                if "experiments" not in result:
+                    result['experiments'] = {}
+                result['experiments'][contents['id']] = contents['name']
 
     if 'type' not in result:
         return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}

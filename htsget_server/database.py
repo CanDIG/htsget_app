@@ -180,6 +180,7 @@ class PositionBucket(ObjectDBBase):
         return json.dumps(result)
 
 
+# these are samples in variantfiles
 class Sample(ObjectDBBase):
     __tablename__ = 'sample'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -508,7 +509,7 @@ def delete_drs_object(obj_id, tries=1):
         with Session() as session:
             new_object = session.query(DrsObject).filter_by(id=obj_id).one()
             program = session.query(Program).filter_by(id=new_object.program_id).one_or_none()
-            if new_object.description in ["wgs", "wts"]:
+            if new_object.description in ["variant"]:
                 # this is a AnalysisDrsObject; we need to delete any indexed variantfiles
                 variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
                 for vf in variantfiles:
@@ -773,16 +774,6 @@ def list_samples():
             new_obj = json.loads(str(result))
             return new_obj
         return None
-
-
-def get_samples_in_drs_objects(obj):
-    # obj = {'drs_object_ids'}
-    with Session() as session:
-        result = []
-        q = select(Sample.sample_id).where(Sample.variantfile_id.in_(set(obj['drs_object_ids']))).distinct()
-        for row in session.execute(q):
-            result.append(str(row._mapping['sample_id']))
-        return result
 
 
 def get_headers(obj):
