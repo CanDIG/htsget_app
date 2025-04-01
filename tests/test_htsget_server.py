@@ -189,7 +189,7 @@ def test_install_public_object():
                 "id": "index"
               }
             ],
-            "description": "wgs",
+            "description": "variant",
             "reference_genome": "hg38",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
@@ -265,18 +265,18 @@ def get_ingest_file():
     ]
 
 
-def get_ingest_sample_names(genomic_id):
+def get_ingest_experiment_names(genomic_id):
     result = {}
     for item in get_ingest_file():
         ingest_map, program_id = item
         if ingest_map["genomic_id"] == genomic_id:
             for sample in ingest_map["samples"]:
-                result[sample['sample_name_in_file']] = f"{sample['sample_registration_id']}"
+                result[sample['sample_registration_id']] = f"{sample['sample_name_in_file']}"
     return result
 
 
 @pytest.mark.parametrize('input, program_id', get_ingest_file())
-def test_add_sample_drs(input, program_id):
+def test_add_experiment_drs(input, program_id):
     post_url = f"{HOST}/ga4gh/drs/v1/objects"
     headers = get_headers()
 
@@ -289,26 +289,26 @@ def test_add_sample_drs(input, program_id):
     contents_count = len(analysis_drs_obj["contents"])
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
-    for sample in input['samples']:
-        sample_id = f"{sample['sample_registration_id']}"
+    for experiment in input['samples']:
+        experiment_id = f"{experiment['sample_registration_id']}"
         # remove any existing objects:
-        sample_url = f"{HOST}/ga4gh/drs/v1/objects/{sample_id}"
-        response = requests.request("GET", sample_url, headers=headers)
+        experiment_url = f"{HOST}/ga4gh/drs/v1/objects/{experiment_id}"
+        response = requests.request("GET", experiment_url, headers=headers)
         if response.status_code == 200:
-            response = requests.request("DELETE", sample_url, headers=headers)
-            print(f"DELETE {sample_id}: {response.text}")
+            response = requests.request("DELETE", experiment_url, headers=headers)
+            print(f"DELETE {experiment_id}: {response.text}")
             assert response.status_code == 200
 
-        # create a experimentdrsobject to correspond to each sample:
+        # create a experimentdrsobject to correspond to each experiment:
         experiment_drs_object = {
-            "id": sample_id,
+            "id": experiment_id,
             "description": "wgs",
             "contents": [
                 {
                     "drs_uri": [
                         f"{drs_url}/{input['genomic_id']}"
                     ],
-                    "name": sample['sample_name_in_file'],
+                    "name": experiment['sample_name_in_file'],
                     "id": input['genomic_id']
                 }
             ],
@@ -322,10 +322,10 @@ def test_add_sample_drs(input, program_id):
         # add the experiment contents to the analysis_drs_object's contents
         experiment_contents = {
             "drs_uri": [
-                f"{drs_url}/{sample_id}"
+                f"{drs_url}/{experiment_id}"
             ],
-            "name": sample_id,
-            "id": sample['sample_name_in_file']
+            "name": experiment_id,
+            "id": experiment['sample_name_in_file']
         }
         analysis_drs_obj["contents"].append(experiment_contents)
 
@@ -343,20 +343,21 @@ def test_add_sample_drs(input, program_id):
 
 
 @pytest.mark.parametrize('input, program_id', get_ingest_file())
-def test_sample_stats(input, program_id):
+def test_experiment_stats(input, program_id):
     headers = get_headers()
 
-    sample = get_ingest_sample_names(input['genomic_id'])
-    print(sample)
-    # look for the sample
-    get_url = f"{HOST}/htsget/v1/experiments/{sample[list(sample.keys()).pop()]}"
+    experiments = get_ingest_experiment_names(input['genomic_id'])
+    experiment = list(experiments.keys()).pop()
+    # look for the experiment
+    get_url = f"{HOST}/htsget/v1/experiments/{experiment}"
     response = requests.request("GET", get_url, headers=headers)
     assert response.status_code == 200
 
-    assert input['genomic_id'] in response.json()['genomes']
+    # genomes in a program will be experiments, which are listed by sample_registration_id
+    assert experiment in response.json()['genomes']
 
 
-def test_program_samples():
+def test_program_experiments():
     headers = get_headers()
 
     get_url = f"{HOST}/htsget/v1/experiments"
