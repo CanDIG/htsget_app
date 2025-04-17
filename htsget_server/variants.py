@@ -71,10 +71,14 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
     for r in records:
         experiments = []
         for vcf_sample in r.samples:
-            # experiments in analysis_obj are listed as {vcf_sample: experiment_id}
+            # samples in analysis_obj are listed as {vcf_sample: experiment_id}
             if "experiments" in analysis_obj and vcf_sample in analysis_obj['experiments']:
                 experiment_id = analysis_obj['experiments'][vcf_sample]
-                experiments.append(experiment_id)
+                experiment_obj = database.get_drs_object(experiment_id)
+                if experiment_obj is not None:
+                    experiments.append(experiment_obj["name"])
+                else:
+                    experiments.append(experiment_id)
             else:
                 experiments.append(vcf_sample)
         variant_record = parse_variant_record(str(r), experiments, variants_by_file['info'])
