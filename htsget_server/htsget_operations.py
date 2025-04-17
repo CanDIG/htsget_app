@@ -317,15 +317,12 @@ def _get_experiment(id_=None):
             result["transcriptomes"].append(experiment_drs_obj["id"])
         result["program"] = experiment_drs_obj["program"]
         for contents_obj in experiment_drs_obj["contents"]:
-            drs_obj = database.get_drs_object(contents_obj["id"])
+            drs_obj = drs_operations._describe_drs_object(contents_obj["id"])
             if drs_obj is not None:
-                # check the contents of this analysis drs object and see if it contains variants or reads
-                if "contents" in drs_obj:
-                    for content in drs_obj["contents"]:
-                        if content["id"] == "variant":
-                            result["variants"].append(drs_obj["id"])
-                        elif content["id"] == "read":
-                            result["reads"].append(drs_obj["id"])
+                if drs_obj["type"] == "variant":
+                    result["variants"].append(drs_obj["name"])
+                elif drs_obj["type"] == "read":
+                    result["reads"].append(drs_obj["name"])
         return result, 200
 
 
