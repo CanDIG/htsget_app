@@ -137,15 +137,6 @@ def index_reads(id_=None):
         return None, 404
 
 
-@app.route('/reads/<path:id_>/verify')
-def verify_reads_analysis_drs_object(id_):
-    try:
-        _verify_analysis_drs_object(id_)
-    except Exception as e:
-        return {"result": False, "message": str(e)}, 200
-    return {"result": True}, 200
-
-
 @app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
@@ -171,49 +162,46 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
     return None, auth_code
 
 
-@app.route('/variants/<path:id_>/verify')
-def verify_variants_analysis_drs_object(id_):
-    try:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            _verify_analysis_drs_object(id_)
-        else:
-            return {"message": "User is not authorized to verify variants"}, 403
-    except Exception as e:
-        return {"result": False, "message": str(e)}, 200
-    return {"result": True}, 200
-
-
-@app.route('/variants/<path:id_>/index')
-def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
+@app.route('/<path:id_>/index')
+def index_analysis(id_=None, force=False, genome='hg38'):
     if not authz.has_full_authz(connexion.request):
-        return {"message": "User is not authorized to index variants"}, 403
+        return {"message": "User is not authorized to index analyses"}, 403
     if id_ is not None:
         # check that there is a database drs object for this:
-        drs_obj = database.get_drs_object(id_)
+        drs_obj = drs_operations._describe_drs_object(id_)
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
-        if drs_obj['description'] not in ['variant']:
-            return {"message": f"DRS object {id_} is not an analysis object: {drs_obj['description']}"}, 404
         program = ""
         if "program" in drs_obj:
             program = drs_obj['program']
         params = {"id": id_, "reference_genome": genome}
         try:
-            varfile = database.create_variantfile(params)
-            if not do_not_index:
+            if drs_obj['type'] == 'variant':
+                varfile = database.create_variantfile(params)
                 if varfile is not None:
                     if varfile['indexed'] == 1 and not force:
                         return varfile, 200
                     # clear the indexed bit:
                     database.mark_variantfile_as_not_indexed(id_)
-                Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
+            Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
     else:
         return None, 404
 
+
+@app.route('/<path:id_>/verify')
+def verify_analysis_drs_object(id_):
+    try:
+        auth_code = authz.is_authed(escape(id_), connexion.request)
+        if auth_code == 200:
+            _verify_analysis_drs_object(id_)
+        else:
+            return {"message": "User is not authorized to verify analysis"}, 403
+    except Exception as e:
+        return {"result": False, "message": str(e)}, 200
+    return {"result": True}, 200
 
 @app.route('/genes')
 def list_genes(type="gene_name"):
@@ -328,16 +316,13 @@ def _get_experiment(id_=None):
             result["transcriptomes"].append(experiment_drs_obj["id"])
         result["program"] = experiment_drs_obj["program"]
         for contents_obj in experiment_drs_obj["contents"]:
-            drs_obj = database.get_drs_object(contents_obj["id"])
+            drs_obj = drs_operations._describe_drs_object(contents_obj["id"])
             if drs_obj is not None:
-                # check the contents of this analysis drs object and see if it contains variants or reads
-                if "contents" in drs_obj:
-                    for content in drs_obj["contents"]:
-                        if content["id"] == "variant":
-                            result["variants"].append(drs_obj["id"])
-                        elif content["id"] == "read":
-                            result["reads"].append(drs_obj["id"])
-            return result, 200
+                if drs_obj["type"] == "variant":
+                    result["variants"].append(drs_obj["name"])
+                elif drs_obj["type"] == "read":
+                    result["reads"].append(drs_obj["name"])
+        return result, 200
 
 
 def _get_htsget_url(id, reference_name, slice_start, slice_end, file_type, data=True):
@@ -563,21 +548,13 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 
 def _verify_analysis_drs_object(id_):
     # get the listed experiments that the AnalysisDrsObject says should be in the file
-    gen_drs_obj = database.get_drs_object(id_)
+    gen_drs_obj = drs_operations._describe_drs_object(id_)
     if gen_drs_obj is None:
         raise Exception(f"Could not find object {id_}")
-    drs_experiments = set()
-    file_type = None
-    if "contents" in gen_drs_obj and "reference_genome" in gen_drs_obj:
-        for c in gen_drs_obj["contents"]:
-            if c["id"] not in ["variant", "read", "index"]:
-                drs_experiments.add(c["id"])
-            if c["id"] in ["variant", "read"]:
-                file_type = c["id"]
-    else:
-        raise Exception(f"Object {id_} is not a AnalysisDrsObject")
-    if file_type is None:
+    drs_experiments = set(gen_drs_obj['experiments'].keys())
+    if 'type' not in gen_drs_obj:
         raise Exception(f"Object {id_} should be a AnalysisDrsObject, but does not link to a variant or read file")
+    file_type = gen_drs_obj['type']
 
     # get the experiments that are in the linked files
     gen_obj = drs_operations._get_analysis_obj(id_)

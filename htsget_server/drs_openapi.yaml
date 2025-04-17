@@ -321,6 +321,7 @@ components:
       description: A DrsObject that describes the sequencing experiment.
       required:
         - id
+        - name
         - contents
         - description
         - program
@@ -329,9 +330,12 @@ components:
 #        - created_time
 #        - checksums
       properties:
+        name:
+          type: string
+          description: The specimen identifier for the experiment, as defined in sample_registration in the MOHCCN data model.
         id:
           type: string
-          description: The identifier for the experiment, as defined in sample_registration in the MOHCCN data model.
+          description: The alias for the experiment, as defined by the sequencing center
         self_uri:
           type: string
           description: |-
@@ -385,7 +389,6 @@ components:
         contents:
           type: array
           description: The specific analysis contents objects that were generated from this experiment.
-          minItems: 1
           items:
             $ref: '#/components/schemas/AnalysisContentsObject'
         description:
@@ -406,6 +409,9 @@ components:
             about this `DrsObject` from external metadata sources. These
             aliases can be used to represent secondary
             accession numbers or external GUIDs.
+        metadata:
+          type: object
+          description: metadata about the experiment (see Experiment in ingest_openapi.yaml)
     AnalysisDrsObject:
       type: object
       description: A DrsObject that describes a sequencing analysis. It usually will consist of a data file, e.g. a variant or read file, and its associated index file. Its contents should also include any associated Experiments (as ExperimentContentObjects), ordered in order of appearance in the associated variant/read files.
@@ -440,10 +446,6 @@ components:
         description:
           type: string
           description: type of sequencing analysis
-          enum:
-            - variant
-            - read
-            - transcript
         program:
           type: string
           description: The program this object was ingested as part of
@@ -515,6 +517,9 @@ components:
             = md5( concat( 5e089d29, 72794b6d ) )
             = md5( 5e089d2972794b6d )
             = f7a29a04
+        metadata:
+          type: object
+          description: metadata about the analysis (see Analysis in ingest_openapi.yaml)
     AnalysisDataDrsObject:
       type: object
       description: A DrsObject that describes a analysis data file, e.g. a variant or read file.
@@ -545,10 +550,6 @@ components:
             The list of access methods that can be used to fetch the `DrsObject`.
         description:
           type: string
-          enum:
-            - variant
-            - read
-            - transcript
         program:
             type: string
             description: The program this object was ingested as part of
