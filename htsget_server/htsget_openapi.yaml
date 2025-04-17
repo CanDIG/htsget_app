@@ -158,53 +158,6 @@ paths:
                5XX:
                    $ref: '#/components/responses/5xxServerError'
 
-    /reads/{id}/index:
-      get:
-          tags:
-              - Reads
-          summary: Calculate size and checksums for the read object
-          operationId: "htsget_operations.index_reads"
-          description: Calculate size and checksums for the read object
-          parameters:
-              - $ref: '#/components/parameters/idPathParam'
-          responses:
-              200:
-                  description: Read file queued for indexing
-                  content:
-                      application/json:
-                          schema:
-                              type: object
-              400:
-                  $ref: '#/components/responses/400BadRequestError'
-              404:
-                  $ref: '#/components/responses/404NotFoundError'
-              5XX:
-                  $ref: '#/components/responses/5xxServerError'
-
-    /reads/{id}/verify:
-       get:
-           tags:
-               - Reads
-           summary: Verify the integrity of the read object
-           operationId: "htsget_operations.verify_reads_analysis_drs_object"
-           description: |
-               Verify the integrity of the read object
-           parameters:
-               - $ref: '#/components/parameters/idPathParam'
-           responses:
-               200:
-                   description: Read file stored correctly
-                   content:
-                       application/json:
-                           schema:
-                               type: object
-               400:
-                   $ref: '#/components/responses/400BadRequestError'
-               404:
-                   $ref: '#/components/responses/404NotFoundError'
-               5XX:
-                   $ref: '#/components/responses/5xxServerError'
-
     /variants/service-info:
        get:
            tags:
@@ -257,57 +210,6 @@ paths:
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
 
-    /variants/{id}/index:
-        get:
-            tags:
-                - Variants
-            summary: Index variant file for search
-            operationId: "htsget_operations.index_variants"
-            description: |
-                Index a variant file for searching
-            parameters:
-                - $ref: '#/components/parameters/idPathParam'
-                - $ref: '#/components/parameters/forceParam'
-                - $ref: '#/components/parameters/doNotIndexParam'
-                - $ref: '#/components/parameters/refGenomeParam'
-            responses:
-                200:
-                    description: Variant file queued for indexing
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                400:
-                    $ref: '#/components/responses/400BadRequestError'
-                404:
-                    $ref: '#/components/responses/404NotFoundError'
-                5XX:
-                    $ref: '#/components/responses/5xxServerError'
-
-    /variants/{id}/verify:
-        get:
-            tags:
-                - Variants
-            summary: Verify the integrity of the variant object
-            operationId: "htsget_operations.verify_variants_analysis_drs_object"
-            description: |
-                Verify the integrity of the variant object
-            parameters:
-                - $ref: '#/components/parameters/idPathParam'
-            responses:
-                200:
-                    description: Variant file stored correctly
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                400:
-                    $ref: '#/components/responses/400BadRequestError'
-                404:
-                    $ref: '#/components/responses/404NotFoundError'
-                5XX:
-                    $ref: '#/components/responses/5xxServerError'
-
     /variants/data/{id}:
         get:
             tags:
@@ -347,6 +249,54 @@ paths:
                     $ref: '#/components/responses/404NotFoundError'
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
+
+## analysis processing methods
+    /{id}/verify:
+        get:
+            summary: Verify the integrity of the  object
+            operationId: "htsget_operations.verify_analysis_drs_object"
+            description: |
+                Verify the integrity of the analysis object
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+            responses:
+                200:
+                    description: file stored correctly
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+    /{id}/index:
+        get:
+            summary: Index variant file for search
+            operationId: "htsget_operations.index_analysis"
+            description: |
+                Index an analysis for searching
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+                - $ref: '#/components/parameters/forceParam'
+                - $ref: '#/components/parameters/doNotIndexParam'
+                - $ref: '#/components/parameters/refGenomeParam'
+            responses:
+                200:
+                    description: Analysis queued for indexing
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+
 
 ## NCBIRefSeq paths
     /genes:
