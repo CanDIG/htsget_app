@@ -223,7 +223,7 @@ def index_variants():
 
 @pytest.mark.parametrize('sample', index_variants())
 def test_index_variantfile(sample):
-    url = f"{HOST}/htsget/v1/variants/{sample}/index"
+    url = f"{HOST}/htsget/v1/{sample}/index"
     params = {}
     params['force'] = True
     response = requests.get(url, params=params, headers=get_headers())
@@ -253,14 +253,19 @@ def get_ingest_file():
     return [
         (
             {
-                "genomic_id": "NA18537",
-                "samples": [
-                    {
-                        "sample_registration_id": "NA18537-wgs",
-                        "sample_name_in_file": "NA18537"
-                    }
-                ]
-            }, "1000genomes"
+                "program_id": "1000genomes",
+                "experiment_id": "LOCAL-SEQ_0090",
+                "submitter_sample_id": "NA18537-wgs",
+                "metadata": {
+                    "library_strategy": "WGS"
+                }
+            },
+            {
+                "program_id": "1000genomes",
+                "analysis_id": "NA18537",
+                "analysis_sample_id": "NA18537",
+                "experiment_id": "NA18537-wgs"
+            }
         )
     ]
 
@@ -275,13 +280,13 @@ def get_ingest_experiment_names(genomic_id):
     return result
 
 
-@pytest.mark.parametrize('input, program_id', get_ingest_file())
-def test_add_experiment_drs(input, program_id):
+@pytest.mark.parametrize('experiment, analysis', get_ingest_file())
+def test_add_experiment_drs(experiment, analysis):
     post_url = f"{HOST}/ga4gh/drs/v1/objects"
     headers = get_headers()
 
     # look for the main analysis drs object
-    get_url = f"{HOST}/ga4gh/drs/v1/objects/{input['genomic_id']}"
+    get_url = f"{HOST}/ga4gh/drs/v1/objects/{analysis['analysis_id']}"
     response = requests.request("GET", get_url, headers=headers)
     if response.status_code == 200:
         assert response.status_code == 200
@@ -289,45 +294,38 @@ def test_add_experiment_drs(input, program_id):
     contents_count = len(analysis_drs_obj["contents"])
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
-    for experiment in input['samples']:
-        experiment_id = f"{experiment['sample_registration_id']}"
-        # remove any existing objects:
-        experiment_url = f"{HOST}/ga4gh/drs/v1/objects/{experiment_id}"
-        response = requests.request("GET", experiment_url, headers=headers)
-        if response.status_code == 200:
-            response = requests.request("DELETE", experiment_url, headers=headers)
-            print(f"DELETE {experiment_id}: {response.text}")
-            assert response.status_code == 200
 
-        # create a experimentdrsobject to correspond to each experiment:
-        experiment_drs_object = {
-            "id": experiment_id,
-            "description": "wgs",
-            "contents": [
-                {
-                    "drs_uri": [
-                        f"{drs_url}/{input['genomic_id']}"
-                    ],
-                    "name": experiment['sample_name_in_file'],
-                    "id": input['genomic_id']
-                }
-            ],
-            "version": "v1",
-            "program": program_id
-        }
-        response = requests.request("POST", post_url, json=experiment_drs_object, headers=headers)
-        print(f"POST {experiment_drs_object['id']}: {response.text}")
-        assert response.status_code == 200
+    # create a experimentdrsobject to correspond to each experiment:
+    experiment_drs_object = {
+        "id": experiment['experiment_id'],
+        "name": experiment["submitter_sample_id"],
+        "description": "wgs",
+        "program": experiment['program_id'],
+        "contents": [
+            {
+                "drs_uri": [
+                    f"{drs_url}/{analysis['analysis_id']}"
+                ],
+                "name": analysis['analysis_sample_id'],
+                "id": analysis['analysis_id']
+            }
+        ],
+        "version": "v1",
+        "metadata": {}
+    }
+    response = requests.request("POST", post_url, json=experiment_drs_object, headers=headers)
+    print(f"POST {experiment_drs_object['id']}: {response.text}")
+    assert response.status_code == 200
 
-        # add the experiment contents to the analysis_drs_object's contents
-        experiment_contents = {
-            "drs_uri": [
-                f"{drs_url}/{experiment_id}"
-            ],
-            "name": experiment_id,
-            "id": experiment['sample_name_in_file']
-        }
-        analysis_drs_obj["contents"].append(experiment_contents)
+    # add the experiment contents to the analysis_drs_object's contents
+    experiment_contents = {
+        "drs_uri": [
+            f"{drs_url}/{experiment['experiment_id']}"
+        ],
+        "name": experiment['experiment_id'],
+        "id": analysis['analysis_sample_id']
+    }
+    analysis_drs_obj["contents"].append(experiment_contents)
 
     response = requests.post(post_url, json=analysis_drs_obj, headers=get_headers())
     print(response.text)
@@ -336,18 +334,17 @@ def test_add_experiment_drs(input, program_id):
         assert response.status_code == 200
     assert len(analysis_drs_obj["contents"]) == contents_count + 1
 
-    verify_url = f"{HOST}/htsget/v1/variants/{input['genomic_id']}/verify"
+    verify_url = f"{HOST}/htsget/v1/{analysis["analysis_id"]}/verify"
     response = requests.get(verify_url, headers=get_headers())
     print(response.text)
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize('input, program_id', get_ingest_file())
-def test_experiment_stats(input, program_id):
+@pytest.mark.parametrize('experiment, analysis', get_ingest_file())
+def test_experiment_stats(experiment, analysis):
     headers = get_headers()
 
-    experiments = get_ingest_experiment_names(input['genomic_id'])
-    experiment = list(experiments.keys()).pop()
+    experiment = experiment['experiment_id']
     # look for the experiment
     get_url = f"{HOST}/htsget/v1/experiments/{experiment}"
     response = requests.request("GET", get_url, headers=headers)
@@ -597,7 +594,7 @@ def drs_objects():
         # make a analysisdrsobj:
         analysis_drs_obj = {
             "id": drs_obj,
-            "description": type,
+            "description": "analysis",
             "mime_type": "application/octet-stream",
             "name": drs_obj,
             "contents": [],
@@ -627,7 +624,7 @@ def drs_objects():
         # make a analysisdatadrsobj:
         result.append({
             "id": data_file,
-            "description": type,
+            "description": "analysis",
             "mime_type": "application/octet-stream",
             "name": data_file,
             "version": "v1",
