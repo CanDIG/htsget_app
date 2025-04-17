@@ -321,6 +321,7 @@ components:
       description: A DrsObject that describes the sequencing experiment.
       required:
         - id
+        - name
         - contents
         - description
         - program
@@ -329,9 +330,12 @@ components:
 #        - created_time
 #        - checksums
       properties:
+        name:
+          type: string
+          description: The specimen identifier for the experiment, as defined in sample_registration in the MOHCCN data model.
         id:
           type: string
-          description: The identifier for the experiment, as defined in sample_registration in the MOHCCN data model.
+          description: The alias for the experiment, as defined by the sequencing center
         self_uri:
           type: string
           description: |-
@@ -385,7 +389,6 @@ components:
         contents:
           type: array
           description: The specific analysis contents objects that were generated from this experiment.
-          minItems: 1
           items:
             $ref: '#/components/schemas/AnalysisContentsObject'
         description:

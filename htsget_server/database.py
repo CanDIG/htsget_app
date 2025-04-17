@@ -302,6 +302,8 @@ class DrsObject(ObjectDBBase):
         }
         if len(list(self.contents)) > 0:
             result['contents'] = json.loads(self.contents.__repr__())
+        else:
+            result['contents'] = []
         if len(list(self.access_methods)) > 0:
             result['access_methods'] = json.loads(self.access_methods.__repr__())
         if self.program is not None:

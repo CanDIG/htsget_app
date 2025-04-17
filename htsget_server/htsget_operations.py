@@ -337,7 +337,7 @@ def _get_experiment(id_=None):
                             result["variants"].append(drs_obj["id"])
                         elif content["id"] == "read":
                             result["reads"].append(drs_obj["id"])
-            return result, 200
+        return result, 200
 
 
 def _get_htsget_url(id, reference_name, slice_start, slice_end, file_type, data=True):
