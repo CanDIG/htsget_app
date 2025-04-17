@@ -137,15 +137,6 @@ def index_reads(id_=None):
         return None, 404
 
 
-@app.route('/reads/<path:id_>/verify')
-def verify_reads_analysis_drs_object(id_):
-    try:
-        _verify_analysis_drs_object(id_)
-    except Exception as e:
-        return {"result": False, "message": str(e)}, 200
-    return {"result": True}, 200
-
-
 @app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
@@ -171,21 +162,6 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
     return None, auth_code
 
 
-@app.route('/variants/<path:id_>/verify')
-def verify_variants_analysis_drs_object(id_):
-    try:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            _verify_analysis_drs_object(id_)
-        else:
-            return {"message": "User is not authorized to verify variants"}, 403
-    except Exception as e:
-        return {"result": False, "message": str(e)}, 200
-    return {"result": True}, 200
-
-
-@app.route('/variants/<path:id_>/index')
-def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
     if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to index variants"}, 403
     if id_ is not None:
@@ -214,6 +190,18 @@ def index_variants(id_=None, force=False, do_not_index=False, genome='hg38'):
     else:
         return None, 404
 
+
+@app.route('/<path:id_>/verify')
+def verify_analysis_drs_object(id_):
+    try:
+        auth_code = authz.is_authed(escape(id_), connexion.request)
+        if auth_code == 200:
+            _verify_analysis_drs_object(id_)
+        else:
+            return {"message": "User is not authorized to verify analysis"}, 403
+    except Exception as e:
+        return {"result": False, "message": str(e)}, 200
+    return {"result": True}, 200
 
 @app.route('/genes')
 def list_genes(type="gene_name"):
