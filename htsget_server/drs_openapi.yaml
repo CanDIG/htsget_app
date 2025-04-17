@@ -446,10 +446,6 @@ components:
         description:
           type: string
           description: type of sequencing analysis
-          enum:
-            - variant
-            - read
-            - transcript
         program:
           type: string
           description: The program this object was ingested as part of
@@ -554,10 +550,6 @@ components:
             The list of access methods that can be used to fetch the `DrsObject`.
         description:
           type: string
-          enum:
-            - variant
-            - read
-            - transcript
         program:
             type: string
             description: The program this object was ingested as part of
