@@ -162,28 +162,29 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
     return None, auth_code
 
 
+@app.route('/<path:id_>/index')
+def index_analysis(id_=None, force=False, do_not_index=False, genome='hg38'):
     if not authz.has_full_authz(connexion.request):
-        return {"message": "User is not authorized to index variants"}, 403
+        return {"message": "User is not authorized to index analyses"}, 403
     if id_ is not None:
         # check that there is a database drs object for this:
-        drs_obj = database.get_drs_object(id_)
+        drs_obj = drs_operations._describe_drs_object(id_)
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
-        if drs_obj['description'] not in ['variant']:
-            return {"message": f"DRS object {id_} is not an analysis object: {drs_obj['description']}"}, 404
         program = ""
         if "program" in drs_obj:
             program = drs_obj['program']
         params = {"id": id_, "reference_genome": genome}
         try:
-            varfile = database.create_variantfile(params)
-            if not do_not_index:
-                if varfile is not None:
-                    if varfile['indexed'] == 1 and not force:
-                        return varfile, 200
-                    # clear the indexed bit:
-                    database.mark_variantfile_as_not_indexed(id_)
-                Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
+            if drs_obj['type'] == 'variant':
+                varfile = database.create_variantfile(params)
+                if not do_not_index:
+                    if varfile is not None:
+                        if varfile['indexed'] == 1 and not force:
+                            return varfile, 200
+                        # clear the indexed bit:
+                        database.mark_variantfile_as_not_indexed(id_)
+            Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
             return {"message": str(e)}, 500
