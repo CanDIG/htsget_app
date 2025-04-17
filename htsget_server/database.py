@@ -285,6 +285,7 @@ class DrsObject(ObjectDBBase):
     program_id = Column(String, ForeignKey('program.id'))
     program = relationship("Program", back_populates="associated_drs")
     variantfile = relationship("VariantFile", back_populates="drs_object", cascade="all, delete")
+    meta_data = Column(JSON)
 
     def __repr__(self):
         result = {
@@ -311,6 +312,10 @@ class DrsObject(ObjectDBBase):
         if self.variantfile is not None and len(self.variantfile) > 0:
             result['indexed'] = self.variantfile[0].indexed
             result['reference_genome'] = self.variantfile[0].reference_genome
+        if self.metadata is not None:
+            result['metadata'] = self.meta_data
+        else:
+            result['metadata'] = {}
         return json.dumps(result)
 
 
@@ -434,6 +439,8 @@ def create_drs_object(obj, tries=1):
                 new_object.size = obj['size']
             if 'description' in obj:
                 new_object.description = obj['description']
+            if 'metadata' in obj:
+                new_object.meta_data = obj['metadata']
             if 'program' in obj:
                 program = session.query(Program).filter_by(id=obj['program']).one_or_none()
                 if program is None:
