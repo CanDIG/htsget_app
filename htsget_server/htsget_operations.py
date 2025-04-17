@@ -563,21 +563,13 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 
 def _verify_analysis_drs_object(id_):
     # get the listed experiments that the AnalysisDrsObject says should be in the file
-    gen_drs_obj = database.get_drs_object(id_)
+    gen_drs_obj = drs_operations._describe_drs_object(id_)
     if gen_drs_obj is None:
         raise Exception(f"Could not find object {id_}")
-    drs_experiments = set()
-    file_type = None
-    if "contents" in gen_drs_obj and "reference_genome" in gen_drs_obj:
-        for c in gen_drs_obj["contents"]:
-            if c["id"] not in ["variant", "read", "index"]:
-                drs_experiments.add(c["id"])
-            if c["id"] in ["variant", "read"]:
-                file_type = c["id"]
-    else:
-        raise Exception(f"Object {id_} is not a AnalysisDrsObject")
-    if file_type is None:
+    drs_experiments = set(gen_drs_obj['experiments'].keys())
+    if 'type' not in gen_drs_obj:
         raise Exception(f"Object {id_} should be a AnalysisDrsObject, but does not link to a variant or read file")
+    file_type = gen_drs_obj['type']
 
     # get the experiments that are in the linked files
     gen_obj = drs_operations._get_analysis_obj(id_)

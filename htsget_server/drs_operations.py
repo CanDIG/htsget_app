@@ -226,7 +226,8 @@ def _describe_drs_object(object_id):
     if drs_obj is None:
         return None
     result = {
-        "name": object_id
+        "name": object_id,
+        "program": drs_obj["program"]
     }
     # drs_obj should have a main contents, index contents, and experiment contents
     if "contents" in drs_obj:
