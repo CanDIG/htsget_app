@@ -163,7 +163,7 @@ def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=N
 
 
 @app.route('/<path:id_>/index')
-def index_analysis(id_=None, force=False, do_not_index=False, genome='hg38'):
+def index_analysis(id_=None, force=False, genome='hg38'):
     if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to index analyses"}, 403
     if id_ is not None:
@@ -178,12 +178,11 @@ def index_analysis(id_=None, force=False, do_not_index=False, genome='hg38'):
         try:
             if drs_obj['type'] == 'variant':
                 varfile = database.create_variantfile(params)
-                if not do_not_index:
-                    if varfile is not None:
-                        if varfile['indexed'] == 1 and not force:
-                            return varfile, 200
-                        # clear the indexed bit:
-                        database.mark_variantfile_as_not_indexed(id_)
+                if varfile is not None:
+                    if varfile['indexed'] == 1 and not force:
+                        return varfile, 200
+                    # clear the indexed bit:
+                    database.mark_variantfile_as_not_indexed(id_)
             Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
