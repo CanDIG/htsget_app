@@ -308,7 +308,7 @@ def search(raw_req):
                         # this is a ExperimentContentObject
                         if c["name"] not in query_info[drs_obj["program"]]:
                             query_info[drs_obj["program"]].append(c["name"])
-                    else:
+                    elif c["id"] in ["variant", "transcript", "index"]:
                         # this is a file that we should create a download url for
                         file_drs_obj = database.get_drs_object(c["name"])
                         download_handover = {
@@ -316,7 +316,7 @@ def search(raw_req):
                             'url': drs_operations._get_download_url(file_drs_obj['id'])
                         }
                         if 'size' in file_drs_obj:
-                            download_handover['note'] = f"size {file_drs_obj['size']} bytes"
+                            download_handover['size'] = file_drs_obj['size']
                         download_handovers.append(download_handover)
                 if drs_obj["program"] in authed_programs:
                     # fill in htsget handover data
