@@ -189,7 +189,7 @@ def test_install_public_object():
                 "id": "index"
               }
             ],
-            "description": "variant",
+            "description": "sequence_variation",
             "reference_genome": "hg38",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
