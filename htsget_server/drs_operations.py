@@ -1,6 +1,7 @@
 import connexion
 import database
-from flask import Flask
+from flask import Flask, send_file, Response
+import requests
 import os
 import os.path
 import re
@@ -8,7 +9,7 @@ import authz
 from markupsafe import escape
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import parse_qs, urlparse, urlencode
-from config import INDEXING_PATH
+from config import INDEXING_PATH, HTSGET_URL
 from time import sleep
 from random import randint
 from candigv2_logging.logging import CanDIGLogger
@@ -76,6 +77,30 @@ def get_access_url(object_id, access_id, request=connexion.request):
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     return _get_access_url(access_id)
+
+
+@app.route('/ga4gh/drs/v1/objects/<object_id>/download')
+def download_file(object_id, request=connexion.request):
+    def generate(url):
+        with requests.get(url, stream=True) as r:
+            yield r.iter_content(), 200
+    if object_id is not None:
+        auth_code = authz.is_authed(escape(object_id), connexion.request)
+        if auth_code != 200:
+            return {"message": f"Not authorized to access object {object_id}"}, auth_code
+    drs_object = database.get_drs_object(escape(object_id))
+    if drs_object is None:
+        return {"message": f"No object {object_id} was found"}, 404
+    if "access_methods" not in drs_object:
+        return {"message": f"No files are associated with object {object_id}"}, 404
+    for method in drs_object["access_methods"]:
+        if "access_url" in method:
+            file_obj = _get_file_path(drs_object["id"])
+            return send_file(file_obj["path"]), 200
+        else:
+            url, status_code = _get_access_url(method["access_id"])
+            r = requests.get(url["url"], stream=True)
+            return Response(r.iter_content(chunk_size=10*1024), content_type=r.headers['Content-Type'])
 
 
 async def post_object(tries=1):
@@ -349,3 +374,8 @@ def _get_access_url(access_id):
         return url, 500
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "_get_access_url"}, 400
+
+
+# convenience method for other methods to easily get the download url
+def _get_download_url(drs_file_obj_id):
+    return f"{HTSGET_URL}/ga4gh/drs/v1/objects/{drs_file_obj_id}/download"

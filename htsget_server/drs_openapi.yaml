@@ -96,6 +96,21 @@ paths:
                   - $ref: '#/components/schemas/AnalysisDrsObject'
       tags:
         - Objects
+  /objects/{object_id}/download:
+    parameters:
+        - $ref: '#/components/parameters/ObjectId'
+        - $ref: '#/components/parameters/BearerAuth'
+    get:
+      summary: Download a file associated with a drs object
+      description: downloads the file.
+      operationId: drs_operations.download_file
+      responses:
+        200:
+          description: The `DrsObject` was found successfully
+          content:
+            application/octet-stream: {}
+      tags:
+        - Objects
 
   /objects/{object_id}/access/{access_id}:
     get:
