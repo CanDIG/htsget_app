@@ -32,6 +32,7 @@ paths:
       summary: List all DRS objects
       parameters:
       - $ref: '#/components/parameters/ProgramIdQuery'
+      - $ref: '#/components/parameters/SampleRegistrationQuery'
       description: >-
         Returns object metadata, and a list of access methods that can be used to fetch object bytes.
       operationId: drs_operations.list_objects
@@ -212,6 +213,12 @@ components:
         in: query
         name: program_id
         description: ProgramId
+        schema:
+          type: string
+    SampleRegistrationQuery:
+        in: query
+        name: sample_registration_id
+        description: sample_registration_id from mohccn data model
         schema:
           type: string
     ObjectId:
