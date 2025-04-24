@@ -91,6 +91,12 @@ async def post_object(tries=1):
         sleep(randint(1,10)/2)
     try:
         new_object = database.create_drs_object(req)
+
+        # if this is a file drs object, put the size in
+        response = _get_file_path(object_id)
+        if response["status_code"] == 200:
+            new_object['size'] = response['size']
+            new_object = database.create_drs_object(new_object)
     except Exception as e:
         logger.debug(f"Exception in post_object {object_id}: {str(e)}, trying again")
         return post_object(tries=tries+1)
@@ -274,6 +280,10 @@ def _get_file_path(drs_file_obj_id):
         return result
     # get access_methods for this drs_file_obj
     url = ""
+    if "access_methods" not in drs_file_obj:
+        result["message"] = f"Object {drs_file_obj_id} is not a file"
+        result['status_code'] = 400
+        return result
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
