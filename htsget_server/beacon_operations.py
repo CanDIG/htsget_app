@@ -300,23 +300,35 @@ def search(raw_req):
             # look for experiments and programs for all drs objects, even if user is not authorized
             drs_obj = database.get_drs_object(drs_obj_id)
             if "program" in drs_obj:
+                download_handovers = []
                 if drs_obj["program"] not in query_info:
                     query_info[drs_obj["program"]] = []
                 for c in drs_obj["contents"]:
-                    if c["id"] not in ["variant", "read", "index"]:
+                    if c["id"] not in ["variant", "read", "transcript", "index"]:
                         # this is a ExperimentContentObject
                         if c["name"] not in query_info[drs_obj["program"]]:
                             query_info[drs_obj["program"]].append(c["name"])
-
+                    else:
+                        # this is a file that we should create a download url for
+                        file_drs_obj = database.get_drs_object(c["name"])
+                        download_handover = {
+                            'handoverType': {'id': 'CUSTOM', 'label': 'DOWNLOAD'},
+                            'url': drs_operations._get_download_url(file_drs_obj['id'])
+                        }
+                        if 'size' in file_drs_obj:
+                            download_handover['note'] = f"size {file_drs_obj['size']} bytes"
+                        download_handovers.append(download_handover)
                 if drs_obj["program"] in authed_programs:
-                    # fill in handover data
+                    # fill in htsget handover data
                     try:
-                        handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+                        htsget_handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
                     except Exception as e:
                         raise Exception(f"exception in get_variants for {drs_obj_id}: {type(e)} {str(e)}")
-                    if handover is not None:
-                        handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
-                        response['beaconHandovers'].append(handover)
+                    if htsget_handover is not None:
+                        htsget_handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
+                        response['beaconHandovers'].append(htsget_handover)
+                    if len(download_handovers) > 0:
+                        response['beaconHandovers'].extend(download_handovers)
         if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
             response['response'] = resultset
             if len(resultset) > 0: # use true number if we're authorized, even if below AGGREGATE_COUNT_THRESHOLD

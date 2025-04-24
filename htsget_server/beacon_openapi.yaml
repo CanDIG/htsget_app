@@ -448,7 +448,7 @@ components:
       type: object
     HandoverType:
       type: object
-      description: in our context, only htsget urls should be returned
+      description: in our context, only htsget or download urls should be returned
       properties:
         id:
           type: string
@@ -458,6 +458,7 @@ components:
           type: string
           enum:
             - HTSGET
+            - DOWNLOAD
     IncludeResultsetResponses:
       default: HIT
       description: Indicator of whether responses from every Resultset should be included in the response to this request or just the ones with positive, negative results or no details at all. If null (not specified), the default value of 'HIT' is assumed. This parameter allows for returning boolean/counting results although the Beacon instance is capable to return record level details.
