@@ -90,6 +90,10 @@ def download_file(object_id, request=connexion.request):
         return {"message": f"No object {object_id} was found"}, 404
     if "access_methods" not in drs_object:
         return {"message": f"No files are associated with object {object_id}"}, 404
+    if "metadata" in drs_object:
+        if "analysis_type" in drs_object["metadata"]:
+            if drs_object["metadata"]["analysis_type"] == "reference_alignment":
+                return {"message": f"Sorry, read files are not allowed to be downloaded"}, 403
     for method in drs_object["access_methods"]:
         if "access_url" in method:
             file_obj = _get_file_path(drs_object["id"])
