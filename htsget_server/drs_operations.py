@@ -81,9 +81,6 @@ def get_access_url(object_id, access_id, request=connexion.request):
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/download')
 def download_file(object_id, request=connexion.request):
-    def generate(url):
-        with requests.get(url, stream=True) as r:
-            yield r.iter_content(), 200
     if object_id is not None:
         auth_code = authz.is_authed(escape(object_id), connexion.request)
         if auth_code != 200:
