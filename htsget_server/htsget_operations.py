@@ -317,7 +317,7 @@ def _get_experiment(id_=None):
         result["program"] = experiment_drs_obj["program"]
         for contents_obj in experiment_drs_obj["contents"]:
             drs_obj = drs_operations._describe_drs_object(contents_obj["id"])
-            if drs_obj is not None:
+            if drs_obj is not None and "type" in drs_obj:
                 if drs_obj["type"] == "variant":
                     result["variants"].append(drs_obj["name"])
                 elif drs_obj["type"] == "read":
