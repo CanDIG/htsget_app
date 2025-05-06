@@ -881,19 +881,16 @@ def create_pos_bucket(obj):
                 buckets_needed_by_contig[contig_id].add(pos_bucket_id)
 
         # search for the resulting buckets: if not there, insert
-        existing_bucket_ids = []
+        existing_bucket_ids = {}
         for contig_id in buckets_needed_by_contig.keys():
-            existing_buckets = session.query(PositionBucket).filter(PositionBucket.pos_bucket_id.in_(list(buckets_needed_by_contig[contig_id])), PositionBucket.contig_id==contig_id).all()
-
-            existing_bucket_ids.extend(list(map(lambda x: x.pos_bucket_id, existing_buckets)))
+            existing_buckets_in_contig = session.query(PositionBucket).filter(PositionBucket.pos_bucket_id.in_(list(buckets_needed_by_contig[contig_id])), PositionBucket.contig_id==contig_id).all()
+            existing_bucket_ids[contig_id] = (list(map(lambda x: x.pos_bucket_id, existing_buckets_in_contig)))
 
         new_pos_buckets = []
-        new_pos_bucket_ids = []
         for i in range(len(pos_bucket_ids)):
             pos_bucket_id = pos_bucket_ids[i]
             contig_id = contig_ids[i]
-            if pos_bucket_id not in existing_bucket_ids:
-                new_pos_bucket_ids.append(pos_bucket_id)
+            if pos_bucket_id not in existing_bucket_ids[contig_id]:
                 new_pos_buckets.append({'pos_bucket_id': int(pos_bucket_id), 'contig_id': contig_id})
         session.bulk_insert_mappings(PositionBucket, new_pos_buckets)
         session.commit()
@@ -907,7 +904,7 @@ def create_pos_bucket(obj):
         # # okay now all of the buckets exist: let's find the ones we need
         existing_buckets = []
         for contig_id in buckets_needed_by_contig.keys():
-            existing_buckets.extend(session.query(PositionBucket).filter(PositionBucket.pos_bucket_id.in_(list(buckets_needed_by_contig[contig_id]))).all())
+            existing_buckets.extend(session.query(PositionBucket).filter(PositionBucket.pos_bucket_id.in_(list(buckets_needed_by_contig[contig_id])), PositionBucket.contig_id==contig_id).all())
 
         # sort bucket IDs for quick access
         bucket_hash = {}
