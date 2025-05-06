@@ -94,7 +94,7 @@ def write_pos_bucket(obj, object_id, tries=1):
         # if this isn't the first try, pause for a bit and then try again
         sleep(randint(1,10)/2)
     try:
-        database.create_pos_bucket(obj)
+        database.create_pos_buckets_for_variantfile(obj)
     except Exception as e:
         logger.debug(f"Exception in write_pos_bucket {object_id}: {str(e)}, trying again")
         return write_pos_bucket(obj, object_id, tries=tries+1)

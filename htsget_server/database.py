@@ -840,7 +840,7 @@ def get_bucket_for_position(pos):
     return int(pos/BUCKET_SIZE) * BUCKET_SIZE
 
 
-def create_pos_bucket(obj):
+def create_pos_buckets_for_variantfile(obj):
     # obj = { 'variantfile_id',
     #         'pos_bucket_ids',
     #         'bucket_counts',
