@@ -189,6 +189,7 @@ class PositionBucket(ObjectDBBase):
         result = {
             'id': self.id,
             'contig_id': self.contig_id,
+            'pos_bucket_id': self.pos_bucket_id,
             'variantfiles': []
         }
         for varfile_assoc in self.associated_variantfiles:
