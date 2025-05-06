@@ -95,6 +95,23 @@ class Contig(ObjectDBBase):
         back_populates="contig"
     )
 
+    def __repr__(self):
+        result = {
+            'id': self.id,
+            'aliases': [],
+            'associated_variantfiles': [],
+            'pos_buckets': []
+        }
+        for alias in self.aliases:
+            result['aliases'].append(alias.id)
+        for varfile_assoc in self.associated_variantfiles:
+            result['associated_variantfiles'].append(varfile_assoc.id)
+        for x in self.pos_buckets:
+            result['pos_buckets'].append(x.id)
+
+        return json.dumps(result)
+
+
 
 class VariantFile(ObjectDBBase):
     __tablename__ = 'variantfile'
