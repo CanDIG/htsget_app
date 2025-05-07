@@ -850,35 +850,86 @@ def create_pos_bucket(obj):
         variantfile_id = obj['variantfile_id']
         new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
         if new_variantfile is None:
-            return None
-        curr_contig = None
+            logger.debug(f"couldn't find variantfile {variantfile_id}")
+            return None # we can't work on nonexistent variantfiles
+
+        # find all of the contigs that need to be updated
+        contigs_to_update = {}
+        for contig_id in contig_ids:
+            # add the variantfile to the contigs to update
+            if contig_id not in contigs_to_update:
+                contigs_to_update[contig_id] = set()
+            contigs_to_update[contig_id].add(new_variantfile)
+
+        # update the 25 contigs
+        for contig_id in contigs_to_update.keys():
+            curr_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
+            if curr_contig is not None:
+                curr_contig.associated_variantfiles.extend(contigs_to_update[contig_id])
+                session.add(curr_contig)
+        session.commit()
+
+        # find all of the pos buckets that need to be accessed
+        buckets_needed_by_contig = {}
         for i in range(len(pos_bucket_ids)):
             pos_bucket_id = pos_bucket_ids[i]
             contig_id = contig_ids[i]
             bucket_count = bucket_counts[i]
             if bucket_count > 0:
-                if curr_contig is None or curr_contig.id != contig_id:
-                    curr_contig = session.query(Contig).filter_by(id=contig_id).one_or_none()
-                    if curr_contig is not None:
-                        curr_contig.associated_variantfiles.append(new_variantfile)
-                        session.add(curr_contig)
-                new_pos_bucket = session.query(PositionBucket).filter_by(pos_bucket_id=pos_bucket_id, contig_id=contig_id).one_or_none()
-                if new_pos_bucket is None:
-                    new_pos_bucket = PositionBucket()
-                    new_pos_bucket.pos_bucket_id = pos_bucket_id
-                    new_pos_bucket.contig_id = contig_id
-                    session.add(new_pos_bucket)
-                    session.commit()
-                association = session.query(PositionBucketVariantFileAssociation).filter_by(pos_bucket_id=new_pos_bucket.id, variantfile_id=variantfile_id).one_or_none()
-                if association is None:
-                    association = PositionBucketVariantFileAssociation()
-                    association.pos_bucket_id = new_pos_bucket.id
-                    association.variantfile_id = variantfile_id
-                    association.bucket_count = 0
-                association.bucket_count = bucket_count
-                session.add(association)
-                session.commit()
-        return None
+                if contig_id not in buckets_needed_by_contig:
+                    buckets_needed_by_contig[contig_id] = set()
+                buckets_needed_by_contig[contig_id].add(pos_bucket_id)
+
+        # search for the resulting buckets: if not there, insert
+        existing_bucket_ids = {}
+        for contig_id in buckets_needed_by_contig.keys():
+            existing_buckets_in_contig = session.query(PositionBucket).filter(PositionBucket.pos_bucket_id.in_(list(buckets_needed_by_contig[contig_id])), PositionBucket.contig_id==contig_id).all()
+            existing_bucket_ids[contig_id] = (list(map(lambda x: x.pos_bucket_id, existing_buckets_in_contig)))
+
+        new_pos_buckets = []
+        for i in range(len(pos_bucket_ids)):
+            pos_bucket_id = pos_bucket_ids[i]
+            contig_id = contig_ids[i]
+            if pos_bucket_id not in existing_bucket_ids[contig_id]:
+                new_pos_buckets.append({'pos_bucket_id': int(pos_bucket_id), 'contig_id': contig_id})
+        session.bulk_insert_mappings(PositionBucket, new_pos_buckets)
+        session.commit()
+
+    # remove any existing PositionBucketVariantFileAssociations:
+    with Session() as session:
+        session.query(PositionBucketVariantFileAssociation).filter(PositionBucketVariantFileAssociation.variantfile_id==variantfile_id).delete()
+        session.commit()
+
+    with Session() as session:
+        # # okay now all of the buckets exist: let's find the ones we need
+        existing_buckets = []
+        for contig_id in buckets_needed_by_contig.keys():
+            existing_buckets.extend(session.query(PositionBucket).filter(PositionBucket.pos_bucket_id.in_(list(buckets_needed_by_contig[contig_id])), PositionBucket.contig_id==contig_id).all())
+
+        # sort bucket IDs for quick access
+        bucket_hash = {}
+        for bucket in existing_buckets:
+            if bucket.contig_id not in bucket_hash:
+                bucket_hash[bucket.contig_id] = {}
+            if bucket.pos_bucket_id not in bucket_hash[bucket.contig_id]:
+                bucket_hash[bucket.contig_id][bucket.pos_bucket_id] = bucket.id
+
+        pbvfs_to_add = []
+
+        for i in range(len(pos_bucket_ids)):
+            pos_bucket_id = pos_bucket_ids[i]
+            contig_id = contig_ids[i]
+            bucket_count = bucket_counts[i]
+
+            # only need to update buckets that have a count greater than 0
+            if bucket_count > 0:
+                bucket_id = bucket_hash[contig_id][pos_bucket_id]
+                pbvfs_to_add.append({'pos_bucket_id': int(bucket_id), 'variantfile_id': variantfile_id, 'bucket_count': int(bucket_count)})
+
+        session.bulk_insert_mappings(PositionBucketVariantFileAssociation, pbvfs_to_add)
+        session.commit()
+
+    return None
 
 
 def delete_pos_bucket(pos_bucket_id, normalized_contig_id):
