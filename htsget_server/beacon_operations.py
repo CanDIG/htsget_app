@@ -146,6 +146,9 @@ async def post_search():
     except Exception as e:
         return {'message': f"{type(e)}: {str(e)}"}, 500
 
+@app.route('/beacon/v2/result/<path:queue_id>')
+def get_full_result(queue_id):
+    return None
 
 def search(raw_req):
     req = raw_req['query']['requestParameters']
