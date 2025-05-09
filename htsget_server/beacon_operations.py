@@ -324,8 +324,8 @@ def get_full_result(queue_id):
                 json_data.pop("complete")
                 return json_data["result"], 201
             return json_data, 200
-    except:
-        return {"error": f"no such queue_id {queue_id}"}, 404
+    except Exception as e:
+        return {"error": f"no such queue_id {queue_id}: {type(e)} {str(e)}"}, 404
 
 
 def full_beacon_search(search_json):
