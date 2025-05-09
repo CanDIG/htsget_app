@@ -5,6 +5,7 @@ import watchdog.events
 from candigv2_logging.logging import initialize, CanDIGLogger
 import json
 from beacon_operations import full_beacon_search
+from time import time
 
 
 logger = CanDIGLogger(__file__)
@@ -32,6 +33,15 @@ def search_file(file_path):
         status_code = 500
     with open(results_path, "w") as f:
         json.dump(results, f)
+
+    # clean up old search results
+    results_path = os.path.join(SEARCH_PATH, "results")
+    for filename in os.listdir(results_path):
+        file_path = os.path.join(results_path, filename)
+        filestamp = os.stat(file_path).st_mtime
+        seven_days_ago = time() - 7 * 86400
+        if filestamp < seven_days_ago:
+            os.remove(file_path)
     return results, status_code
 
 
