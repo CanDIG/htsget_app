@@ -22,6 +22,7 @@ def search_file(file_path):
             json_data = json.load(f)
         if json_data is not None:
             logger.info(f"Searching {file_path}")
+            results["result"] = full_beacon_search(json_data)
             results["complete"] = True
         os.remove(file_path)
     except Exception as e:
