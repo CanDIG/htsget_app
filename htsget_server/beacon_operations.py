@@ -250,22 +250,18 @@ def search(raw_req):
             raise Exception(f"exception in search for {actual_params}: {type(e)} {str(e)}")
 
         results = {}
-        query_info = {} # program_id and submitter_sample_id
         for i in range(len(potential_hits)):
             drs_obj_id = potential_hits[i]['drs_object_id']
             # look for experiments and programs for all drs objects, even if user is not authorized
             drs_obj = database.get_drs_object(drs_obj_id)
             if "program" in drs_obj:
-                if drs_obj["program"] not in query_info:
-                    query_info[drs_obj["program"]] = []
+                if drs_obj["program"] not in results:
                     results[drs_obj["program"]] = []
                 for c in drs_obj["contents"]:
                     if c["id"] not in ["analysis", "index"]:
                         # this is a ExperimentContentObject
                         res = {"submitter_sample_id": c["name"], "variant_count": potential_hits[i]["variantcount"]}
                         results[drs_obj["program"]].append(res)
-                        if c["name"] not in query_info[drs_obj["program"]]:
-                            query_info[drs_obj["program"]].append(c["name"])
 
         search_json = {
             "potential_hits": potential_hits,
@@ -393,20 +389,13 @@ def full_beacon_search(search_json):
 
     # if the request granularity was "record", check to see that the user is actually authorized to see any programs:
     response['beaconHandovers'] = []
-    query_info = {} # program_id and submitter_sample_id
     for drs_obj_id in variants_by_file.keys():
         # look for experiments and programs for all drs objects, even if user is not authorized
         drs_obj = database.get_drs_object(drs_obj_id)
         if "program" in drs_obj:
             download_handovers = []
-            if drs_obj["program"] not in query_info:
-                query_info[drs_obj["program"]] = []
             for c in drs_obj["contents"]:
-                if c["id"] not in ["variant", "read", "transcript", "index"]:
-                    # this is a ExperimentContentObject
-                    if c["name"] not in query_info[drs_obj["program"]]:
-                        query_info[drs_obj["program"]].append(c["name"])
-                elif c["id"] in ["variant", "transcript", "index"]:
+                if c["id"] in ["analysis", "index"]:
                     # this is a file that we should create a download url for
                     file_drs_obj = database.get_drs_object(c["name"])
                     download_handover = {
