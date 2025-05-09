@@ -14,7 +14,8 @@ jobs:
       DB_PATH: localhost
       SERVER_LOCAL_DATA: ${{github.workspace}}/data
       PGPASSWORD: OG0pjmnQDWUTvLotYrxPrg
-      INDEXING_PATH: ${{github.workspace}}/tmp
+      INDEXING_PATH: ${{github.workspace}}/tmp/indexer
+      SEARCH_PATH: ${{github.workspace}}/tmp/search
       INDEXING_SWITCH_FILE: ${{github.workspace}}/indexer_on
       TESTENV_URL: http://localhost:3000
       AGGREGATE_COUNT_THRESHOLD: 5
@@ -52,6 +53,8 @@ jobs:
         pip install -r requirements.txt
         bash create_db.sh
         mkdir -p ${{ env.INDEXING_PATH }}
+        mkdir -p ${{ env.SEARCH_PATH }}/results
+        mkdir -p ${{ env.SEARCH_PATH }}/to_search
         touch ${{ env.INDEXING_SWITCH_FILE }}
         sed -i s@\<AGGREGATE_COUNT_THRESHOLD\>@${{env.AGGREGATE_COUNT_THRESHOLD}}@ config.ini
         sed -i s@\<POSTGRES_USERNAME\>@${{env.POSTGRES_USERNAME}}@ config.ini
@@ -59,5 +62,6 @@ jobs:
       run: |
         python htsget_server/server.py &
         python htsget_server/indexing.py &
+        python htsget_server/search.py &
         sleep 5
         pytest tests/test_htsget_server.py
