@@ -287,6 +287,10 @@ def search(raw_req):
                 if program in results:
                     response["estimatedResults"][program] = results[program]
 
+        # if the user isn't authorized for any useful data, just return a boolean about whether or not we found anything
+        if len(response["estimatedResults"]) == 0:
+            response["estimatedResults"] = {"exists": len(potential_hits) > 0}
+
         # remove irrelevant meta stuff:
         response["meta"].pop("returnedGranularity")
         response["meta"].pop("returnedSchemas")
