@@ -8,7 +8,10 @@ import re
 import connexion
 from functools import reduce
 import authz
-from config import AGGREGATE_COUNT_THRESHOLD
+import uuid
+import tempfile
+import os
+from config import AGGREGATE_COUNT_THRESHOLD, SEARCH_PATH, HTSGET_URL, BUCKET_SIZE
 from candigv2_logging.logging import CanDIGLogger
 
 
@@ -171,11 +174,7 @@ def search(raw_req):
     # if 'includeResultsetResponses' in raw_req:
     #     meta['receivedRequestSummary']['includeResultsetResponses'] = raw_req['includeResultsetResponses']
     response = {
-        'meta': meta,
-        'responseSummary': {
-            'exists': False,
-            'numTotalResults': 0
-        }
+        'meta': meta
     }
 
     actual_params = meta['receivedRequestSummary']['requestParameters']
@@ -229,8 +228,8 @@ def search(raw_req):
             raise Exception(f"exception in convert_hgvsid_to_location for {req['genomic_allele_short_form']}: {type(e)} {str(e)}")
         if allele_loc is not None:
             actual_params['reference_name'] = allele_loc['reference_name']
-            actual_params['start'] = allele_loc['start']
-            actual_params['end'] = allele_loc['end']
+            actual_params['start'] = int(allele_loc['start']) - 1 # search for bases starting at the interbase half-a-base back
+            actual_params['end'] = int(allele_loc['end'])
             # actual_params['type'] = allele_loc['type']
             if 'reference_genome' in allele_loc:
                 actual_params['reference_genome'] = allele_loc['reference_genome']
@@ -240,109 +239,64 @@ def search(raw_req):
                 actual_params['alt'] = allele_loc['alt']
 
     if 'reference_name' in actual_params and actual_params['reference_name'] is not None:
+        authed_programs = authz.get_authorized_programs(connexion.request)
+
         # if there is no end specified, assume the end is same as start:
         if 'end' not in actual_params:
             actual_params['end'] = actual_params['start']
         try:
-            variants_by_file = variants.find_variants_in_region(reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+            potential_hits = variants.find_variants_in_database(reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
         except Exception as e:
-            raise Exception(f"exception in find_variants_in_region for {actual_params}: {type(e)} {str(e)}")
-        try:
-            resultset = compile_beacon_resultset(variants_by_file, reference_genome=actual_params['reference_genome'])
-        except Exception as e:
-            raise Exception(f"exception in compile_beacon_resultset for {actual_params}: {type(e)} {str(e)}")
-        # others are for filtering after:
-        #         aminoacidChange: string,
-        #         alternate_bases: string,
-        #         reference_bases: string,
-        #         variant_max_length: integer
-        #         variant_min_length: integer
-        #         variantType: string
+            raise Exception(f"exception in search for {actual_params}: {type(e)} {str(e)}")
 
-        if actual_params['start'] == actual_params['end']:
-            filtered_resultset = []
-            for variant in resultset:
-                if variant['variation']['location']['interval']['start']['value'] == actual_params['start'] - 1:
-                    if variant['variation']['location']['interval']['end']['value'] == actual_params['end']:
-                        filtered_resultset.append(variant)
-            resultset = filtered_resultset
-        if 'alt' in actual_params:
-            filtered_resultset = []
-            for variant in resultset:
-                if variant['variantInternalId'].endswith('='):
-                    filtered_resultset.append(variant) # don't filter out ref seqs
-                elif variants.seq_match(variant['variation']['state']['sequence'], actual_params['alt']):
-                    filtered_resultset.append(variant)
-            resultset = filtered_resultset
-        if 'ref' in actual_params:
-            filtered_resultset = []
-            for variant in resultset:
-                if variant['variantInternalId'].endswith('='):
-                    if variants.seq_match(variant['variation']['state']['sequence'], actual_params['ref']):
-                        filtered_resultset.append(variant)
-                else:
-                    filtered_resultset.append(variant)
-            resultset = filtered_resultset
-
-
-        if len(resultset) > 0:
-            if len(resultset) < int(AGGREGATE_COUNT_THRESHOLD):
-                response['responseSummary']['numTotalResults'] = f"<{AGGREGATE_COUNT_THRESHOLD}"
-            else:
-                response['responseSummary']['numTotalResults'] = len(resultset)
-            response['responseSummary']['exists'] = True
-
-        # if the request granularity was "record", check to see that the user is actually authorized to see any programs:
-        authed_programs = authz.get_authorized_programs(connexion.request)
-        response['beaconHandovers'] = []
-        query_info = {} # program_id and submitter_sample_id
-        for drs_obj_id in variants_by_file.keys():
+        results = {}
+        for i in range(len(potential_hits)):
+            drs_obj_id = potential_hits[i]['drs_object_id']
             # look for experiments and programs for all drs objects, even if user is not authorized
             drs_obj = database.get_drs_object(drs_obj_id)
             if "program" in drs_obj:
-                download_handovers = []
-                if drs_obj["program"] not in query_info:
-                    query_info[drs_obj["program"]] = []
+                if drs_obj["program"] not in results:
+                    results[drs_obj["program"]] = []
                 for c in drs_obj["contents"]:
-                    if c["id"] not in ["variant", "read", "transcript", "index"]:
+                    if c["id"] not in ["analysis", "index"]:
                         # this is a ExperimentContentObject
-                        if c["name"] not in query_info[drs_obj["program"]]:
-                            query_info[drs_obj["program"]].append(c["name"])
-                    elif c["id"] in ["variant", "transcript", "index"]:
-                        # this is a file that we should create a download url for
-                        file_drs_obj = database.get_drs_object(c["name"])
-                        download_handover = {
-                            'handoverType': {'id': 'CUSTOM', 'label': 'DOWNLOAD'},
-                            'url': drs_operations._get_download_url(file_drs_obj['id'])
-                        }
-                        if 'size' in file_drs_obj:
-                            download_handover['size'] = file_drs_obj['size']
-                        download_handovers.append(download_handover)
-                if drs_obj["program"] in authed_programs:
-                    # fill in htsget handover data
-                    try:
-                        htsget_handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
-                    except Exception as e:
-                        raise Exception(f"exception in get_variants for {drs_obj_id}: {type(e)} {str(e)}")
-                    if htsget_handover is not None:
-                        htsget_handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
-                        response['beaconHandovers'].append(htsget_handover)
-                    if len(download_handovers) > 0:
-                        response['beaconHandovers'].extend(download_handovers)
-        if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
-            response['response'] = resultset
-            if len(resultset) > 0: # use true number if we're authorized, even if below AGGREGATE_COUNT_THRESHOLD
-                response['responseSummary']['numTotalResults'] = len(resultset)
+                        res = {"submitter_sample_id": c["name"], "variant_count": potential_hits[i]["variantcount"]}
+                        results[drs_obj["program"]].append(res)
 
-        else:
-            response.pop('beaconHandovers')
-            if meta['returnedGranularity'] == 'boolean':
-                response['responseSummary'].pop('numTotalResults')
-        # if the requester is the query microservice, add query info to the results
+        search_json = {
+            "potential_hits": potential_hits,
+            "actual_params": actual_params,
+            "meta": meta,
+            "authed_programs": authed_programs
+        }
+        queue_id = add_to_queue(search_json)
+        response["beaconResultUrl"] = f"{HTSGET_URL}/beacon/v2/result/{queue_id}"
+
+        # set up quick beacon results:
+        response["estimatedSearchParameters"] = {
+            "referenceName": actual_params['reference_name'],
+            "start": database.get_bucket_for_position(actual_params["start"]),
+            "end": int(database.get_bucket_for_position(actual_params["end"])) + BUCKET_SIZE - 1
+        }
+
+        response["estimatedResults"] = {}
         if authz.request_is_from_query(connexion.request):
-            response["query_info"] = query_info
+            response["estimatedResults"] = results
+        elif len(authed_programs) > 0:
+            for program in authed_programs:
+                if program in results:
+                    response["estimatedResults"][program] = results[program]
+
+        # if the user isn't authorized for any useful data, just return a boolean about whether or not we found anything
+        if len(response["estimatedResults"]) == 0:
+            response["estimatedResults"] = {"exists": len(potential_hits) > 0}
+
+        # remove irrelevant meta stuff:
+        response["meta"].pop("returnedGranularity")
+        response["meta"].pop("returnedSchemas")
+        return response
     else:
-        response = {
+        return {
             'error': {
                 'errorMessage': 'no referenceName was provided',
                 'errorCode': 404
@@ -352,7 +306,133 @@ def search(raw_req):
     return response
 
 
-def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
+def add_to_queue(ingest_json):
+    queue_id = str(uuid.uuid1())
+    with tempfile.NamedTemporaryFile(delete_on_close=False, mode="w") as f:
+        json.dump(ingest_json, f, indent=4)
+        os.rename(f.name, os.path.join(SEARCH_PATH, "to_search", queue_id))
+    results_path = os.path.join(SEARCH_PATH, "results", queue_id)
+    with open(results_path, "w") as f:
+        json.dump({"status": "still in queue"}, f)
+    return queue_id
+
+
+@app.route('/beacon/v2/result/<path:queue_id>')
+def get_full_result(queue_id):
+    try:
+        results_path = os.path.join(SEARCH_PATH, "results", queue_id)
+        with open(results_path) as f:
+            json_data = json.load(f)
+            # os.remove(results_path)
+            if "complete" in json_data:
+                json_data.pop("complete")
+                return json_data["result"], 201
+            return json_data, 200
+    except Exception as e:
+        return {"error": f"no such queue_id {queue_id}: {type(e)} {str(e)}"}, 404
+
+
+def full_beacon_search(search_json):
+    potential_hits = search_json["potential_hits"]
+    actual_params = search_json["actual_params"]
+    meta = search_json["meta"]
+    authed_programs = search_json["authed_programs"]
+
+    response = {
+        'meta': meta,
+        'responseSummary': {
+            'exists': False,
+            'numTotalResults': 0
+        }
+    }
+
+    try:
+        variants_by_file = variants.find_variants_in_files(potential_hits, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+        resultset = compile_beacon_resultset(variants_by_file, actual_params['reference_genome'], authed_programs)
+    except Exception as e:
+        raise Exception(f"exception in compile_beacon_resultset for {actual_params}: {type(e)} {str(e)}")
+    # others are for filtering after:
+    #         aminoacidChange: string,
+    #         alternate_bases: string,
+    #         reference_bases: string,
+    #         variant_max_length: integer
+    #         variant_min_length: integer
+    #         variantType: string
+
+    if actual_params['start'] == actual_params['end']:
+        filtered_resultset = []
+        for variant in resultset:
+            if variant['variation']['location']['interval']['start']['value'] == actual_params['start'] - 1:
+                if variant['variation']['location']['interval']['end']['value'] == actual_params['end']:
+                    filtered_resultset.append(variant)
+        resultset = filtered_resultset
+    if 'alt' in actual_params:
+        filtered_resultset = []
+        for variant in resultset:
+            if variant['variantInternalId'].endswith('='):
+                filtered_resultset.append(variant) # don't filter out ref seqs
+            elif variants.seq_match(variant['variation']['state']['sequence'], actual_params['alt']):
+                filtered_resultset.append(variant)
+        resultset = filtered_resultset
+    if 'ref' in actual_params:
+        filtered_resultset = []
+        for variant in resultset:
+            if variant['variantInternalId'].endswith('='):
+                if variants.seq_match(variant['variation']['state']['sequence'], actual_params['ref']):
+                    filtered_resultset.append(variant)
+            else:
+                filtered_resultset.append(variant)
+        resultset = filtered_resultset
+
+    if len(resultset) > 0:
+        if len(resultset) < int(AGGREGATE_COUNT_THRESHOLD):
+            response['responseSummary']['numTotalResults'] = f"<{AGGREGATE_COUNT_THRESHOLD}"
+        else:
+            response['responseSummary']['numTotalResults'] = len(resultset)
+        response['responseSummary']['exists'] = True
+
+    # if the request granularity was "record", check to see that the user is actually authorized to see any programs:
+    response['beaconHandovers'] = []
+    for drs_obj_id in variants_by_file.keys():
+        # look for experiments and programs for all drs objects, even if user is not authorized
+        drs_obj = database.get_drs_object(drs_obj_id)
+        if "program" in drs_obj:
+            download_handovers = []
+            for c in drs_obj["contents"]:
+                if c["id"] in ["analysis", "index"]:
+                    # this is a file that we should create a download url for
+                    file_drs_obj = database.get_drs_object(c["name"])
+                    download_handover = {
+                        'handoverType': {'id': 'CUSTOM', 'label': 'DOWNLOAD'},
+                        'url': drs_operations._get_download_url(file_drs_obj['id'])
+                    }
+                    if 'size' in file_drs_obj:
+                        download_handover['size'] = file_drs_obj['size']
+                    download_handovers.append(download_handover)
+            if drs_obj["program"] in authed_programs:
+                # fill in htsget handover data
+                try:
+                    htsget_handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+                except Exception as e:
+                    raise Exception(f"exception in get_variants for {drs_obj_id}: {type(e)} {str(e)}")
+                if htsget_handover is not None:
+                    htsget_handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
+                    response['beaconHandovers'].append(htsget_handover)
+                if len(download_handovers) > 0:
+                    response['beaconHandovers'].extend(download_handovers)
+    if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
+        response['response'] = resultset
+        if len(resultset) > 0: # use true number if we're authorized, even if below AGGREGATE_COUNT_THRESHOLD
+            response['responseSummary']['numTotalResults'] = len(resultset)
+
+    else:
+        response.pop('beaconHandovers')
+        if meta['returnedGranularity'] == 'boolean':
+            response['responseSummary'].pop('numTotalResults')
+    return response
+
+
+def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_programs=None):
     """
     Each beacon result describes a variation at a specific position:
     resultset = [
@@ -388,7 +468,6 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38"):
       ]
     """
     resultset = {}
-    authed_programs = authz.get_authorized_programs(connexion.request)
     for drs_obj in variants_by_obj.keys():
         # check to see if this drs_object is authorized:
         x = database.get_drs_object(drs_obj)

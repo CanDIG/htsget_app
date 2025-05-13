@@ -15,7 +15,7 @@ LOCAL_FILE_PATH = os.path.abspath(f"{REPO_DIR}/data/files")
 SERVER_LOCAL_DATA = os.getenv("SERVER_LOCAL_DATA", "/app/htsget_server/data")
 
 HOST = os.getenv("TESTENV_URL")
-TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
+TEST_KEY = os.getenv("HTSGET_TEST_KEY")
 USERNAME = os.getenv("CANDIG_NOT_ADMIN_USER2", "user2@test.ca")
 MINIO_URL = os.getenv("MINIO_URL")
 VAULT_URL = os.getenv("VAULT_URL")
@@ -473,6 +473,20 @@ def test_beacon_get_search():
     url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg38&allele=NC_000021.9%3Ag.5030847T%3EA"
     response = requests.get(url, headers=get_headers())
     print(response.text)
+    assert len(response.json()['estimatedResults']["test-htsget"]) == 2
+
+    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
+    response = requests.get(url, headers=get_headers())
+    tries = 0
+    while response.status_code != 201:
+        sleep(2)
+        response = requests.get(url, headers=get_headers())
+        print(response.json())
+        tries = tries + 1
+        if tries > 10:
+            print("search is taking too long")
+            assert False
+
     assert len(response.json()['response']) == 2
 
 
@@ -520,6 +534,19 @@ def test_beacon_post_search(body, count, cases):
 
     response = requests.post(url, json=body, headers=get_headers())
     print(response.text)
+
+    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
+    response = requests.get(url, headers=get_headers())
+    tries = 0
+    while response.status_code != 201:
+        sleep(2)
+        response = requests.get(url, headers=get_headers())
+        print(response.json())
+        tries = tries + 1
+        if tries > 10:
+            print("search is taking too long")
+            assert False
+
     assert len(response.json()['response']) == count
     assert len(response.json()['response'][0]['caseLevelData']) == cases
 
@@ -538,6 +565,19 @@ def test_beacon_search_annotations():
         }
     }
     response = requests.post(url, json=body, headers=get_headers())
+
+    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
+    response = requests.get(url, headers=get_headers())
+    tries = 0
+    while response.status_code != 201:
+        sleep(2)
+        response = requests.get(url, headers=get_headers())
+        print(response.json())
+        tries = tries + 1
+        if tries > 10:
+            print("search is taking too long")
+            assert False
+
     found_gene = False
     print(response.json())
     for var in response.json()['response']:

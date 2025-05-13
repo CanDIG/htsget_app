@@ -109,6 +109,25 @@ paths:
           description: Successful operation
       tags:
         - Informational endpoints
+  /result/{queue_id}:
+    parameters:
+      - in: path
+        required: true
+        name: queue_id
+        schema:
+          type: string
+    get:
+      description: Get full Beacon result for a search
+      operationId: beacon_operations.get_full_result
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BeaconResultsetsResponseBody"
+        '404':
+          description: Not Found
   /g_variants:
     get:
       description: Search for variants
@@ -262,7 +281,7 @@ components:
             oneOf:
               - $ref: "#/components/schemas/BeaconBooleanResponseBody"
               - $ref: "#/components/schemas/BeaconCountResponseBody"
-              - $ref: "#/components/schemas/BeaconResultsetsResponseBody"
+              - $ref: "#/components/schemas/BeaconSearchResponseBody"
       description: Successful operation.
     BeaconErrorResponse:
       description: An unsuccessful operation.
@@ -324,6 +343,22 @@ components:
       required:
         - meta
         - responseSummary
+      type: object
+    BeaconSearchResponseBody:
+      description: Beacon quick search result
+      properties:
+        info:
+          $ref: '#/components/schemas/Info'
+        meta:
+          $ref: '#/components/schemas/BeaconResponseMeta'
+        response:
+          $ref: '#/components/schemas/QuickSearchResult'
+        responseSummary:
+          $ref: '#/components/schemas/BeaconSummaryResponseSection'
+      required:
+        - meta
+        - responseSummary
+        - response
       type: object
     BeaconResultsetsResponseBody:
       description: Beacon response that includes record level details, grouped in Resultsets.
@@ -604,6 +639,23 @@ components:
         - resultSets
       title: Beacon ResultSet
       type: object
+    QuickSearchResult:
+      description: Result with initial estimated data and a link to full Beacon result
+      type: object
+      properties:
+        beaconResultUrl:
+          type: string
+        estimatedResults:
+          type: array
+          items:
+            type: object
+            properties:
+              analysisId:
+                type: string
+              programId:
+                type: string
+              variantCount:
+                type: integer
     BeaconCountResponseSection:
       description: Payload definition for the "count" response.
       properties:
@@ -885,6 +937,7 @@ components:
                 type: string
               genotype:
                 type: object
+                description: based on suggested modification at https://github.com/ga4gh-beacon/beacon-v2/issues/57#issuecomment-1452561660
                 properties:
                   zygosity:
                     $ref: '#/components/schemas/OntologyTerm'
