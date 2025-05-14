@@ -232,8 +232,8 @@ components:
           type: string
     SampleRegistrationQuery:
         in: query
-        name: sample_registration_id
-        description: sample_registration_id from mohccn data model
+        name: submitter_sample_id
+        description: submitter_sample_id from mohccn data model
         schema:
           type: string
     ObjectId:

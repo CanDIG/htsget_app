@@ -74,8 +74,8 @@ def get_object_for_drs_uri(drs_uri):
     return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}, 401
 
 
-def list_objects(program_id=None, sample_registration_id=None):
-    return database.list_drs_objects(program_id=program_id, sample_registration_id=sample_registration_id), 200
+def list_objects(program_id=None, submitter_sample_id=None):
+    return database.list_drs_objects(program_id=program_id, submitter_sample_id=submitter_sample_id), 200
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')

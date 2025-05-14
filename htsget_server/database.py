@@ -411,14 +411,14 @@ def get_drs_object(object_id, expand=False, tries=1):
     return None
 
 
-def list_drs_objects(program_id=None, sample_registration_id=None):
+def list_drs_objects(program_id=None, submitter_sample_id=None):
     with Session() as session:
-        if program_id is None and sample_registration_id is None:
+        if program_id is None and submitter_sample_id is None:
             result = session.query(DrsObject).all()
-        elif sample_registration_id is None: # searching for program
+        elif submitter_sample_id is None: # searching for program
             result = session.query(DrsObject).filter_by(program_id=program_id).all()
         else: # searching for experiments with sample registration IDs
-            result = session.query(DrsObject).filter_by(name=sample_registration_id).all()
+            result = session.query(DrsObject).filter_by(name=submitter_sample_id).all()
 
         if result is not None:
             new_obj = json.loads(str(result))
