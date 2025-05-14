@@ -453,9 +453,7 @@ components:
           description: The descriptor for this analysis data entity
         name:
           type: string
-          description: |-
-            The filename for this entity, not including its file extensions.
-            This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
+          description: same as the id
         contents:
           type: array
           description: The specific analysis contents objects that comprise this analysis DRS entity. Should contain a AnalysisDataContentsObject, an optional AnalysisIndexContentsObject, and ExperimentContentsObjects corresponding to the experiments analyzed in the analysis data object.
