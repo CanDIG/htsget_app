@@ -54,6 +54,14 @@ def get_object(object_id, expand=False):
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     if new_object is None:
         return {"message": "No matching object found"}, 404
+    if "access_methods" in new_object:
+        download_method = {
+            "access_url": {
+                "url": f"{HTSGET_URL}/ga4gh/drs/v1/objects/{object_id}/download"
+            },
+            "type": "download"
+        }
+        new_object["access_methods"].append(download_method)
     return new_object, 200
 
 
