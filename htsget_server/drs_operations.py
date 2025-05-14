@@ -95,10 +95,10 @@ def download_file(object_id, request=connexion.request):
             if drs_object["metadata"]["analysis_type"] == "reference_alignment":
                 return {"message": f"Sorry, read files are not allowed to be downloaded"}, 403
     for method in drs_object["access_methods"]:
-        if "access_url" in method:
+        if "access_url" in method and method["type"] == "file":
             file_obj = _get_file_path(drs_object["id"])
             return send_file(file_obj["path"]), 200
-        else:
+        elif "access_id" in method:
             url, status_code = _get_access_url(method["access_id"])
             r = requests.get(url["url"], stream=True)
             return Response(r.iter_content(chunk_size=10*1024), content_type=r.headers['Content-Type'])
@@ -323,7 +323,7 @@ def _get_file_path(drs_file_obj_id):
                 }
                 result["size"] = url_obj["metadata"].size
                 break
-        else:
+        elif method["type"] == "file":
             # the access_url has all the info we need
             url_pieces = urlparse(method["access_url"]["url"])
             if url_pieces.scheme == "file":
