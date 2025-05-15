@@ -232,8 +232,8 @@ components:
           type: string
     SampleRegistrationQuery:
         in: query
-        name: sample_registration_id
-        description: sample_registration_id from mohccn data model
+        name: submitter_sample_id
+        description: submitter_sample_id from mohccn data model
         schema:
           type: string
     ObjectId:
@@ -453,9 +453,7 @@ components:
           description: The descriptor for this analysis data entity
         name:
           type: string
-          description: |-
-            The filename for this entity, not including its file extensions.
-            This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_]. See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
+          description: same as the id
         contents:
           type: array
           description: The specific analysis contents objects that comprise this analysis DRS entity. Should contain a AnalysisDataContentsObject, an optional AnalysisIndexContentsObject, and ExperimentContentsObjects corresponding to the experiments analyzed in the analysis data object.
@@ -752,16 +750,18 @@ components:
             Until then, if implementors do choose such an algorithm (e.g. because it's implemented by their storage provider), they SHOULD use an existing
             standard `type` value such as `md5`, `etag`, `crc32c`, `trunc512`, or `sha1`.
           example: sha-256
-    LocalFileAccessMethod:
+    AccessUrlMethod:
       description: A full URL describing the file's location
       type: object
       required:
         - type
+        - access_url
       properties:
         type:
           type: string
           enum:
             - file
+            - download
         access_url:
           type: object
           required:
@@ -773,11 +773,12 @@ components:
               type: array
               items:
                 type: string
-    S3AccessMethod:
+    AccessIdMethod:
       description: An access id and region that might be needed to specify to get a signed URL for obtaining bytes
       type: object
       required:
         - type
+        - access_id
       properties:
         type:
           type: string
@@ -793,8 +794,8 @@ components:
           example: us-east-1
     AccessMethod:
       anyOf:
-        - $ref: '#/components/schemas/LocalFileAccessMethod'
-        - $ref: '#/components/schemas/S3AccessMethod'
+        - $ref: '#/components/schemas/AccessUrlMethod'
+        - $ref: '#/components/schemas/AccessIdMethod'
     AnalysisContentsObject:
       type: object
       required:

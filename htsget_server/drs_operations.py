@@ -54,6 +54,14 @@ def get_object(object_id, expand=False):
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     if new_object is None:
         return {"message": "No matching object found"}, 404
+    if "access_methods" in new_object:
+        download_method = {
+            "access_url": {
+                "url": f"{HTSGET_URL}/ga4gh/drs/v1/objects/{object_id}/download"
+            },
+            "type": "download"
+        }
+        new_object["access_methods"].append(download_method)
     return new_object, 200
 
 
@@ -66,8 +74,8 @@ def get_object_for_drs_uri(drs_uri):
     return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}, 401
 
 
-def list_objects(program_id=None, sample_registration_id=None):
-    return database.list_drs_objects(program_id=program_id, sample_registration_id=sample_registration_id), 200
+def list_objects(program_id=None, submitter_sample_id=None):
+    return database.list_drs_objects(program_id=program_id, submitter_sample_id=submitter_sample_id), 200
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
@@ -95,10 +103,10 @@ def download_file(object_id, request=connexion.request):
             if drs_object["metadata"]["analysis_type"] == "reference_alignment":
                 return {"message": f"Sorry, read files are not allowed to be downloaded"}, 403
     for method in drs_object["access_methods"]:
-        if "access_url" in method:
+        if "access_url" in method and method["type"] == "file":
             file_obj = _get_file_path(drs_object["id"])
             return send_file(file_obj["path"]), 200
-        else:
+        elif "access_id" in method:
             url, status_code = _get_access_url(method["access_id"])
             r = requests.get(url["url"], stream=True)
             return Response(r.iter_content(chunk_size=10*1024), content_type=r.headers['Content-Type'])
@@ -323,7 +331,7 @@ def _get_file_path(drs_file_obj_id):
                 }
                 result["size"] = url_obj["metadata"].size
                 break
-        else:
+        elif method["type"] == "file":
             # the access_url has all the info we need
             url_pieces = urlparse(method["access_url"]["url"])
             if url_pieces.scheme == "file":
