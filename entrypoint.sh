@@ -12,7 +12,9 @@ if [[ -f "initial_setup" ]]; then
     sed -i s@\<POSTGRES_USERNAME\>@$POSTGRES_USERNAME@ config.ini
 
     bash create_db.sh
-    mkdir $INDEXING_PATH
+    mkdir -p $INDEXING_PATH
+    mkdir -p $SEARCH_PATH/results
+    mkdir -p $SEARCH_PATH/to_search
     touch $INDEXING_SWITCH_FILE
     rm initial_setup
 fi
@@ -24,6 +26,7 @@ candigv2_logging.logging.initialize()"
 #python3 htsget_server/server.py
 
 bash htsget_server/indexing.sh &
+bash htsget_server/search.sh &
 
 # use the following instead for production deployment
 cd htsget_server

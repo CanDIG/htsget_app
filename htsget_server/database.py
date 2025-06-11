@@ -95,6 +95,23 @@ class Contig(ObjectDBBase):
         back_populates="contig"
     )
 
+    def __repr__(self):
+        result = {
+            'id': self.id,
+            'aliases': [],
+            'associated_variantfiles': [],
+            'pos_buckets': []
+        }
+        for alias in self.aliases:
+            result['aliases'].append(alias.id)
+        for varfile_assoc in self.associated_variantfiles:
+            result['associated_variantfiles'].append(varfile_assoc.id)
+        for x in self.pos_buckets:
+            result['pos_buckets'].append(x.id)
+
+        return json.dumps(result)
+
+
 
 class VariantFile(ObjectDBBase):
     __tablename__ = 'variantfile'
@@ -172,6 +189,7 @@ class PositionBucket(ObjectDBBase):
         result = {
             'id': self.id,
             'contig_id': self.contig_id,
+            'pos_bucket_id': self.pos_bucket_id,
             'variantfiles': []
         }
         for varfile_assoc in self.associated_variantfiles:
@@ -180,6 +198,7 @@ class PositionBucket(ObjectDBBase):
         return json.dumps(result)
 
 
+# these are samples in variantfiles
 class Sample(ObjectDBBase):
     __tablename__ = 'sample'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -284,6 +303,7 @@ class DrsObject(ObjectDBBase):
     program_id = Column(String, ForeignKey('program.id'))
     program = relationship("Program", back_populates="associated_drs")
     variantfile = relationship("VariantFile", back_populates="drs_object", cascade="all, delete")
+    meta_data = Column(JSON)
 
     def __repr__(self):
         result = {
@@ -301,6 +321,8 @@ class DrsObject(ObjectDBBase):
         }
         if len(list(self.contents)) > 0:
             result['contents'] = json.loads(self.contents.__repr__())
+        else:
+            result['contents'] = []
         if len(list(self.access_methods)) > 0:
             result['access_methods'] = json.loads(self.access_methods.__repr__())
         if self.program is not None:
@@ -308,13 +330,17 @@ class DrsObject(ObjectDBBase):
         if self.variantfile is not None and len(self.variantfile) > 0:
             result['indexed'] = self.variantfile[0].indexed
             result['reference_genome'] = self.variantfile[0].reference_genome
+        if self.metadata is not None:
+            result['metadata'] = self.meta_data
+        else:
+            result['metadata'] = {}
         return json.dumps(result)
 
 
 class AccessMethod(ObjectDBBase):
     __tablename__ = 'access_method'
     id = Column(Integer, primary_key=True)
-    drs_object_id = Column(Integer, ForeignKey('drs_object.id'))
+    drs_object_id = Column(String, ForeignKey('drs_object.id'))
     drs_object = relationship("DrsObject", back_populates="access_methods")
     type = Column(String, default='')
     access_id = Column(String, default='')
@@ -342,7 +368,7 @@ class AccessMethod(ObjectDBBase):
 class ContentsObject(ObjectDBBase):
     __tablename__ = 'content_object'
     id = Column(Integer, primary_key=True)
-    drs_object_id = Column(Integer, ForeignKey('drs_object.id'))
+    drs_object_id = Column(String, ForeignKey('drs_object.id'))
     drs_object = relationship("DrsObject", back_populates="contents")
     name = Column(String, default='') # like a filename
     contents_id = Column(String)
@@ -385,12 +411,15 @@ def get_drs_object(object_id, expand=False, tries=1):
     return None
 
 
-def list_drs_objects(program_id=None):
+def list_drs_objects(program_id=None, submitter_sample_id=None):
     with Session() as session:
-        if program_id is not None:
-            result = session.query(DrsObject).filter_by(program_id=program_id).all()
-        else:
+        if program_id is None and submitter_sample_id is None:
             result = session.query(DrsObject).all()
+        elif submitter_sample_id is None: # searching for program
+            result = session.query(DrsObject).filter_by(program_id=program_id).all()
+        else: # searching for experiments with sample registration IDs
+            result = session.query(DrsObject).filter_by(name=submitter_sample_id).all()
+
         if result is not None:
             new_obj = json.loads(str(result))
             return new_obj
@@ -431,6 +460,8 @@ def create_drs_object(obj, tries=1):
                 new_object.size = obj['size']
             if 'description' in obj:
                 new_object.description = obj['description']
+            if 'metadata' in obj:
+                new_object.meta_data = obj['metadata']
             if 'program' in obj:
                 program = session.query(Program).filter_by(id=obj['program']).one_or_none()
                 if program is None:
@@ -486,7 +517,7 @@ def create_drs_object(obj, tries=1):
             session.add(new_object)
             session.commit()
 
-            # if we have reference_genome info, it's a GenomicDrsObject and needs a variantfile:
+            # if we have reference_genome info, it's a AnalysisDrsObject and needs a variantfile:
             if 'reference_genome' in obj:
                 create_variantfile({"id": obj["id"], "reference_genome": obj["reference_genome"]})
 
@@ -508,8 +539,8 @@ def delete_drs_object(obj_id, tries=1):
         with Session() as session:
             new_object = session.query(DrsObject).filter_by(id=obj_id).one()
             program = session.query(Program).filter_by(id=new_object.program_id).one_or_none()
-            if new_object.description in ["wgs", "wts"]:
-                # this is a GenomicDrsObject; we need to delete any indexed variantfiles
+            if new_object.description in ["variant"]:
+                # this is a AnalysisDrsObject; we need to delete any indexed variantfiles
                 variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
                 for vf in variantfiles:
                     session.delete(vf)
@@ -775,16 +806,6 @@ def list_samples():
         return None
 
 
-def get_samples_in_drs_objects(obj):
-    # obj = {'drs_object_ids'}
-    with Session() as session:
-        result = []
-        q = select(Sample.sample_id).where(Sample.variantfile_id.in_(set(obj['drs_object_ids']))).distinct()
-        for row in session.execute(q):
-            result.append(str(row._mapping['sample_id']))
-        return result
-
-
 def get_headers(obj):
     # obj = {'text', 'variantfile_id'}
     with Session() as session:
@@ -837,7 +858,7 @@ def get_bucket_for_position(pos):
     return int(pos/BUCKET_SIZE) * BUCKET_SIZE
 
 
-def create_pos_bucket(obj):
+def create_pos_buckets_for_variantfile(obj):
     # obj = { 'variantfile_id',
     #         'pos_bucket_ids',
     #         'bucket_counts',

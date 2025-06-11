@@ -15,7 +15,7 @@ LOCAL_FILE_PATH = os.path.abspath(f"{REPO_DIR}/data/files")
 SERVER_LOCAL_DATA = os.getenv("SERVER_LOCAL_DATA", "/app/htsget_server/data")
 
 HOST = os.getenv("TESTENV_URL")
-TEST_KEY = os.environ.get("HTSGET_TEST_KEY")
+TEST_KEY = os.getenv("HTSGET_TEST_KEY")
 USERNAME = os.getenv("CANDIG_NOT_ADMIN_USER2", "user2@test.ca")
 MINIO_URL = os.getenv("MINIO_URL")
 VAULT_URL = os.getenv("VAULT_URL")
@@ -189,7 +189,7 @@ def test_install_public_object():
                 "id": "index"
               }
             ],
-            "description": "wgs",
+            "description": "sequence_variation",
             "reference_genome": "hg38",
             "id": "ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes",
             "mime_type": "application/octet-stream",
@@ -223,7 +223,7 @@ def index_variants():
 
 @pytest.mark.parametrize('sample', index_variants())
 def test_index_variantfile(sample):
-    url = f"{HOST}/htsget/v1/variants/{sample}/index"
+    url = f"{HOST}/htsget/v1/{sample}/index"
     params = {}
     params['force'] = True
     response = requests.get(url, params=params, headers=get_headers())
@@ -253,113 +253,111 @@ def get_ingest_file():
     return [
         (
             {
-                "genomic_id": "NA18537",
-                "samples": [
-                    {
-                        "sample_registration_id": "NA18537-wgs",
-                        "sample_name_in_file": "NA18537"
-                    }
-                ]
-            }, "1000genomes"
+                "program_id": "1000genomes",
+                "experiment_id": "LOCAL-SEQ_0090",
+                "submitter_sample_id": "NA18537-wgs",
+                "metadata": {
+                    "library_strategy": "WGS"
+                }
+            },
+            {
+                "program_id": "1000genomes",
+                "analysis_id": "NA18537",
+                "analysis_sample_id": "NA18537",
+                "experiment_id": "NA18537-wgs"
+            }
         )
     ]
 
 
-def get_ingest_sample_names(genomic_id):
+def get_ingest_experiment_names(genomic_id):
     result = {}
     for item in get_ingest_file():
         ingest_map, program_id = item
         if ingest_map["genomic_id"] == genomic_id:
             for sample in ingest_map["samples"]:
-                result[sample['sample_name_in_file']] = f"{sample['sample_registration_id']}"
+                result[sample['sample_registration_id']] = f"{sample['sample_name_in_file']}"
     return result
 
 
-@pytest.mark.parametrize('input, program_id', get_ingest_file())
-def test_add_sample_drs(input, program_id):
+@pytest.mark.parametrize('experiment, analysis', get_ingest_file())
+def test_add_experiment_drs(experiment, analysis):
     post_url = f"{HOST}/ga4gh/drs/v1/objects"
     headers = get_headers()
 
-    # look for the main genomic drs object
-    get_url = f"{HOST}/ga4gh/drs/v1/objects/{input['genomic_id']}"
+    # look for the main analysis drs object
+    get_url = f"{HOST}/ga4gh/drs/v1/objects/{analysis['analysis_id']}"
     response = requests.request("GET", get_url, headers=headers)
     if response.status_code == 200:
         assert response.status_code == 200
-    genomic_drs_obj = response.json()
-    contents_count = len(genomic_drs_obj["contents"])
+    analysis_drs_obj = response.json()
+    contents_count = len(analysis_drs_obj["contents"])
 
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
-    for sample in input['samples']:
-        sample_id = f"{sample['sample_registration_id']}"
-        # remove any existing objects:
-        sample_url = f"{HOST}/ga4gh/drs/v1/objects/{sample_id}"
-        response = requests.request("GET", sample_url, headers=headers)
-        if response.status_code == 200:
-            response = requests.request("DELETE", sample_url, headers=headers)
-            print(f"DELETE {sample_id}: {response.text}")
-            assert response.status_code == 200
 
-        # create a sampledrsobject to correspond to each sample:
-        sample_drs_object = {
-            "id": sample_id,
-            "description": "sample",
-            "contents": [
-                {
-                    "drs_uri": [
-                        f"{drs_url}/{input['genomic_id']}"
-                    ],
-                    "name": sample['sample_name_in_file'],
-                    "id": input['genomic_id']
-                }
-            ],
-            "version": "v1",
-            "program": program_id
-        }
-        response = requests.request("POST", post_url, json=sample_drs_object, headers=headers)
-        print(f"POST {sample_drs_object['id']}: {response.text}")
-        assert response.status_code == 200
+    # create a experimentdrsobject to correspond to each experiment:
+    experiment_drs_object = {
+        "id": experiment['experiment_id'],
+        "name": experiment["submitter_sample_id"],
+        "description": "wgs",
+        "program": experiment['program_id'],
+        "contents": [
+            {
+                "drs_uri": [
+                    f"{drs_url}/{analysis['analysis_id']}"
+                ],
+                "name": analysis['analysis_sample_id'],
+                "id": analysis['analysis_id']
+            }
+        ],
+        "version": "v1",
+        "metadata": {}
+    }
+    response = requests.request("POST", post_url, json=experiment_drs_object, headers=headers)
+    print(f"POST {experiment_drs_object['id']}: {response.text}")
+    assert response.status_code == 200
 
-        # add the sample contents to the genomic_drs_object's contents
-        sample_contents = {
-            "drs_uri": [
-                f"{drs_url}/{sample_id}"
-            ],
-            "name": sample_id,
-            "id": sample['sample_name_in_file']
-        }
-        genomic_drs_obj["contents"].append(sample_contents)
+    # add the experiment contents to the analysis_drs_object's contents
+    experiment_contents = {
+        "drs_uri": [
+            f"{drs_url}/{experiment['experiment_id']}"
+        ],
+        "name": experiment['experiment_id'],
+        "id": analysis['analysis_sample_id']
+    }
+    analysis_drs_obj["contents"].append(experiment_contents)
 
-    response = requests.post(post_url, json=genomic_drs_obj, headers=get_headers())
+    response = requests.post(post_url, json=analysis_drs_obj, headers=get_headers())
     print(response.text)
     response = requests.request("GET", get_url, headers=get_headers())
     if response.status_code == 200:
         assert response.status_code == 200
-    assert len(genomic_drs_obj["contents"]) == contents_count + 1
+    assert len(analysis_drs_obj["contents"]) == contents_count + 1
 
-    verify_url = f"{HOST}/htsget/v1/variants/{input['genomic_id']}/verify"
+    verify_url = f"{HOST}/htsget/v1/{analysis["analysis_id"]}/verify"
     response = requests.get(verify_url, headers=get_headers())
     print(response.text)
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize('input, program_id', get_ingest_file())
-def test_sample_stats(input, program_id):
+@pytest.mark.parametrize('experiment, analysis', get_ingest_file())
+def test_experiment_stats(experiment, analysis):
     headers = get_headers()
 
-    sample = get_ingest_sample_names(input['genomic_id'])
-    print(sample)
-    # look for the sample
-    get_url = f"{HOST}/htsget/v1/samples/{sample[list(sample.keys()).pop()]}"
+    experiment = experiment['experiment_id']
+    # look for the experiment
+    get_url = f"{HOST}/htsget/v1/experiments/{experiment}"
     response = requests.request("GET", get_url, headers=headers)
     assert response.status_code == 200
 
-    assert input['genomic_id'] in response.json()['genomes']
+    # genomes in a program will be experiments, which are listed by sample_registration_id
+    assert experiment in response.json()['genomes']
 
 
-def test_program_samples():
+def test_program_experiments():
     headers = get_headers()
 
-    get_url = f"{HOST}/htsget/v1/samples"
+    get_url = f"{HOST}/htsget/v1/experiments"
     response = requests.request("GET", get_url, headers=headers)
     print(response.json())
     response = requests.request("GET", get_url, headers=headers, params={"program": "1000genomes"})
@@ -475,6 +473,20 @@ def test_beacon_get_search():
     url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg38&allele=NC_000021.9%3Ag.5030847T%3EA"
     response = requests.get(url, headers=get_headers())
     print(response.text)
+    assert len(response.json()['estimatedResults']["test-htsget"]) == 2
+
+    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
+    response = requests.get(url, headers=get_headers())
+    tries = 0
+    while response.status_code != 201:
+        sleep(2)
+        response = requests.get(url, headers=get_headers())
+        print(response.json())
+        tries = tries + 1
+        if tries > 10:
+            print("search is taking too long")
+            assert False
+
     assert len(response.json()['response']) == 2
 
 
@@ -522,6 +534,19 @@ def test_beacon_post_search(body, count, cases):
 
     response = requests.post(url, json=body, headers=get_headers())
     print(response.text)
+
+    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
+    response = requests.get(url, headers=get_headers())
+    tries = 0
+    while response.status_code != 201:
+        sleep(2)
+        response = requests.get(url, headers=get_headers())
+        print(response.json())
+        tries = tries + 1
+        if tries > 10:
+            print("search is taking too long")
+            assert False
+
     assert len(response.json()['response']) == count
     assert len(response.json()['response'][0]['caseLevelData']) == cases
 
@@ -540,6 +565,19 @@ def test_beacon_search_annotations():
         }
     }
     response = requests.post(url, json=body, headers=get_headers())
+
+    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
+    response = requests.get(url, headers=get_headers())
+    tries = 0
+    while response.status_code != 201:
+        sleep(2)
+        response = requests.get(url, headers=get_headers())
+        print(response.json())
+        tries = tries + 1
+        if tries > 10:
+            print("search is taking too long")
+            assert False
+
     found_gene = False
     print(response.json())
     for var in response.json()['response']:
@@ -589,10 +627,14 @@ def drs_objects():
     result = []
     drs_url = HOST.replace("http://", "drs://").replace("https://", "drs://")
     for drs_obj in drs_objects:
-        # make a genomicdrsobj:
-        genomic_drs_obj = {
+        index_file = drs_objects[drs_obj].pop("index")
+        type = list(drs_objects[drs_obj].keys()).pop()
+        data_file = drs_objects[drs_obj].pop(type)
+
+        # make a analysisdrsobj:
+        analysis_drs_obj = {
             "id": drs_obj,
-            "description": "wgs",
+            "description": "analysis",
             "mime_type": "application/octet-stream",
             "name": drs_obj,
             "contents": [],
@@ -600,10 +642,8 @@ def drs_objects():
             "reference_genome": "hg38",
             "program": "test-htsget"
         }
-        result.append(genomic_drs_obj)
+        result.append(analysis_drs_obj)
 
-        # make a genomicindexdrsobj:
-        index_file = drs_objects[drs_obj].pop("index")
         result.append({
             "id": index_file,
             "description": "index",
@@ -612,8 +652,8 @@ def drs_objects():
             "version": "v1",
             "program": "test-htsget"
         })
-        # add it to the contents of the genomic_drs_obj:
-        genomic_drs_obj['contents'].append({
+        # add it to the contents of the analysis_drs_obj:
+        analysis_drs_obj['contents'].append({
             "drs_uri": [
                 f"{drs_url}/{index_file}"
             ],
@@ -621,19 +661,17 @@ def drs_objects():
             "id": "index"
         })
 
-        # make a genomicdatadrsobj:
-        type = list(drs_objects[drs_obj].keys()).pop()
-        data_file = drs_objects[drs_obj].pop(type)
+        # make a analysisdatadrsobj:
         result.append({
             "id": data_file,
-            "description": type,
+            "description": "analysis",
             "mime_type": "application/octet-stream",
             "name": data_file,
             "version": "v1",
             "program": "test-htsget"
         })
-        # add it to the contents of the genomic_drs_obj:
-        genomic_drs_obj['contents'].append({
+        # add it to the contents of the analysis_drs_obj:
+        analysis_drs_obj['contents'].append({
             "drs_uri": [
                 f"{drs_url}/{data_file}"
             ],

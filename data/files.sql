@@ -17,6 +17,7 @@ CREATE TABLE drs_object (
         description VARCHAR,
         aliases VARCHAR,
         program_id VARCHAR,
+        meta_data JSONB,
         PRIMARY KEY (id),
         FOREIGN KEY(program_id) REFERENCES program (id)
 );

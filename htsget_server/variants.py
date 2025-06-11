@@ -8,19 +8,20 @@ from candigv2_logging.logging import CanDIGLogger
 logger = CanDIGLogger(__file__)
 
 
-def find_variants_in_region(reference_name=None, start=None, end=None):
-    """
-    finds variant records in vcf files, returns an array of VcfJson objects
-    """
-
+def find_variants_in_database(reference_name=None, start=None, end=None):
     region = {'referenceName': database.normalize_contig(reference_name)}
     if start is not None:
-        region['start'] = int(start) - 1 # search for bases starting at the interbase half-a-base back
+        region['start'] = start
     if end is not None:
-        region['end'] = int(end)
-    raw_result = database.search({
-        "region": region
-    })
+        region['end'] = end
+
+    return database.search({"region": region})
+
+
+"""
+finds variant records in vcf files, returns an array of VcfJson objects
+"""
+def find_variants_in_files(raw_result, reference_name=None, start=None, end=None):
     # raw_result = [{'drs_object_id', 'variantcount', 'reference_genome'}]
     # fetch all relevant results:
     #   group results by variant (chr:start-end)
@@ -28,8 +29,7 @@ def find_variants_in_region(reference_name=None, start=None, end=None):
     #   resultsets require more processing
     variants_by_file = {}
     for result in raw_result:
-        variants_by_file[result['drs_object_id']] = parse_vcf_file(result['drs_object_id'], reference_name=region['referenceName'], start=region['start'], end=region['end'])
-
+        variants_by_file[result['drs_object_id']] = parse_vcf_file(result['drs_object_id'], reference_name, start, end)
     # if a file has no variants in it, we don't need to return it:
     final_variants_by_file = {}
     for file in variants_by_file.keys():
@@ -39,14 +39,14 @@ def find_variants_in_region(reference_name=None, start=None, end=None):
 
 
 def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
-    gen_obj = drs_operations._get_genomic_obj(drs_object_id)
-    if "message" in gen_obj:
-        raise Exception(f"error parsing vcf file for {drs_object_id}: {gen_obj['message']}")
+    analysis_obj = drs_operations._get_analysis_obj(drs_object_id)
+    if "message" in analysis_obj:
+        raise Exception(f"error parsing vcf file for {drs_object_id}: {analysis_obj['message']}")
     if reference_name is not None:
         ref_name = database.get_contig_name_in_variantfile({'refname': reference_name, 'variantfile_id': drs_object_id})
-        records = gen_obj['file'].fetch(contig=ref_name, start=start, end=end)
+        records = analysis_obj['file'].fetch(contig=ref_name, start=int(start), end=int(end))
     else:
-        records = gen_obj['file'].fetch()
+        records = analysis_obj['file'].fetch()
     headers = parse_headers(database.get_headers({'variantfile_id': drs_object_id}))
 
     variants_by_file = {
@@ -69,13 +69,19 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
     if 'contig' in headers:
         variants_by_file['contig'] = headers.pop('contig')
     for r in records:
-        samples = []
-        for s in r.samples:
-            if "samples" in gen_obj and s in gen_obj['samples']:
-                samples.append(gen_obj['samples'][s])
+        experiments = []
+        for vcf_sample in r.samples:
+            # samples in analysis_obj are listed as {vcf_sample: experiment_id}
+            if "experiments" in analysis_obj and vcf_sample in analysis_obj['experiments']:
+                experiment_id = analysis_obj['experiments'][vcf_sample]
+                experiment_obj = database.get_drs_object(experiment_id)
+                if experiment_obj is not None:
+                    experiments.append(experiment_obj["name"])
+                else:
+                    experiments.append(experiment_id)
             else:
-                samples.append(s)
-        variant_record = parse_variant_record(str(r), samples, variants_by_file['info'])
+                experiments.append(vcf_sample)
+        variant_record = parse_variant_record(str(r), experiments, variants_by_file['info'])
         variants_by_file['variants'].append(variant_record)
     return variants_by_file
 

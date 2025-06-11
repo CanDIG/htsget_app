@@ -33,7 +33,7 @@ def index_variants(file_name=None):
     # calculate_stats(drs_obj_id) Don't calculate checksums, too slow
     logger.info(f"{drs_obj_id} stats done")
 
-    gen_obj = drs_operations._get_genomic_obj(drs_obj_id)
+    gen_obj = drs_operations._get_analysis_obj(drs_obj_id)
     if gen_obj is None:
         return {"message": f"No id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
@@ -94,7 +94,7 @@ def write_pos_bucket(obj, object_id, tries=1):
         # if this isn't the first try, pause for a bit and then try again
         sleep(randint(1,10)/2)
     try:
-        database.create_pos_bucket(obj)
+        database.create_pos_buckets_for_variantfile(obj)
     except Exception as e:
         logger.debug(f"Exception in write_pos_bucket {object_id}: {str(e)}, trying again")
         return write_pos_bucket(obj, object_id, tries=tries+1)

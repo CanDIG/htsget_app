@@ -158,53 +158,6 @@ paths:
                5XX:
                    $ref: '#/components/responses/5xxServerError'
 
-    /reads/{id}/index:
-      get:
-          tags:
-              - Reads
-          summary: Calculate size and checksums for the read object
-          operationId: "htsget_operations.index_reads"
-          description: Calculate size and checksums for the read object
-          parameters:
-              - $ref: '#/components/parameters/idPathParam'
-          responses:
-              200:
-                  description: Read file queued for indexing
-                  content:
-                      application/json:
-                          schema:
-                              type: object
-              400:
-                  $ref: '#/components/responses/400BadRequestError'
-              404:
-                  $ref: '#/components/responses/404NotFoundError'
-              5XX:
-                  $ref: '#/components/responses/5xxServerError'
-
-    /reads/{id}/verify:
-       get:
-           tags:
-               - Reads
-           summary: Verify the integrity of the read object
-           operationId: "htsget_operations.verify_reads_genomic_drs_object"
-           description: |
-               Verify the integrity of the read object
-           parameters:
-               - $ref: '#/components/parameters/idPathParam'
-           responses:
-               200:
-                   description: Read file stored correctly
-                   content:
-                       application/json:
-                           schema:
-                               type: object
-               400:
-                   $ref: '#/components/responses/400BadRequestError'
-               404:
-                   $ref: '#/components/responses/404NotFoundError'
-               5XX:
-                   $ref: '#/components/responses/5xxServerError'
-
     /variants/service-info:
        get:
            tags:
@@ -257,57 +210,6 @@ paths:
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
 
-    /variants/{id}/index:
-        get:
-            tags:
-                - Variants
-            summary: Index variant file for search
-            operationId: "htsget_operations.index_variants"
-            description: |
-                Index a variant file for searching
-            parameters:
-                - $ref: '#/components/parameters/idPathParam'
-                - $ref: '#/components/parameters/forceParam'
-                - $ref: '#/components/parameters/doNotIndexParam'
-                - $ref: '#/components/parameters/refGenomeParam'
-            responses:
-                200:
-                    description: Variant file queued for indexing
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                400:
-                    $ref: '#/components/responses/400BadRequestError'
-                404:
-                    $ref: '#/components/responses/404NotFoundError'
-                5XX:
-                    $ref: '#/components/responses/5xxServerError'
-
-    /variants/{id}/verify:
-        get:
-            tags:
-                - Variants
-            summary: Verify the integrity of the variant object
-            operationId: "htsget_operations.verify_variants_genomic_drs_object"
-            description: |
-                Verify the integrity of the variant object
-            parameters:
-                - $ref: '#/components/parameters/idPathParam'
-            responses:
-                200:
-                    description: Variant file stored correctly
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                400:
-                    $ref: '#/components/responses/400BadRequestError'
-                404:
-                    $ref: '#/components/responses/404NotFoundError'
-                5XX:
-                    $ref: '#/components/responses/5xxServerError'
-
     /variants/data/{id}:
         get:
             tags:
@@ -332,7 +234,7 @@ paths:
                 - $ref: '#/components/parameters/endParam'
             responses:
                 200:
-                    description: Successfully streamed file part of large genomic variant file
+                    description: Successfully streamed file part of large variant file
                     content:
                         application/octet-stream:
                             schema:
@@ -347,6 +249,53 @@ paths:
                     $ref: '#/components/responses/404NotFoundError'
                 5XX:
                     $ref: '#/components/responses/5xxServerError'
+
+## analysis processing methods
+    /{id}/verify:
+        get:
+            summary: Verify the integrity of the  object
+            operationId: "htsget_operations.verify_analysis_drs_object"
+            description: |
+                Verify the integrity of the analysis object
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+            responses:
+                200:
+                    description: file stored correctly
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+    /{id}/index:
+        get:
+            summary: Index variant file for search
+            operationId: "htsget_operations.index_analysis"
+            description: |
+                Index an analysis for searching
+            parameters:
+                - $ref: '#/components/parameters/idPathParam'
+                - $ref: '#/components/parameters/forceParam'
+                - $ref: '#/components/parameters/refGenomeParam'
+            responses:
+                200:
+                    description: Analysis queued for indexing
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                400:
+                    $ref: '#/components/responses/400BadRequestError'
+                404:
+                    $ref: '#/components/responses/404NotFoundError'
+                5XX:
+                    $ref: '#/components/responses/5xxServerError'
+
 
 ## NCBIRefSeq paths
     /genes:
@@ -421,11 +370,11 @@ paths:
                                 type: object
                                 $ref: '#/components/schemas/GeneSearchResultsTicket'
 
-    /samples/{id}:
+    /experiments/{id}:
         get:
-            summary: Get metadata about a sample
-            operationId: htsget_operations.get_sample
-            description: Get MoH-relevant genomic information about a sample
+            summary: Get metadata about a experiment
+            operationId: htsget_operations.get_experiment
+            description: Get MoH-relevant genomic information about an experiment
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: "#/components/parameters/idPathParam"
@@ -435,12 +384,12 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/SampleTicket'
-    /samples:
+                                $ref: '#/components/schemas/ExperimentTicket'
+    /experiments:
         get:
-            summary: Get metadata about samples in a program
-            operationId: htsget_operations.get_program_samples
-            description: Get MoH-relevant genomic information about all samples in a program
+            summary: Get metadata about experiments in a program
+            operationId: htsget_operations.get_program_experiments
+            description: Get MoH-relevant genomic information about all experiments in a program
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/programParam'
@@ -452,15 +401,15 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: '#/components/schemas/SampleTicket'
+                                    $ref: '#/components/schemas/ExperimentTicket'
         post:
-            summary: Get metadata about multiple samples
-            operationId: htsget_operations.get_multiple_samples
-            description: Get MoH-relevant genomic information about a list of samples
+            summary: Get metadata about multiple experiments
+            operationId: htsget_operations.get_multiple_experiments
+            description: Get MoH-relevant genomic information about a list of experiments
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
             requestBody:
-                $ref: '#/components/requestBodies/SamplesRequestBody'
+                $ref: '#/components/requestBodies/ExperimentsRequestBody'
             responses:
                 200:
                     description: Success
@@ -469,7 +418,7 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: '#/components/schemas/SampleTicket'
+                                    $ref: '#/components/schemas/ExperimentTicket'
 
 tags:
     - name: Reads
@@ -707,7 +656,7 @@ components:
               type: array
               items:
                 type: object
-            samples:
+            experiments:
               type: array
               items:
                 type: object
@@ -897,10 +846,10 @@ components:
                                                 - hg38
                                         region:
                                             $ref: '#/components/schemas/Region'
-        SampleTicket:
+        ExperimentTicket:
             type: object
             properties:
-                sample_id:
+                experiment_id:
                     type: string
                     description: MoH submitter_sample_id from a Sample Registration associated with a specimen.
                 program:
@@ -908,22 +857,22 @@ components:
                     description: MoH program ID
                 genome:
                     type: array
-                    description: An array of associated GenomicDrsObjects that describe reads, e.g. bams.
+                    description: An array of associated AnalysisDrsObjects that describe reads, e.g. fastqs.
                     items:
                         type: string
                 transcriptome:
                     type: array
-                    description: An array of associated GenomicDrsObjects that describe transcriptome data.
+                    description: An array of associated AnalysisDrsObjects that describe transcriptome data.
                     items:
                         type: string
                 variants:
                     type: array
-                    description: An array of associated GenomicDataDrsObjects that describe variant files.
+                    description: An array of associated AnalysisDataDrsObjects that describe variant files.
                     items:
                         type: string
                 reads:
                     type: array
-                    description: An array of associated GenomicDataDrsObjects that describe read files.
+                    description: An array of associated AnalysisDataDrsObjects that describe read files, e.g. bams.
                     items:
                         type: string
 
@@ -986,13 +935,6 @@ components:
             required: false
             schema:
                 type: boolean
-        doNotIndexParam:
-            in: query
-            name: do_not_index
-            description: do not index
-            required: false
-            schema:
-                type: boolean
         refGenomeParam:
             in: query
             name: genome
@@ -1000,14 +942,6 @@ components:
             required: false
             schema:
                 $ref: '#/components/schemas/ReferenceGenome'
-        sampleIdPathParam:
-            in: path
-            name: id
-            description: MoH Sample Registration ID for a sample with associated genomic data
-            required: true
-            schema:
-                type: string
-                format: path
         readsFormatParam:
             in: query
             name: format
@@ -1141,15 +1075,15 @@ components:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ReadsRequestBody'
-        SamplesRequestBody:
-            description: List of samples requested
+        ExperimentsRequestBody:
+            description: List of experiments requested
             required: false
             content:
                 application/json:
                     schema:
                         type: object
                         properties:
-                            samples:
+                            experiments:
                                 type: array
                                 items:
                                     type: string

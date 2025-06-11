@@ -1,6 +1,7 @@
 import connexion
 import database
-from flask import Flask
+from flask import Flask, send_file, Response
+import requests
 import os
 import os.path
 import re
@@ -8,7 +9,7 @@ import authz
 from markupsafe import escape
 from pysam import VariantFile, AlignmentFile
 from urllib.parse import parse_qs, urlparse, urlencode
-from config import INDEXING_PATH
+from config import INDEXING_PATH, HTSGET_URL
 from time import sleep
 from random import randint
 from candigv2_logging.logging import CanDIGLogger
@@ -53,6 +54,14 @@ def get_object(object_id, expand=False):
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     if new_object is None:
         return {"message": "No matching object found"}, 404
+    if "access_methods" in new_object:
+        download_method = {
+            "access_url": {
+                "url": f"{HTSGET_URL}/ga4gh/drs/v1/objects/{object_id}/download"
+            },
+            "type": "download"
+        }
+        new_object["access_methods"].append(download_method)
     return new_object, 200
 
 
@@ -65,8 +74,8 @@ def get_object_for_drs_uri(drs_uri):
     return {"message": f"Couldn't resolve DRS server {drs_uri_parse.group(1)}"}, 401
 
 
-def list_objects(program_id=None):
-    return database.list_drs_objects(program_id=program_id), 200
+def list_objects(program_id=None, submitter_sample_id=None):
+    return database.list_drs_objects(program_id=program_id, submitter_sample_id=submitter_sample_id), 200
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
@@ -76,6 +85,31 @@ def get_access_url(object_id, access_id, request=connexion.request):
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
     return _get_access_url(access_id)
+
+
+@app.route('/ga4gh/drs/v1/objects/<object_id>/download')
+def download_file(object_id, request=connexion.request):
+    if object_id is not None:
+        auth_code = authz.is_authed(escape(object_id), connexion.request)
+        if auth_code != 200:
+            return {"message": f"Not authorized to access object {object_id}"}, auth_code
+    drs_object = database.get_drs_object(escape(object_id))
+    if drs_object is None:
+        return {"message": f"No object {object_id} was found"}, 404
+    if "access_methods" not in drs_object:
+        return {"message": f"No files are associated with object {object_id}"}, 404
+    if "metadata" in drs_object and drs_object["metadata"] is not None:
+        if "analysis_type" in drs_object["metadata"]:
+            if drs_object["metadata"]["analysis_type"] == "reference_alignment":
+                return {"message": f"Sorry, read files are not allowed to be downloaded"}, 403
+    for method in drs_object["access_methods"]:
+        if "access_url" in method and method["type"] == "file":
+            file_obj = _get_file_path(drs_object["id"])
+            return send_file(file_obj["path"]), 200
+        elif "access_id" in method:
+            url, status_code = _get_access_url(method["access_id"])
+            r = requests.get(url["url"], stream=True)
+            return Response(r.iter_content(chunk_size=10*1024), content_type=r.headers['Content-Type'])
 
 
 async def post_object(tries=1):
@@ -91,6 +125,12 @@ async def post_object(tries=1):
         sleep(randint(1,10)/2)
     try:
         new_object = database.create_drs_object(req)
+
+        # if this is a file drs object, put the size in
+        response = _get_file_path(object_id)
+        if response["status_code"] == 200:
+            new_object['size'] = response['size']
+            new_object = database.create_drs_object(new_object)
     except Exception as e:
         logger.debug(f"Exception in post_object {object_id}: {str(e)}, trying again")
         return post_object(tries=tries+1)
@@ -187,10 +227,10 @@ def get_program_status(program_id):
 
 
 # This is specific to our particular use case: a DRS object that represents a
-# particular sample can have a variant or read file and an associated index file.
+# particular experiment can have a variant or read file and an associated index file.
 # We need to query DRS to get the bundling object, which should contain links to
 # two contents objects.
-def _get_genomic_obj(object_id):
+def _get_analysis_obj(object_id):
     result = {'status_code': 200}
     drs_obj = _describe_drs_object(object_id)
     if drs_obj is None or 'message' in drs_obj:
@@ -204,8 +244,11 @@ def _get_genomic_obj(object_id):
         if 'message' in main_result:
             result = main_result
         else:
+            ## this is for migration: experiments used to be samples
             if "samples" in drs_obj:
-                result['samples'] = drs_obj['samples']
+                result['experiments'] = drs_obj['samples']
+            elif "experiments" in drs_obj:
+                result['experiments'] = drs_obj['experiments']
             try:
                 result['file_format'] = drs_obj['format']
                 if drs_obj['type'] == 'read':
@@ -213,7 +256,7 @@ def _get_genomic_obj(object_id):
                 else:
                     result['file'] = VariantFile(main_result['path'], index_filename=index_result['path'])
             except Exception as e:
-                return { "message": str(e), "status_code": 500, "method": f"_get_genomic_obj({object_id})"}
+                return { "message": str(e), "status_code": 500, "method": f"_get_analysis_obj({object_id})"}
     return result
 
 
@@ -223,12 +266,13 @@ def _describe_drs_object(object_id):
     if drs_obj is None:
         return None
     result = {
-        "name": object_id
+        "name": object_id,
+        "program": drs_obj["program"]
     }
-    # drs_obj should have a main contents, index contents, and sample contents
+    # drs_obj should have a main contents, index contents, and experiment contents
     if "contents" in drs_obj:
         for contents in drs_obj["contents"]:
-            # get each drs object (should be the genomic file and its index)
+            # get each drs object (should be the analysis file and its index)
             # if sub_obj.name matches an index file regex, it's an index file
             index_match = re.fullmatch(r'.+\.(...*i)$', contents["name"])
 
@@ -249,9 +293,12 @@ def _describe_drs_object(object_id):
             elif index_match is not None:
                 result['index'] = contents['name']
             else:
-                if "samples" not in result:
-                    result['samples'] = {}
-                result['samples'][contents['id']] = contents['name']
+                ## this is for migration: experiments used to be samples
+                if "samples" in result:
+                    result["experiments"] = result["samples"]
+                if "experiments" not in result:
+                    result['experiments'] = {}
+                result['experiments'][contents['id']] = contents['name']
 
     if 'type' not in result:
         return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
@@ -267,6 +314,10 @@ def _get_file_path(drs_file_obj_id):
         return result
     # get access_methods for this drs_file_obj
     url = ""
+    if "access_methods" not in drs_file_obj:
+        result["message"] = f"Object {drs_file_obj_id} is not a file"
+        result['status_code'] = 400
+        return result
     for method in drs_file_obj["access_methods"]:
         if "access_id" in method and method["access_id"] != "":
             # we need to go to the access endpoint to get the url and file
@@ -280,7 +331,7 @@ def _get_file_path(drs_file_obj_id):
                 }
                 result["size"] = url_obj["metadata"].size
                 break
-        else:
+        elif method["type"] == "file":
             # the access_url has all the info we need
             url_pieces = urlparse(method["access_url"]["url"])
             if url_pieces.scheme == "file":
@@ -332,3 +383,8 @@ def _get_access_url(access_id):
         return url, 500
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "_get_access_url"}, 400
+
+
+# convenience method for other methods to easily get the download url
+def _get_download_url(drs_file_obj_id):
+    return f"{HTSGET_URL}/ga4gh/drs/v1/objects/{drs_file_obj_id}/download"
