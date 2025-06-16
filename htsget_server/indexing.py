@@ -185,7 +185,7 @@ def calculate_stats(obj_id):
 def index_touch_file(file_path):
     try:
         name = file_path.replace(INDEXING_PATH, "").replace("/", "")
-        logger.info(f"indexing {name}, files to index: " + str(os.listdir(INDEXING_PATH)))
+        logger.info(f"indexing {name}, {str(len(os.listdir(INDEXING_PATH)))} files left in indexing queue. For full list of files to index, run: `docker exec candigv2_htsget_1 ls {INDEXING_PATH}`")
         response, status_code = index_variants(file_name=name)
         if status_code != 200:
             with open(file_path, "a") as f:
