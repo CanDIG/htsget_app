@@ -75,6 +75,12 @@ def get_object_for_drs_uri(drs_uri):
 
 
 def list_objects(program_id=None, submitter_sample_id=None):
+    if program_id is not None:
+        if not authz.is_program_authorized(connexion.request, program_id):
+            return {"message": f"Not authorized to list objects for program {program_id}"}, 403
+    else:
+        if not authz.has_full_authz(connexion.request):
+            return {"message": f"Not authorized to list all objects"}, 403
     return database.list_drs_objects(program_id=program_id, submitter_sample_id=submitter_sample_id), 200
 
 
