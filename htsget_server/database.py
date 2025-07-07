@@ -340,7 +340,7 @@ class DrsObject(ObjectDBBase):
 class AccessMethod(ObjectDBBase):
     __tablename__ = 'access_method'
     id = Column(Integer, primary_key=True)
-    drs_object_id = Column(Integer, ForeignKey('drs_object.id'))
+    drs_object_id = Column(String, ForeignKey('drs_object.id'))
     drs_object = relationship("DrsObject", back_populates="access_methods")
     type = Column(String, default='')
     access_id = Column(String, default='')
@@ -368,7 +368,7 @@ class AccessMethod(ObjectDBBase):
 class ContentsObject(ObjectDBBase):
     __tablename__ = 'content_object'
     id = Column(Integer, primary_key=True)
-    drs_object_id = Column(Integer, ForeignKey('drs_object.id'))
+    drs_object_id = Column(String, ForeignKey('drs_object.id'))
     drs_object = relationship("DrsObject", back_populates="contents")
     name = Column(String, default='') # like a filename
     contents_id = Column(String)
