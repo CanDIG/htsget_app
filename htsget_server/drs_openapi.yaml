@@ -209,6 +209,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProgramIndexStatus'
+  /programs/{program_id}/download:
+    parameters:
+      - $ref: "#/components/parameters/ProgramId"
+      - $ref: '#/components/parameters/BearerAuth'
+      - in: query
+        name: sample_ids
+        description: submitter sample ids
+        schema:
+          type: array
+          items:
+            type: string
+    get:
+      description: List download links for files associated with the program
+      operationId: drs_operations.get_download_links_for_program
+      responses:
+        200:
+          description: ok
 components:
   parameters:
     BearerAuth:

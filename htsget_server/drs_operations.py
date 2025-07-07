@@ -118,6 +118,42 @@ def download_file(object_id, request=connexion.request):
             return Response(r.iter_content(chunk_size=10*1024), content_type=r.headers['Content-Type'])
 
 
+@app.route('/ga4gh/drs/v1/programs/<program_id>/download')
+def get_download_links_for_program(program_id):
+    sample_ids = None
+    if "sample_ids" in connexion.request.query_params:
+        sample_ids = connexion.request.query_params["sample_ids"]
+    drs_objects, status_code = list_objects(program_id=program_id)
+    name_dict = {}
+    for obj in drs_objects:
+        name_dict[obj["name"]] = obj
+
+    # find the Experiments
+    experiment_objects = []
+    for obj in drs_objects:
+        if obj["description"] in ["wgs", "wts"]:
+            if sample_ids is None or obj["name"] in sample_ids:
+                experiment_objects.append(obj)
+
+    # the contents will link to the related AnalysisDrsObjects
+    analysis_objects = []
+    for obj in experiment_objects:
+        for contents_obj in obj["contents"]:
+            analysis_objects.append(name_dict[contents_obj["name"]])
+
+    # the contents will contain analysis/index objects
+    downloadable_objects = {}
+    for obj in analysis_objects:
+        if "contents" in obj:
+            downloadable_objects[obj["name"]] = []
+            for contents_obj in obj["contents"]:
+                if contents_obj["id"] in ["analysis", "index"]:
+                    # /ga4gh/drs/v1/objects/<contents name>/download will download the file
+                    downloadable_objects[obj["name"]].append(f"{HTSGET_URL}/ga4gh/drs/v1/objects/{contents_obj["name"]}/download")
+
+    return downloadable_objects, 200
+
+
 async def post_object(tries=1):
     req = await connexion.request.json()
     program_id = req["program"]
