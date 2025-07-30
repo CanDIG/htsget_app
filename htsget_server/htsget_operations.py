@@ -4,6 +4,7 @@ from flask import send_file, Flask
 from urllib.parse import urlencode
 import drs_operations
 import database
+import drs_database
 import authz
 from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH, INDEXING_SWITCH_FILE
 from markupsafe import escape
@@ -252,9 +253,9 @@ async def get_multiple_experiments():
 
 def get_program_experiments(program=None):
     if program is None:
-        experiment_drs_objs = database.list_drs_objects()
+        experiment_drs_objs = drs_database.list_drs_objects()
     else:
-        experiment_drs_objs = database.list_drs_objects(program)
+        experiment_drs_objs = drs_database.list_drs_objects(program)
     experiments = list(map(lambda y: y["id"], filter(lambda x: x["description"] in ["wgs", "wts"], experiment_drs_objs)))
     result = []
     experiments_by_program = {}
@@ -287,7 +288,7 @@ def _get_experiment(id_=None):
     }
 
     # Get the ExperimentDrsObject. It will have a contents array of AnalysisContentsObjects > AnalysisDrsObjects.
-    experiment_drs_obj = database.get_drs_object(id_)
+    experiment_drs_obj = drs_database.get_drs_object(id_)
     if experiment_drs_obj is not None and "contents" in experiment_drs_obj and experiment_drs_obj["description"] in ["wgs", "wts"]:
         if experiment_drs_obj["description"] == "wgs":
             result["genomes"].append(experiment_drs_obj["id"])

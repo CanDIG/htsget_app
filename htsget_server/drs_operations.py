@@ -1,5 +1,5 @@
 import connexion
-import database
+import drs_database
 from flask import Flask, send_file, Response
 import requests
 import os
@@ -48,7 +48,7 @@ def get_object(object_id, expand=False):
         return get_access_url(access_url_parse.group(1), access_url_parse.group(2))
     new_object = None
     if object_id is not None:
-        new_object = database.get_drs_object(escape(object_id), expand)
+        new_object = drs_database.get_drs_object(escape(object_id), expand)
         auth_code = authz.is_authed(escape(object_id), connexion.request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
@@ -81,7 +81,7 @@ def list_objects(program_id=None, submitter_sample_id=None):
     else:
         if not authz.has_full_authz(connexion.request):
             return {"message": f"Not authorized to list all objects"}, 403
-    return database.list_drs_objects(program_id=program_id, submitter_sample_id=submitter_sample_id), 200
+    return drs_database.list_drs_objects(program_id=program_id, submitter_sample_id=submitter_sample_id), 200
 
 
 @app.route('/ga4gh/drs/v1/objects/<object_id>/access_url/<path:access_id>')
@@ -99,7 +99,7 @@ def download_file(object_id, request=connexion.request):
         auth_code = authz.is_authed(escape(object_id), connexion.request)
         if auth_code != 200:
             return {"message": f"Not authorized to access object {object_id}"}, auth_code
-    drs_object = database.get_drs_object(escape(object_id))
+    drs_object = drs_database.get_drs_object(escape(object_id))
     if drs_object is None:
         return {"message": f"No object {object_id} was found"}, 404
     if "access_methods" not in drs_object:
@@ -130,13 +130,13 @@ async def post_object(tries=1):
         # if this isn't the first try, pause for a bit and then try again
         sleep(randint(1,10)/2)
     try:
-        new_object = database.create_drs_object(req)
+        new_object = drs_database.create_drs_object(req)
 
         # if this is a file drs object, put the size in
         response = _get_file_path(object_id)
         if response["status_code"] == 200:
             new_object['size'] = response['size']
-            new_object = database.create_drs_object(new_object)
+            new_object = drs_database.create_drs_object(new_object)
     except Exception as e:
         logger.debug(f"Exception in post_object {object_id}: {str(e)}, trying again")
         return post_object(tries=tries+1)
@@ -145,13 +145,13 @@ async def post_object(tries=1):
 
 @app.route('/ga4gh/drs/v1/objects/<path:object_id>')
 def delete_object(object_id):
-    obj = database.get_drs_object(object_id)
+    obj = drs_database.get_drs_object(object_id)
     if obj is not None:
         program_id = obj["program"]
         if not authz.is_program_authorized(connexion.request, program_id):
             return {"message": "User is not authorized to POST"}, 403
         try:
-            new_object = database.delete_drs_object(escape(object_id))
+            new_object = drs_database.delete_drs_object(escape(object_id))
             return new_object, 200
         except Exception as e:
             return {"message": str(e)}, 500
@@ -160,7 +160,7 @@ def delete_object(object_id):
 
 
 def list_programs():
-    programs = database.list_programs()
+    programs = drs_database.list_programs()
     if programs is None:
         return [], 404
     try:
@@ -174,12 +174,12 @@ async def post_program():
     req = await connexion.request.json()
     if not authz.is_program_authorized(connexion.request, req['id']):
         return {"message": "User is not authorized to POST"}, 403
-    new_program = database.create_program(req)
+    new_program = drs_database.create_program(req)
     return new_program, 200
 
 
 def get_program(program_id):
-    new_program = database.get_program(program_id)
+    new_program = drs_database.get_program(program_id)
     if new_program is None:
         return {"message": "No matching program found"}, 404
     if authz.is_program_authorized(connexion.request, program_id):
@@ -191,14 +191,14 @@ def delete_program(program_id):
     if not authz.is_program_authorized(connexion.request, program_id):
         return {"message": "User is not authorized to POST"}, 403
     try:
-        new_program = database.delete_program(program_id)
+        new_program = drs_database.delete_program(program_id)
         return new_program, 200
     except Exception as e:
         return {"message": str(e)}, 500
 
 
 def get_program_status(program_id):
-    new_program = database.get_program(program_id)
+    new_program = drs_database.get_program(program_id)
     if new_program is None:
         return {"message": "No matching program found"}, 404
     if not authz.is_program_authorized(connexion.request, program_id):
@@ -268,7 +268,7 @@ def _get_analysis_obj(object_id):
 
 # describe an htsget DRS object, but don't open it
 def _describe_drs_object(object_id):
-    drs_obj = database.get_drs_object(object_id)
+    drs_obj = drs_database.get_drs_object(object_id)
     if drs_obj is None:
         return None
     result = {
@@ -313,7 +313,7 @@ def _describe_drs_object(object_id):
 
 def _get_file_path(drs_file_obj_id):
     result = { "path": None, "status_code": 200, "method": f"_get_file_path({drs_file_obj_id})" }
-    drs_file_obj = database.get_drs_object(drs_file_obj_id)
+    drs_file_obj = drs_database.get_drs_object(drs_file_obj_id)
     if drs_file_obj is None:
         result["message"] = f"Couldn't find file {drs_file_obj_id}"
         result['status_code'] = 404

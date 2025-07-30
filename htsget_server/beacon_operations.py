@@ -3,6 +3,7 @@ import variants
 import drs_operations
 import htsget_operations
 import database
+import drs_database
 import json
 import re
 import connexion
@@ -253,7 +254,7 @@ def search(raw_req):
         for i in range(len(potential_hits)):
             drs_obj_id = potential_hits[i]['drs_object_id']
             # look for experiments and programs for all drs objects, even if user is not authorized
-            drs_obj = database.get_drs_object(drs_obj_id)
+            drs_obj = drs_database.get_drs_object(drs_obj_id)
             if "program" in drs_obj:
                 if drs_obj["program"] not in results:
                     results[drs_obj["program"]] = []
@@ -398,13 +399,13 @@ def full_beacon_search(search_json):
     response['beaconHandovers'] = []
     for drs_obj_id in variants_by_file.keys():
         # look for experiments and programs for all drs objects, even if user is not authorized
-        drs_obj = database.get_drs_object(drs_obj_id)
+        drs_obj = drs_database.get_drs_object(drs_obj_id)
         if "program" in drs_obj:
             download_handovers = []
             for c in drs_obj["contents"]:
                 if c["id"] in ["analysis", "index"]:
                     # this is a file that we should create a download url for
-                    file_drs_obj = database.get_drs_object(c["name"])
+                    file_drs_obj = drs_database.get_drs_object(c["name"])
                     download_handover = {
                         'handoverType': {'id': 'CUSTOM', 'label': 'DOWNLOAD'},
                         'url': drs_operations._get_download_url(file_drs_obj['id'])
@@ -473,7 +474,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_pr
     resultset = {}
     for drs_obj in variants_by_obj.keys():
         # check to see if this drs_object is authorized:
-        x = database.get_drs_object(drs_obj)
+        x = drs_database.get_drs_object(drs_obj)
         is_authed = False
         if x["program"] in authed_programs:
             is_authed = True

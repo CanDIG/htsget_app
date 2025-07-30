@@ -1,7 +1,7 @@
 import json
 from config import AUTHZ, TEST_KEY
 from flask import Flask
-import database
+import drs_database
 import authx.auth
 from candigv2_logging.logging import CanDIGLogger
 
@@ -37,7 +37,7 @@ def is_authed(id_, request):
     if has_full_authz(request):
         return 200
     if "Authorization" in request.headers:
-        obj = database.get_drs_object(id_)
+        obj = drs_database.get_drs_object(id_)
         if obj is not None and 'program' in obj:
             if is_program_authorized(request, obj['program']):
                 return 200
@@ -51,7 +51,7 @@ def is_authed(id_, request):
 def get_authorized_programs(request):
     req = AuthzRequest(request.headers, request.method, request.url.path)
     if has_full_authz(req):
-        return list(map(lambda x: x['id'], database.list_programs()))
+        return list(map(lambda x: x['id'], drs_database.list_programs()))
     if is_testing(req):
         return ["test-htsget"]
     try:

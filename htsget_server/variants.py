@@ -1,6 +1,7 @@
 import os
 import re
 import database
+import drs_database
 import drs_operations
 from candigv2_logging.logging import CanDIGLogger
 
@@ -74,7 +75,7 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
             # samples in analysis_obj are listed as {vcf_sample: experiment_id}
             if "experiments" in analysis_obj and vcf_sample in analysis_obj['experiments']:
                 experiment_id = analysis_obj['experiments'][vcf_sample]
-                experiment_obj = database.get_drs_object(experiment_id)
+                experiment_obj = drs_database.get_drs_object(experiment_id)
                 if experiment_obj is not None:
                     experiments.append(experiment_obj["name"])
                 else:
