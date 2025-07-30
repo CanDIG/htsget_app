@@ -29,10 +29,6 @@ def index_variants(file_name=None):
     else:
         return {"message": f"Format of file name is wrong: {file_name}"}, 500
 
-    logger.info(f"adding stats to {drs_obj_id}")
-    # calculate_stats(drs_obj_id) Don't calculate checksums, too slow
-    logger.info(f"{drs_obj_id} stats done")
-
     gen_obj = drs_operations._get_analysis_obj(drs_obj_id)
     if gen_obj is None:
         return {"message": f"No id {drs_obj_id} exists"}, 404
@@ -135,51 +131,6 @@ def create_position(obj):
     return obj
 
 
-## Given a DrsObject in json, compute its size and checksums
-# This block doesn't run as we have disabled it by commenting line 31, see DIG-1718
-def calculate_stats(obj_id):
-    drs_json = database.get_drs_object(obj_id)
-    # a DrsObject either has access methods or contents
-    if "access_methods" in drs_json:
-        # if there are access methods, it's a file object
-        file_obj = drs_operations._get_file_path(drs_json["id"])
-
-        if file_obj["checksum"] is None:
-            logger.debug(f"calculating checksum for {drs_json['id']}")
-            checksum = []
-            with open(file_obj["path"], "rb") as f:
-                bytes = f.read()  # read file as bytes
-                checksum = [{
-                    "type": "sha-256",
-                    "checksum": hashlib.sha256(bytes).hexdigest()
-                }]
-            logger.debug(f"done calculating checksum for {drs_json['id']}")
-            drs_json["checksums"] = checksum
-        else:
-            drs_json["checksums"] = [file_obj["checksum"]]
-        drs_json["size"] = file_obj["size"]
-    elif "contents" in drs_json:
-        drs_json["size"] = 0
-        checksum = {
-            "type": "sha-256",
-            "checksum": ""
-        }
-        # if it's a sample drs object, its checksum will be ""
-        if drs_json["description"] != "sample":
-            # for each contents, find drs_obj for its drs_uri
-            raw_checksums = []
-            for c in drs_json["contents"]:
-                c_obj = calculate_stats(c["name"])
-                if len(c_obj["checksums"]) > 0:
-                    raw_checksums.append(c_obj["checksums"][0]["checksum"])
-                drs_json["size"] += c_obj["size"]
-            # sort raw checksums, concat, then take sha256:
-            raw_checksums.sort()
-            checksum["checksum"] = hashlib.sha256("".join(raw_checksums).encode()).hexdigest()
-        drs_json["checksums"] = [checksum]
-    return database.create_drs_object(drs_json)
-
-
 ## When a file is created, index the variant with the ID of that filename.
 ## These are created at htsget_operations.index_variants.
 def index_touch_file(file_path):
@@ -204,26 +155,6 @@ class IndexingHandler(watchdog.events.FileSystemEventHandler):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="index variant files")
-
-    parser.add_argument("--id", help="drs object id", required=False)
-    parser.add_argument("--genome", help="reference genome", default="hg38", required=False)
-
-    args = parser.parse_args()
-
-    ## If this has been called on a single ID, index it and exit.
-    if args.id is not None:
-        drs_obj = database.get_drs_object(args.id)
-        if drs_obj is None:
-            print(f"No DRS object with id {args.id}")
-            sys.exit()
-        program = ""
-        if "program" in drs_obj:
-            program = drs_obj["program"]
-        varfile = database.create_variantfile({"id": args.id, "reference_genome": args.genome})
-        index_variants(drs_obj_id=f"{program}_{args.id}")
-        sys.exit()
-
     ## if the indexing_on file is not present, exit
     if not os.path.isfile(INDEXING_SWITCH_FILE):
         logger.debug(f"{INDEXING_SWITCH_FILE} is not present; exiting")

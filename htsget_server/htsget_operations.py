@@ -116,27 +116,6 @@ def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None
     return None, auth_code
 
 
-@app.route('/reads/<path:id_>/index')
-def index_reads(id_=None):
-    if not authz.has_full_authz(connexion.request):
-        return {"message": "User is not authorized to index reads"}, 403
-    if id_ is not None:
-        # check that there is a database drs object for this:
-        drs_obj = database.get_drs_object(id_)
-        if drs_obj is None:
-            return {"message": f"No DRS object exists with ID {id_}"}, 404
-        program = ""
-        if "program" in drs_obj:
-            program = drs_obj['program']
-        try:
-            Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
-            return None, 200
-        except Exception as e:
-            return {"message": str(e)}, 500
-    else:
-        return None, 404
-
-
 @app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
