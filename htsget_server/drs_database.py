@@ -1,17 +1,22 @@
-from sqlalchemy.orm import relationship, aliased
-from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, ForeignKey, Table, select
+from sqlalchemy.orm import relationship, aliased, declarative_base, sessionmaker
+from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, ForeignKey, Table, select, create_engine
 import json
 import re
 from datetime import datetime
 from random import randint
 from time import sleep
-from config import BUCKET_SIZE, HTSGET_URL, MAX_TRIES
+from config import BUCKET_SIZE, HTSGET_URL, MAX_TRIES, DRS_DB_PATH
 from flask import Flask
 from candigv2_logging.logging import CanDIGLogger
-from server import Session, ObjectDBBase
 import database
 
 logger = CanDIGLogger(__file__)
+
+
+engine = create_engine(DRS_DB_PATH, echo=False, pool_timeout=5, pool_size=10)
+ObjectDBBase = declarative_base()
+ObjectDBBase.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
 
 
 ## CanDIG programs entities
@@ -51,7 +56,6 @@ class DrsObject(ObjectDBBase):
     contents = relationship("ContentsObject", cascade="all, delete, delete-orphan")
     program_id = Column(String, ForeignKey('program.id'))
     program = relationship("Program", back_populates="associated_drs")
-    variantfile = relationship("VariantFile", back_populates="drs_object", cascade="all, delete")
     meta_data = Column(JSON)
 
     def __repr__(self):
@@ -76,9 +80,6 @@ class DrsObject(ObjectDBBase):
             result['access_methods'] = json.loads(self.access_methods.__repr__())
         if self.program is not None:
             result['program'] = self.program_id
-        if self.variantfile is not None and len(self.variantfile) > 0:
-            result['indexed'] = self.variantfile[0].indexed
-            result['reference_genome'] = self.variantfile[0].reference_genome
         if self.metadata is not None:
             result['metadata'] = self.meta_data
         else:
@@ -280,12 +281,12 @@ def delete_drs_object(obj_id, tries=1):
         with Session() as session:
             new_object = session.query(DrsObject).filter_by(id=obj_id).one()
             program = session.query(Program).filter_by(id=new_object.program_id).one_or_none()
-            if new_object.description in ["variant"]:
+            #if new_object.description in ["variant"]:
                 # this is a AnalysisDrsObject; we need to delete any indexed variantfiles
-                variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
-                for vf in variantfiles:
-                    session.delete(vf)
-                    session.commit()
+                # variantfiles = session.query(VariantFile).filter_by(drs_object_id=new_object.id).all()
+                # for vf in variantfiles:
+                #     session.delete(vf)
+                #     session.commit()
             session.delete(new_object)
             session.commit()
             return json.loads(str(new_object))

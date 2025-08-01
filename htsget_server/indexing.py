@@ -1,4 +1,5 @@
 import drs_operations
+import htsget_operations
 import database
 from config import INDEXING_PATH, INDEXING_SWITCH_FILE
 from pysam import VariantFile, AlignmentFile
@@ -29,7 +30,7 @@ def index_variants(file_name=None):
     else:
         return {"message": f"Format of file name is wrong: {file_name}"}, 500
 
-    gen_obj = drs_operations._get_analysis_obj(drs_obj_id)
+    gen_obj = htsget_operations.get_pysam_obj(drs_obj_id)
     if gen_obj is None:
         return {"message": f"No id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
@@ -77,10 +78,18 @@ def index_variants(file_name=None):
 
     logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
     write_pos_bucket(res, drs_obj_id)
-    database.mark_variantfile_as_indexed(drs_obj_id)
+    mark_as_indexed(drs_obj_id)
     logger.info(f"{drs_obj_id} indexing done")
 
     return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200
+
+
+def mark_as_indexed(drs_obj_id):
+    response, status_code = drs_operations.get_object(drs_obj_id)
+    if status_code == 200:
+        obj = response.json()
+        obj["metadata"]["indexed"] = 1
+        drs_operations.post_object(obj)
 
 
 def write_pos_bucket(obj, object_id, tries=1):

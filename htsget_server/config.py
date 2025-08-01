@@ -19,6 +19,9 @@ else:
 DB_PATH = re.sub("PASSWORD", password, config['paths']['PGPath'])
 DB_PATH = re.sub("HOST", os.environ.get("DB_PATH"), DB_PATH)
 
+DRS_DB_PATH = re.sub("PASSWORD", password, config['paths']['DRSPath'])
+DRS_DB_PATH = re.sub("HOST", os.environ.get("DB_PATH"), DRS_DB_PATH)
+
 CHUNK_SIZE = int(config['DEFAULT']['ChunkSize'])
 
 BUCKET_SIZE = int(config['DEFAULT']['BucketSize'])

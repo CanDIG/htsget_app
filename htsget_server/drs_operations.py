@@ -7,7 +7,6 @@ import os.path
 import re
 import authz
 from markupsafe import escape
-from pysam import VariantFile, AlignmentFile
 from urllib.parse import parse_qs, urlparse, urlencode
 from config import INDEXING_PATH, HTSGET_URL
 from time import sleep
@@ -230,40 +229,6 @@ def get_program_status(program_id):
                         else:
                             result['index_in_progress'].append(drs_uri)
     return result, 200
-
-
-# This is specific to our particular use case: a DRS object that represents a
-# particular experiment can have a variant or read file and an associated index file.
-# We need to query DRS to get the bundling object, which should contain links to
-# two contents objects.
-def _get_analysis_obj(object_id):
-    result = {'status_code': 200}
-    drs_obj = _describe_drs_object(object_id)
-    if drs_obj is None or 'message' in drs_obj:
-        return { "message": f"{object_id} not found", "status_code": 404}
-    index_result = _get_file_path(drs_obj['index'])
-    if 'message' in index_result:
-        result = index_result
-    else:
-        result['type'] = drs_obj['type']
-        main_result = _get_file_path(drs_obj['main'])
-        if 'message' in main_result:
-            result = main_result
-        else:
-            ## this is for migration: experiments used to be samples
-            if "samples" in drs_obj:
-                result['experiments'] = drs_obj['samples']
-            elif "experiments" in drs_obj:
-                result['experiments'] = drs_obj['experiments']
-            try:
-                result['file_format'] = drs_obj['format']
-                if drs_obj['type'] == 'read':
-                    result['file'] = AlignmentFile(main_result['path'], index_filename=index_result['path'])
-                else:
-                    result['file'] = VariantFile(main_result['path'], index_filename=index_result['path'])
-            except Exception as e:
-                return { "message": str(e), "status_code": 500, "method": f"_get_analysis_obj({object_id})"}
-    return result
 
 
 # describe an htsget DRS object, but don't open it

@@ -2,7 +2,7 @@ import os
 import re
 import database
 import drs_database
-import drs_operations
+import htsget_operations
 from candigv2_logging.logging import CanDIGLogger
 
 
@@ -40,7 +40,7 @@ def find_variants_in_files(raw_result, reference_name=None, start=None, end=None
 
 
 def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
-    analysis_obj = drs_operations._get_analysis_obj(drs_object_id)
+    analysis_obj = htsget_operations.get_pysam_obj(drs_object_id)
     if "message" in analysis_obj:
         raise Exception(f"error parsing vcf file for {drs_object_id}: {analysis_obj['message']}")
     if reference_name is not None:

@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 import connexion
-from config import PORT, DB_PATH, DEBUG_MODE
+from config import PORT, DB_PATH, DRS_DB_PATH, DEBUG_MODE
 import candigv2_logging.logging
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import create_engine

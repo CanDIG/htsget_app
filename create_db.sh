@@ -45,3 +45,14 @@ psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_339.sql >>setup_out.tx
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_341.sql >>setup_out.txt
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_352.sql >>setup_out.txt
 echo "...done"
+
+
+# initialize the drs db if it's not already there:
+psql --quiet -h "$db" -U $PGUSER -d drs -c "SELECT * from program limit 1"
+if [[ $? -ne 0 ]]; then
+    echo "initializing database..."
+    createdb -h "$db" -U $PGUSER drs
+    psql --quiet -h "$db" -U $PGUSER -a -d drs -f data/drs.sql >>setup_out.txt
+    echo "...done"
+fi
+

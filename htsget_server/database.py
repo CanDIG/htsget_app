@@ -9,7 +9,7 @@ from config import BUCKET_SIZE, HTSGET_URL, MAX_TRIES
 from flask import Flask
 from candigv2_logging.logging import CanDIGLogger
 from server import Session, ObjectDBBase
-import drs_database
+import drs_operations
 
 logger = CanDIGLogger(__file__)
 
@@ -117,12 +117,7 @@ class VariantFile(ObjectDBBase):
     reference_genome = Column(String)
 
     # a variantfile maps to a drs object
-    drs_object_id = Column(String, ForeignKey('drs_object.id'))
-    drs_object = relationship(
-        "DrsObject",
-        back_populates="variantfile",
-        uselist=False
-    )
+    drs_object_id = Column(String)
 
     # a variantfile can contain many contigs
     associated_contigs = relationship("Contig",
@@ -334,9 +329,10 @@ def create_variantfile(obj, tries=1):
                 new_variantfile.chr_prefix = ''
             new_variantfile.id = obj['id']
             new_variantfile.reference_genome = obj['reference_genome']
-            new_drs = session.query(drs_database.DrsObject).filter_by(id=obj['id']).one_or_none()
-            if new_drs is not None:
-                new_variantfile.drs_object_id = new_drs.id
+            response, status_code = drs_operations.get_object(obj['id'])
+            #new_drs = session.query(drs_database.DrsObject).filter_by(id=obj['id']).one_or_none()
+            if status_code == 200:
+                new_variantfile.drs_object_id = obj['id']
             else:
                 raise Exception(f"Cannot create variantfile {obj['id']}: no corresponding DRS object")
             session.add(new_variantfile)
@@ -348,24 +344,6 @@ def create_variantfile(obj, tries=1):
         logger.debug(f"Exception in create_variantfile {obj['id']}: {str(e)}, trying again")
         return create_variantfile(obj, tries=tries+1)
     return None
-
-
-def mark_variantfile_as_indexed(variantfile_id):
-    with Session() as session:
-        new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
-        if new_variantfile is not None:
-            new_variantfile.indexed = 1
-            session.add(new_variantfile)
-            session.commit()
-
-
-def mark_variantfile_as_not_indexed(variantfile_id):
-    with Session() as session:
-        new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
-        if new_variantfile is not None:
-            new_variantfile.indexed = 0
-            session.add(new_variantfile)
-            session.commit()
 
 
 def set_variantfile_prefix(obj):

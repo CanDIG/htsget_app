@@ -13,6 +13,7 @@ import variants
 import indexing
 from pathlib import Path
 from candigv2_logging.logging import CanDIGLogger
+from pysam import VariantFile, AlignmentFile
 
 
 logger = CanDIGLogger(__file__)
@@ -161,8 +162,6 @@ def index_analysis(id_=None, force=False, genome='hg38'):
                 if varfile is not None:
                     if varfile['indexed'] == 1 and not force:
                         return varfile, 200
-                    # clear the indexed bit:
-                    database.mark_variantfile_as_not_indexed(id_)
             Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
@@ -423,7 +422,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
     file_name = f"{id_}.{format_}"
 
     # get a file and index from drs, based on the id_
-    gen_obj = drs_operations._get_analysis_obj(id_)
+    gen_obj = get_pysam_obj(id_)
     if gen_obj is not None:
         if "message" in gen_obj:
             return gen_obj['message'], gen_obj['status_code']
@@ -537,7 +536,7 @@ def _verify_analysis_drs_object(id_):
     file_type = gen_drs_obj['type']
 
     # get the experiments that are in the linked files
-    gen_obj = drs_operations._get_analysis_obj(id_)
+    gen_obj = get_pysam_obj(id_)
     if gen_obj is None:
         raise Exception(f"No analysis object with id {id_} exists")
     if "message" in gen_obj:
@@ -559,3 +558,37 @@ def _verify_analysis_drs_object(id_):
         if len(drs_experiments) > 1:
             raise Exception(f"AnalysisDrsObject {id_} lists multiple experiments, but only one can be in the read file")
     return None
+
+
+# This is specific to our particular use case: a DRS object that represents a
+# particular experiment can have a variant or read file and an associated index file.
+# We need to query DRS to get the bundling object, which should contain links to
+# two contents objects.
+def get_pysam_obj(object_id):
+    result = {'status_code': 200}
+    drs_obj = drs_operations._describe_drs_object(object_id)
+    if drs_obj is None or 'message' in drs_obj:
+        return { "message": f"{object_id} not found", "status_code": 404}
+    index_result = drs_operations._get_file_path(drs_obj['index'])
+    if 'message' in index_result:
+        result = index_result
+    else:
+        result['type'] = drs_obj['type']
+        main_result = drs_operations._get_file_path(drs_obj['main'])
+        if 'message' in main_result:
+            result = main_result
+        else:
+            ## this is for migration: experiments used to be samples
+            if "samples" in drs_obj:
+                result['experiments'] = drs_obj['samples']
+            elif "experiments" in drs_obj:
+                result['experiments'] = drs_obj['experiments']
+            try:
+                result['file_format'] = drs_obj['format']
+                if drs_obj['type'] == 'read':
+                    result['file'] = AlignmentFile(main_result['path'], index_filename=index_result['path'])
+                else:
+                    result['file'] = VariantFile(main_result['path'], index_filename=index_result['path'])
+            except Exception as e:
+                return { "message": str(e), "status_code": 500, "method": f"get_pysam_obj({object_id})"}
+    return result
