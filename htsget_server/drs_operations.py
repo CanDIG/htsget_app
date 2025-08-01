@@ -231,51 +231,6 @@ def get_program_status(program_id):
     return result, 200
 
 
-# describe an htsget DRS object, but don't open it
-def _describe_drs_object(object_id):
-    drs_obj = drs_database.get_drs_object(object_id)
-    if drs_obj is None:
-        return None
-    result = {
-        "name": object_id,
-        "program": drs_obj["program"]
-    }
-    # drs_obj should have a main contents, index contents, and experiment contents
-    if "contents" in drs_obj:
-        for contents in drs_obj["contents"]:
-            # get each drs object (should be the analysis file and its index)
-            # if sub_obj.name matches an index file regex, it's an index file
-            index_match = re.fullmatch(r'.+\.(...*i)$', contents["name"])
-
-            # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
-            read_match = re.fullmatch(r'.+\.(.+?am)$', contents["name"])
-
-            # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
-            variant_match = re.fullmatch(r'.+\.(.cf)(\.gz)*$', contents["name"])
-
-            if read_match is not None:
-                result['format'] = read_match.group(1).upper()
-                result['type'] = "read"
-                result['main'] = contents['name']
-            elif variant_match is not None:
-                result['format'] = variant_match.group(1).upper()
-                result['type'] = "variant"
-                result['main'] = contents['name']
-            elif index_match is not None:
-                result['index'] = contents['name']
-            else:
-                ## this is for migration: experiments used to be samples
-                if "samples" in result:
-                    result["experiments"] = result["samples"]
-                if "experiments" not in result:
-                    result['experiments'] = {}
-                result['experiments'][contents['id']] = contents['name']
-
-    if 'type' not in result:
-        return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
-    return result
-
-
 def _get_file_path(drs_file_obj_id):
     result = { "path": None, "status_code": 200, "method": f"_get_file_path({drs_file_obj_id})" }
     drs_file_obj = drs_database.get_drs_object(drs_file_obj_id)
