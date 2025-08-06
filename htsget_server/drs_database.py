@@ -80,8 +80,12 @@ class DrsObject(ObjectDBBase):
             result['access_methods'] = json.loads(self.access_methods.__repr__())
         if self.program is not None:
             result['program'] = self.program_id
-        if self.metadata is not None:
+        if self.meta_data is not None:
             result['metadata'] = self.meta_data
+            if 'indexed' in result['metadata']:
+                result['indexed'] = result['metadata']['indexed']
+            if 'reference' in result['metadata']:
+                result['reference_genome'] = result['metadata']['reference']
         else:
             result['metadata'] = {}
         return json.dumps(result)

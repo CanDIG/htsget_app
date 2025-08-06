@@ -330,7 +330,6 @@ def create_variantfile(obj, tries=1):
             new_variantfile.id = obj['id']
             new_variantfile.reference_genome = obj['reference_genome']
             response, status_code = drs_operations.get_object(obj['id'])
-            #new_drs = session.query(drs_database.DrsObject).filter_by(id=obj['id']).one_or_none()
             if status_code == 200:
                 new_variantfile.drs_object_id = obj['id']
             else:
@@ -344,6 +343,15 @@ def create_variantfile(obj, tries=1):
         logger.debug(f"Exception in create_variantfile {obj['id']}: {str(e)}, trying again")
         return create_variantfile(obj, tries=tries+1)
     return None
+
+
+def mark_variantfile_as_not_indexed(variantfile_id):
+    with Session() as session:
+        new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
+        if new_variantfile is not None:
+            new_variantfile.indexed = 0
+            session.add(new_variantfile)
+            session.commit()
 
 
 def set_variantfile_prefix(obj):

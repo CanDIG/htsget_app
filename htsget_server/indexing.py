@@ -1,9 +1,6 @@
-import drs_operations
 import htsget_operations
 import database
 from config import INDEXING_PATH, INDEXING_SWITCH_FILE
-from pysam import VariantFile, AlignmentFile
-import argparse
 import os
 import sys
 from watchdog.observers import Observer
@@ -14,7 +11,9 @@ import datetime
 from candigv2_logging.logging import initialize, CanDIGLogger
 from time import sleep
 from random import randint
-
+import requests
+from authx.auth import create_service_token
+import json
 
 logger = CanDIGLogger(__file__)
 
@@ -85,11 +84,14 @@ def index_variants(file_name=None):
 
 
 def mark_as_indexed(drs_obj_id):
-    response, status_code = drs_operations.get_object(drs_obj_id)
-    if status_code == 200:
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
+    if response.status_code == 200:
         obj = response.json()
         obj["metadata"]["indexed"] = 1
-        drs_operations.post_object(obj)
+        response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
 def write_pos_bucket(obj, object_id, tries=1):
