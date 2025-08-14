@@ -2,6 +2,8 @@ import json
 from config import AUTHZ, TEST_KEY
 from flask import Flask
 import drs_database
+import requests
+import os
 import authx.auth
 from candigv2_logging.logging import CanDIGLogger
 
@@ -78,7 +80,7 @@ def has_full_authz(request):
     """
     if is_testing(request):
         return True
-    if request_is_from_ingest(request) or request_is_from_query(request):
+    if request_is_from_ingest(request) or request_is_from_query(request) or request_is_from_htsget(request):
         return True
     if "Authorization" in request.headers:
         try:
@@ -105,4 +107,10 @@ def request_is_from_query(request):
 def request_is_from_ingest(request):
     if "X-Service-Token" in request.headers:
         return authx.auth.verify_service_token(service="candig-ingest", token=request.headers["X-Service-Token"])
+    return False
+
+
+def request_is_from_htsget(request):
+    if "X-Service-Token" in request.headers:
+        return authx.auth.verify_service_token(service="htsget", token=request.headers["X-Service-Token"])
     return False
