@@ -232,7 +232,7 @@ def get_program_status(program_id):
 
 
 def _get_file_path(drs_file_obj_id):
-    result = { "path": None, "status_code": 200, "method": f"_get_file_path({drs_file_obj_id})" }
+    result = { "path": None, "status_code": 200, "method": f"get_file_path({drs_file_obj_id})" }
     drs_file_obj = drs_database.get_drs_object(drs_file_obj_id)
     if drs_file_obj is None:
         result["message"] = f"Couldn't find file {drs_file_obj_id}"
@@ -309,8 +309,3 @@ def _get_access_url(access_id):
         return url, 500
     else:
         return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "_get_access_url"}, 400
-
-
-# convenience method for other methods to easily get the download url
-def _get_download_url(drs_file_obj_id):
-    return f"{HTSGET_URL}/ga4gh/drs/v1/objects/{drs_file_obj_id}/download"

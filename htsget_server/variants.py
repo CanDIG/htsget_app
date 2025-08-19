@@ -1,9 +1,10 @@
 import os
 import re
 import database
-import drs_database
 import htsget_operations
 from candigv2_logging.logging import CanDIGLogger
+import requests
+from authx.auth import create_service_token
 
 
 logger = CanDIGLogger(__file__)
@@ -75,7 +76,13 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
             # samples in analysis_obj are listed as {vcf_sample: experiment_id}
             if "experiments" in analysis_obj and vcf_sample in analysis_obj['experiments']:
                 experiment_id = analysis_obj['experiments'][vcf_sample]
-                experiment_obj = drs_database.get_drs_object(experiment_id)
+                headers = {
+                    "X-Service-Token": create_service_token()
+                }
+                response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{experiment_id}", headers=headers)
+                experiment_obj = None
+                if response.status_code == 200:
+                    experiment_obj = response.json()
                 if experiment_obj is not None:
                     experiments.append(experiment_obj["name"])
                 else:
