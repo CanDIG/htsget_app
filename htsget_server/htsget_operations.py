@@ -270,6 +270,46 @@ def get_program_experiments(program=None):
     return _get_experiments(experiments), 200
 
 
+# This is specific to our particular use case: a DRS object that represents a
+# particular experiment can have a variant or read file and an associated index file.
+# We need to query DRS to get the bundling object, which should contain links to
+# two contents objects.
+def get_pysam_obj(object_id, headers=None):
+    result = {'status_code': 200}
+    index_path = None
+    main_path = None
+
+    if headers is None:
+        headers = connexion.request.headers
+    drs_obj = _describe_drs_object(object_id, headers=headers)
+    if drs_obj is None or 'message' in drs_obj:
+        return { "message": f"{object_id} not found", "status_code": 404}
+    resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}", headers=headers)
+    if resp.status_code == 200:
+        index_path = _get_file_path(resp.json())
+        result['type'] = drs_obj['type']
+        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}", headers=headers)
+        if resp.status_code == 200:
+            main_path = _get_file_path(resp.json())
+    if index_path is not None and main_path is not None:
+        ## this is for migration: experiments used to be samples
+        if "samples" in drs_obj:
+            result['experiments'] = drs_obj['samples']
+        elif "experiments" in drs_obj:
+            result['experiments'] = drs_obj['experiments']
+        try:
+            result['file_format'] = drs_obj['format']
+            if drs_obj['type'] == 'read':
+                result['file'] = AlignmentFile(main_path, index_filename=index_path)
+            else:
+                result['file'] = VariantFile(main_path, index_filename=index_path)
+        except Exception as e:
+            return { "message": str(e), "status_code": 500, "method": f"get_pysam_obj({object_id})"}
+    else:
+        return {"status_code": 404, "message": "could not locate index or analysis file"}
+    return result
+
+
 def _get_experiments(experiments):
     result = []
     experiments_by_program = {}
@@ -572,48 +612,6 @@ def _verify_analysis_drs_object(id_):
         if len(drs_experiments) > 1:
             raise Exception(f"AnalysisDrsObject {id_} lists multiple experiments, but only one can be in the read file")
     return None
-
-
-# This is specific to our particular use case: a DRS object that represents a
-# particular experiment can have a variant or read file and an associated index file.
-# We need to query DRS to get the bundling object, which should contain links to
-# two contents objects.
-def get_pysam_obj(object_id):
-    result = {'status_code': 200}
-    index_path = None
-    main_path = None
-
-    headers = {
-        "X-Service-Token": create_service_token()
-    }
-
-    drs_obj = _describe_drs_object(object_id)
-    if drs_obj is None or 'message' in drs_obj:
-        return { "message": f"{object_id} not found", "status_code": 404}
-    resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}", headers=headers)
-    if resp.status_code == 200:
-        index_path = _get_file_path(resp.json())
-        result['type'] = drs_obj['type']
-        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}", headers=headers)
-        if resp.status_code == 200:
-            main_path = _get_file_path(resp.json())
-    if index_path is not None and main_path is not None:
-        ## this is for migration: experiments used to be samples
-        if "samples" in drs_obj:
-            result['experiments'] = drs_obj['samples']
-        elif "experiments" in drs_obj:
-            result['experiments'] = drs_obj['experiments']
-        try:
-            result['file_format'] = drs_obj['format']
-            if drs_obj['type'] == 'read':
-                result['file'] = AlignmentFile(main_path, index_filename=index_path)
-            else:
-                result['file'] = VariantFile(main_path, index_filename=index_path)
-        except Exception as e:
-            return { "message": str(e), "status_code": 500, "method": f"get_pysam_obj({object_id})"}
-    else:
-        return {"status_code": 404, "message": "could not locate index or analysis file"}
-    return result
 
 
 # describe an htsget DRS object, but don't open it
