@@ -21,6 +21,8 @@ COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
 
+COPY data/files /data/
+
 RUN chown -R candig:candig /app/htsget_server
 
 USER candig
