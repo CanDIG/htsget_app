@@ -1,17 +1,9 @@
-import json
 from config import AUTHZ, TEST_KEY
-from flask import Flask
-import drs_database
-import requests
-import os
 import authx.auth
 from candigv2_logging.logging import CanDIGLogger
 
 
 logger = CanDIGLogger(__file__)
-
-
-app = Flask(__name__)
 
 
 class AuthzRequest:
@@ -31,56 +23,13 @@ def is_testing(request):
         return True
 
 
-def is_authed(id_, request):
-    if request is None:
-        return 401
-    if is_testing(request):
-        return 200 # no auth
-    if has_full_authz(request):
-        return 200
-    if "Authorization" in request.headers:
-        obj = drs_database.get_drs_object(id_)
-        if obj is not None and 'program' in obj:
-            if is_program_authorized(request, obj['program']):
-                return 200
-        else:
-            return 404
-    else:
-        return 401
-    return 403
-
-
-def get_authorized_programs(request):
-    req = AuthzRequest(request.headers, request.method, request.url.path)
-    if has_full_authz(req):
-        return list(map(lambda x: x['id'], drs_database.list_programs()))
-    if is_testing(req):
-        return ["test-htsget"]
-    try:
-        return authx.auth.get_opa_datasets(req)
-    except Exception as e:
-        logger.warning(f"Couldn't authorize programs: {type(e)} {str(e)}")
-        return []
-
-
-def is_program_authorized(request, program_id):
-    req = AuthzRequest(request.headers, request.method, request.url.path)
-    if is_testing(req):
-        return True
-    if has_full_authz(req):
-        return True
-    if not "Authorization" in request.headers:
-        return False
-    return authx.auth.is_action_allowed_for_program(authx.auth.get_auth_token(req), method=req.method, path=req.path, program=program_id)
-
-
 def has_full_authz(request):
     """
     Is the user associated with the token a site admin? Alternately, is this request from query or ingest?
     """
     if is_testing(request):
         return True
-    if request_is_from_ingest(request) or request_is_from_query(request) or request_is_from_htsget(request):
+    if request_is_from_ingest(request) or request_is_from_query(request):
         return True
     if "Authorization" in request.headers:
         try:
@@ -107,10 +56,4 @@ def request_is_from_query(request):
 def request_is_from_ingest(request):
     if "X-Service-Token" in request.headers:
         return authx.auth.verify_service_token(service="candig-ingest", token=request.headers["X-Service-Token"])
-    return False
-
-
-def request_is_from_htsget(request):
-    if "X-Service-Token" in request.headers:
-        return authx.auth.verify_service_token(service="htsget", token=request.headers["X-Service-Token"])
     return False
