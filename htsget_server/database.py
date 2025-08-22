@@ -1,6 +1,7 @@
 from sqlalchemy.orm import relationship, aliased
 from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, ForeignKey, Table, select
 import json
+import os
 import re
 from datetime import datetime
 from random import randint
@@ -9,7 +10,8 @@ from config import BUCKET_SIZE, HTSGET_URL, MAX_TRIES
 from flask import Flask
 from candigv2_logging.logging import CanDIGLogger
 from server import Session, ObjectDBBase
-import drs_operations
+import requests
+from authx.auth import create_service_token
 
 logger = CanDIGLogger(__file__)
 
@@ -329,8 +331,11 @@ def create_variantfile(obj, tries=1):
                 new_variantfile.chr_prefix = ''
             new_variantfile.id = obj['id']
             new_variantfile.reference_genome = obj['reference_genome']
-            response, status_code = drs_operations.get_object(obj['id'])
-            if status_code == 200:
+            headers = {
+                "X-Service-Token": create_service_token()
+            }
+            resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{obj['id']}", headers=headers)
+            if resp.status_code == 200:
                 new_variantfile.drs_object_id = obj['id']
             else:
                 raise Exception(f"Cannot create variantfile {obj['id']}: no corresponding DRS object")
