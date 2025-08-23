@@ -100,9 +100,7 @@ def indexer_switch(status=None):
 @app.route('/reads/<path:id_>')
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            return _get_urls("read", escape(id_), reference_name, start, end, class_)
+        return _get_urls("read", escape(id_), reference_name, start, end, class_)
     else:
         return None, 404
     return None, auth_code
@@ -111,9 +109,7 @@ def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, 
 @app.route('/reads/data/<path:id_>')
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            return _get_data(escape(id_), reference_name, start, end, class_, format_)
+        return _get_data(escape(id_), reference_name, start, end, class_, format_)
     else:
         return None, 404
     return None, auth_code
@@ -122,10 +118,7 @@ def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None
 @app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            logger.debug(f"getting variants for {id_}")
-            return _get_urls("variant", escape(id_), reference_name, start, end, class_)
+        return _get_urls("variant", escape(id_), reference_name, start, end, class_)
     else:
         return None, 404
     return None, auth_code
@@ -134,11 +127,10 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
 @app.route('/variants/data/<path:id_>')
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            if format_ == "VCF-JSON":
-                return variants.parse_vcf_file(id_, reference_name=reference_name, start=start, end=end)
-            return _get_data(escape(id_), reference_name, start, end, class_, format_)
+        if format_ == "VCF-JSON":
+            return variants.parse_vcf_file(id_, reference_name=reference_name, start=start, end=end)
+        res = _get_data(escape(id_), reference_name, start, end, class_, format_)
+        return res
     else:
         return None, 404
     return None, auth_code
@@ -174,11 +166,7 @@ def index_analysis(id_=None, force=False, genome='hg38'):
 @app.route('/<path:id_>/verify')
 def verify_analysis_drs_object(id_):
     try:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            _verify_analysis_drs_object(id_)
-        else:
-            return {"message": "User is not authorized to verify analysis"}, 403
+        _verify_analysis_drs_object(id_)
     except Exception as e:
         return {"result": False, "message": str(e)}, 200
     return {"result": True}, 200
@@ -241,9 +229,9 @@ def get_matching_transcripts(id_=None):
 @app.route('/experiments/<path:id_>')
 def get_experiment(id_=None):
     result, status_code = _get_experiment(id_)
-    if authz.is_authed(id_, connexion.request):
+    if status_code == 200:
         return result, 200
-    return {"message": f"Could not find experiment {id_}"}, 404
+    return {"message": f"Could not get experiment {id_}: {result}"}, status_code
 
 
 async def get_multiple_experiments():
@@ -319,10 +307,8 @@ def _get_experiments(experiments):
             if res["program"] not in experiments_by_program:
                 experiments_by_program[res["program"]] = []
             experiments_by_program[res["program"]].append(res)
-    authz_programs = authz.get_authorized_programs(connexion.request)
-    for program in authz_programs:
-        if program in experiments_by_program:
-            result.extend(experiments_by_program[program])
+    for program in experiments_by_program.keys():
+        result.extend(experiments_by_program[program])
     return result
 
 
@@ -356,6 +342,8 @@ def _get_experiment(id_=None):
                     elif drs_obj["type"] == "read":
                         result["reads"].append(drs_obj["name"])
             return result, 200
+    else:
+        return resp.text, resp.status_code
 
 
 def _get_htsget_url(id, reference_name, slice_start, slice_end, file_type, data=True):
@@ -531,7 +519,7 @@ def _get_base_url(file_type, id, data=False, testing=False):
     return f"{url}/htsget/v1/{file_type}s/{id}"
 
 
-def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
+def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None, headers=None):
     """
     Searches for file from ID and Return URLS for Read/Variant
 
@@ -557,7 +545,9 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
-    drs_obj = _describe_drs_object(id)
+    if headers is None:
+        headers = connexion.request.headers
+    drs_obj = _describe_drs_object(id, headers=headers)
     if drs_obj is not None and "status_code" not in drs_obj:
         if "format" not in drs_obj:
             raise Exception(f"no format: {drs_obj}")
@@ -576,7 +566,7 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
         index = drs_obj["index"]
         response['htsget']['urls'].extend(_get_htsget_urls(id, reference_name, start, end, file_type))
         return response, 200
-    return {"message": f"No {file_type} found for id: {id}, try using the other endpoint"}, 404
+    return drs_obj["message"], drs_obj["status_code"]
 
 
 def _verify_analysis_drs_object(id_):
@@ -584,6 +574,8 @@ def _verify_analysis_drs_object(id_):
     gen_drs_obj = _describe_drs_object(id_)
     if gen_drs_obj is None:
         raise Exception(f"Could not find object {id_}")
+    if "status_code" in gen_drs_obj:
+        raise Exception(f"Error getting drs object: {gen_drs_obj}")
     drs_experiments = set(gen_drs_obj['experiments'].keys())
     if 'type' not in gen_drs_obj:
         raise Exception(f"Object {id_} should be a AnalysisDrsObject, but does not link to a variant or read file")
@@ -615,10 +607,9 @@ def _verify_analysis_drs_object(id_):
 
 
 # describe an htsget DRS object, but don't open it
-def _describe_drs_object(object_id):
-    headers = {
-        "X-Service-Token": create_service_token()
-    }
+def _describe_drs_object(object_id, headers=None):
+    if headers is None:
+        headers = connexion.request.headers
     resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{object_id}", headers=headers)
     if resp.status_code == 200:
         drs_obj = resp.json()
@@ -659,7 +650,8 @@ def _describe_drs_object(object_id):
                     if "experiments" not in result:
                         result['experiments'] = {}
                     result['experiments'][contents['id']] = contents['name']
-
+    else:
+        return {"message": resp.text, "status_code": resp.status_code}
     if 'type' not in result:
         return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
     return result
