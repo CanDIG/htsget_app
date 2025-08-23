@@ -20,16 +20,12 @@ logger = CanDIGLogger(__file__)
 initialize()
 
 
-def index_variants(file_name=None):
-    # split file name into program and drs_obj_id
-    file_parse = re.match(r"(.*?)~(.+)", file_name)
-    if file_parse is not None:
-        program = file_parse.group(1)
-        drs_obj_id = file_parse.group(2)
-    else:
-        return {"message": f"Format of file name is wrong: {file_name}"}, 500
+def index_variants(drs_obj_id, program):
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
 
-    gen_obj = htsget_operations.get_pysam_obj(drs_obj_id)
+    gen_obj = htsget_operations.get_pysam_obj(drs_obj_id, headers=headers)
     if gen_obj is None:
         return {"message": f"No id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
@@ -39,6 +35,7 @@ def index_variants(file_name=None):
         return {"message": f"Read object {drs_obj_id} stats calculated"}, 200
 
     logger.info(f"{drs_obj_id} starting indexing")
+    write_index_status(drs_obj_id, f"{datetime.datetime.today()} starting indexing")
 
     headers = str(gen_obj['file'].header).split('\n')
 
@@ -91,6 +88,8 @@ def mark_as_indexed(drs_obj_id):
     if response.status_code == 200:
         obj = response.json()
         obj["metadata"]["indexed"] = 1
+        if "index_status" in obj["metadata"]:
+            obj["metadata"].pop("index_status")
         response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
@@ -148,16 +147,34 @@ def index_touch_file(file_path):
     try:
         name = file_path.replace(INDEXING_PATH, "").replace("/", "")
         logger.info(f"indexing {name}, {str(len(os.listdir(INDEXING_PATH)))} files left in indexing queue. For full list of files to index, run: `docker exec candigv2_htsget_1 ls {INDEXING_PATH}`")
-        response, status_code = index_variants(file_name=name)
-        if status_code != 200:
-            with open(file_path, "a") as f:
-                f.write(f"{datetime.datetime.today()} {response['message']}")
-        logger.info(response)
-        os.remove(file_path)
+
+        # split file name into program and drs_obj_id
+        file_parse = re.match(r"(.*?)~(.+)", name)
+        if file_parse is not None:
+            program = file_parse.group(1)
+            drs_obj_id = file_parse.group(2)
+            response, status_code = index_variants(drs_obj_id, program)
+            if status_code != 200:
+                write_index_status(drs_obj_id, f"{datetime.datetime.today()} {response['message']}")
+            logger.info(response)
+            os.remove(file_path)
+        else:
+            raise Exception(f"Format of file name is wrong: {name}")
+
     except Exception as e:
-        with open(file_path, "a") as f:
-            f.write(f"{datetime.datetime.today()} {str(e)}")
+        write_index_status(drs_obj_id, f"{datetime.datetime.today()} {str(e)}")
         logger.warning(f"indexing error! {type(e)} {str(e)}")
+
+
+def write_index_status(drs_obj_id, message):
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
+    if response.status_code == 200:
+        obj = response.json()
+        obj["metadata"]["index_status"] = message
+        response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
