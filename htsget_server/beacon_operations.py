@@ -341,11 +341,14 @@ def get_full_result(queue_id):
         return {"error": f"no such queue_id {queue_id}: {type(e)} {str(e)}"}, 404
 
 
-def full_beacon_search(search_json):
+def full_beacon_search(search_json, headers=None):
     potential_hits = search_json["potential_hits"]
     actual_params = search_json["actual_params"]
     meta = search_json["meta"]
     authed_programs = search_json["authed_programs"]
+
+    if headers is None:
+        headers = connexion.request.headers
 
     response = {
         'meta': meta,
@@ -356,7 +359,7 @@ def full_beacon_search(search_json):
     }
 
     try:
-        variants_by_file = variants.find_variants_in_files(potential_hits, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+        variants_by_file = variants.find_variants_in_files(potential_hits, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'], headers=headers)
         resultset = compile_beacon_resultset(variants_by_file, actual_params['reference_genome'], authed_programs)
     except Exception as e:
         raise Exception(f"exception in compile_beacon_resultset for {actual_params}: {type(e)} {str(e)}")
@@ -415,9 +418,6 @@ def full_beacon_search(search_json):
                 for c in drs_obj["contents"]:
                     if c["id"] in ["analysis", "index"]:
                         # this is a file that we should create a download url for
-                        headers = {
-                            "X-Service-Token": create_service_token()
-                        }
                         resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{c["name"]}", headers=headers)
                         if resp.status_code == 200:
                             file_drs_obj = resp.json()
@@ -431,9 +431,9 @@ def full_beacon_search(search_json):
                 if drs_obj["program"] in authed_programs:
                     # fill in htsget handover data
                     try:
-                        htsget_handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
+                        htsget_handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'], headers=headers)
                     except Exception as e:
-                        raise Exception(f"exception in get_variants for {drs_obj_id}: {type(e)} {str(e)}")
+                        raise Exception(f"exception in full_beacon_search for {drs_obj_id}: {type(e)} {str(e)}")
                     if htsget_handover is not None:
                         htsget_handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
                         response['beaconHandovers'].append(htsget_handover)

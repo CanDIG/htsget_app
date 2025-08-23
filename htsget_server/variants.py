@@ -23,7 +23,7 @@ def find_variants_in_database(reference_name=None, start=None, end=None):
 """
 finds variant records in vcf files, returns an array of VcfJson objects
 """
-def find_variants_in_files(raw_result, reference_name=None, start=None, end=None):
+def find_variants_in_files(raw_result, reference_name=None, start=None, end=None, headers=None):
     # raw_result = [{'drs_object_id', 'variantcount', 'reference_genome'}]
     # fetch all relevant results:
     #   group results by variant (chr:start-end)
@@ -31,7 +31,7 @@ def find_variants_in_files(raw_result, reference_name=None, start=None, end=None
     #   resultsets require more processing
     variants_by_file = {}
     for result in raw_result:
-        variants_by_file[result['drs_object_id']] = parse_vcf_file(result['drs_object_id'], reference_name, start, end)
+        variants_by_file[result['drs_object_id']] = parse_vcf_file(result['drs_object_id'], reference_name, start, end, headers=headers)
     # if a file has no variants in it, we don't need to return it:
     final_variants_by_file = {}
     for file in variants_by_file.keys():
@@ -40,8 +40,10 @@ def find_variants_in_files(raw_result, reference_name=None, start=None, end=None
     return final_variants_by_file
 
 
-def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
-    analysis_obj = htsget_operations.get_pysam_obj(drs_object_id)
+def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None, headers=None):
+
+    analysis_obj = htsget_operations.get_pysam_obj(drs_object_id, headers)
+
     if "message" in analysis_obj:
         raise Exception(f"error parsing vcf file for {drs_object_id}: {analysis_obj['message']}")
     if reference_name is not None:
