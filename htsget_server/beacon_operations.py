@@ -13,7 +13,7 @@ import os
 from config import AGGREGATE_COUNT_THRESHOLD, SEARCH_PATH, HTSGET_URL, BUCKET_SIZE
 from candigv2_logging.logging import CanDIGLogger
 import requests
-from authx.auth import create_service_token
+from authx.auth import create_service_token, get_opa_datasets
 
 
 logger = CanDIGLogger(__file__)
@@ -240,8 +240,7 @@ def search(raw_req):
                 actual_params['alt'] = allele_loc['alt']
 
     if 'reference_name' in actual_params and actual_params['reference_name'] is not None:
-        authed_programs = authz.get_authorized_programs(connexion.request)
-
+        authed_programs = get_opa_datasets(connexion.request)
         # if there is no end specified, assume the end is same as start:
         if 'end' not in actual_params:
             actual_params['end'] = actual_params['start']
