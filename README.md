@@ -32,7 +32,7 @@ python setup.py install
 ## Running
 
 This application can be configured by way of the config.ini file in the root of the project.
-The server can be run with: 
+The server can be run with:
 
 ```
 python htsget_server/server.py
@@ -45,10 +45,9 @@ The default MinIO location specified in the config.ini file is the sandbox at Mi
 
 ## Testing
 
-For testing, a small test suite under tests/test_htsget_server.py can be run by starting the server and running:
-
+An automated test suite is provided, but can only be run in the docker container stack context. If you are running the CanDIG stack, you can run the tests with
 ```
-pytest
+docker exec candigv2_htsget_1 pytest
 ```
 
 For automated testing, activate the repo with [Travis-CI](https://travis-ci.com/getting_started)
