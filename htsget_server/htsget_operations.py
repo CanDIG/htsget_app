@@ -141,6 +141,10 @@ def index_analysis(id_=None, force=False, genome='hg38'):
     if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to index analyses"}, 403
     if id_ is not None:
+        headers = {
+            "X-Service-Token": create_service_token()
+        }
+
         # check that there is a database drs object for this:
         drs_obj = _describe_drs_object(id_)
         if drs_obj is None:
@@ -154,11 +158,17 @@ def index_analysis(id_=None, force=False, genome='hg38'):
                 varfile = database.create_variantfile(params)
                 if varfile is not None:
                     if varfile['indexed'] == 1 and not force:
+                        # make sure that the index tags are correct in the drs_object
+                        if "metadata" not in drs_obj["drs_obj"]:
+                            drs_obj["drs_obj"]["metadata"] = {}
+                        if "indexed" not in drs_obj["drs_obj"]["metadata"]:
+                            drs_obj["drs_obj"]["metadata"]["indexed"] = 1
+                            resp = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=drs_obj["drs_obj"])
                         return varfile, 200
             Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
-            return {"message": str(e)}, 500
+            return {"message": f"INDEXING ERROR {type(e)} {str(e)}"}, 500
     else:
         return None, 404
 
@@ -618,7 +628,8 @@ def _describe_drs_object(object_id, headers=None):
             return None
         result = {
             "name": object_id,
-            "program": drs_obj["program"]
+            "program": drs_obj["program"],
+            "drs_obj": drs_obj
         }
         # drs_obj should have a main contents, index contents, and experiment contents
         if "contents" in drs_obj:
