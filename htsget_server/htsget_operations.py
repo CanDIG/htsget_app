@@ -1,8 +1,8 @@
 import os
+import re
 import tempfile
 from flask import send_file, Flask
-from urllib.parse import urlencode
-import drs_operations
+from urllib.parse import urlencode, urlparse, parse_qs
 import database
 import authz
 from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH, INDEXING_SWITCH_FILE
@@ -12,6 +12,9 @@ import variants
 import indexing
 from pathlib import Path
 from candigv2_logging.logging import CanDIGLogger
+from pysam import VariantFile, AlignmentFile
+import requests
+from authx.auth import create_service_token
 
 
 logger = CanDIGLogger(__file__)
@@ -97,9 +100,7 @@ def indexer_switch(status=None):
 @app.route('/reads/<path:id_>')
 def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            return _get_urls("read", escape(id_), reference_name, start, end, class_)
+        return _get_urls("read", escape(id_), reference_name, start, end, class_)
     else:
         return None, 404
     return None, auth_code
@@ -108,42 +109,16 @@ def get_reads(id_=None, reference_name=None, start=None, end=None, class_=None, 
 @app.route('/reads/data/<path:id_>')
 def get_reads_data(id_, reference_name=None, format_="bam", start=None, end=None, class_="body"):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            return _get_data(escape(id_), reference_name, start, end, class_, format_)
+        return _get_data(escape(id_), reference_name, start, end, class_, format_)
     else:
         return None, 404
     return None, auth_code
 
 
-@app.route('/reads/<path:id_>/index')
-def index_reads(id_=None):
-    if not authz.has_full_authz(connexion.request):
-        return {"message": "User is not authorized to index reads"}, 403
-    if id_ is not None:
-        # check that there is a database drs object for this:
-        drs_obj = database.get_drs_object(id_)
-        if drs_obj is None:
-            return {"message": f"No DRS object exists with ID {id_}"}, 404
-        program = ""
-        if "program" in drs_obj:
-            program = drs_obj['program']
-        try:
-            Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
-            return None, 200
-        except Exception as e:
-            return {"message": str(e)}, 500
-    else:
-        return None, 404
-
-
 @app.route('/variants/<path:id_>')
 def get_variants(id_=None, reference_name=None, start=None, end=None, class_=None, format_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            logger.debug(f"getting variants for {id_}")
-            return _get_urls("variant", escape(id_), reference_name, start, end, class_)
+        return _get_urls("variant", escape(id_), reference_name, start, end, class_)
     else:
         return None, 404
     return None, auth_code
@@ -152,11 +127,10 @@ def get_variants(id_=None, reference_name=None, start=None, end=None, class_=Non
 @app.route('/variants/data/<path:id_>')
 def get_variants_data(id_, reference_name=None, format_="VCF", start=None, end=None, class_=None):
     if id_ is not None:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            if format_ == "VCF-JSON":
-                return variants.parse_vcf_file(id_, reference_name=reference_name, start=start, end=end)
-            return _get_data(escape(id_), reference_name, start, end, class_, format_)
+        if format_ == "VCF-JSON":
+            return variants.parse_vcf_file(id_, reference_name=reference_name, start=start, end=end)
+        res = _get_data(escape(id_), reference_name, start, end, class_, format_)
+        return res
     else:
         return None, 404
     return None, auth_code
@@ -167,8 +141,12 @@ def index_analysis(id_=None, force=False, genome='hg38'):
     if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to index analyses"}, 403
     if id_ is not None:
+        headers = {
+            "X-Service-Token": create_service_token()
+        }
+
         # check that there is a database drs object for this:
-        drs_obj = drs_operations._describe_drs_object(id_)
+        drs_obj = _describe_drs_object(id_)
         if drs_obj is None:
             return {"message": f"No DRS object exists with ID {id_}"}, 404
         program = ""
@@ -180,13 +158,17 @@ def index_analysis(id_=None, force=False, genome='hg38'):
                 varfile = database.create_variantfile(params)
                 if varfile is not None:
                     if varfile['indexed'] == 1 and not force:
+                        # make sure that the index tags are correct in the drs_object
+                        if "metadata" not in drs_obj["drs_obj"]:
+                            drs_obj["drs_obj"]["metadata"] = {}
+                        if "indexed" not in drs_obj["drs_obj"]["metadata"]:
+                            drs_obj["drs_obj"]["metadata"]["indexed"] = 1
+                            resp = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=drs_obj["drs_obj"])
                         return varfile, 200
-                    # clear the indexed bit:
-                    database.mark_variantfile_as_not_indexed(id_)
             Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
             return None, 200
         except Exception as e:
-            return {"message": str(e)}, 500
+            return {"message": f"INDEXING ERROR {type(e)} {str(e)}"}, 500
     else:
         return None, 404
 
@@ -194,11 +176,7 @@ def index_analysis(id_=None, force=False, genome='hg38'):
 @app.route('/<path:id_>/verify')
 def verify_analysis_drs_object(id_):
     try:
-        auth_code = authz.is_authed(escape(id_), connexion.request)
-        if auth_code == 200:
-            _verify_analysis_drs_object(id_)
-        else:
-            return {"message": "User is not authorized to verify analysis"}, 403
+        _verify_analysis_drs_object(id_)
     except Exception as e:
         return {"result": False, "message": str(e)}, 200
     return {"result": True}, 200
@@ -261,9 +239,9 @@ def get_matching_transcripts(id_=None):
 @app.route('/experiments/<path:id_>')
 def get_experiment(id_=None):
     result, status_code = _get_experiment(id_)
-    if authz.is_authed(id_, connexion.request):
+    if status_code == 200:
         return result, 200
-    return {"message": f"Could not find experiment {id_}"}, 404
+    return {"message": f"Could not get experiment {id_}: {result}"}, status_code
 
 
 async def get_multiple_experiments():
@@ -272,14 +250,62 @@ async def get_multiple_experiments():
 
 
 def get_program_experiments(program=None):
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    experiment_drs_objs = []
     if program is None:
-        experiment_drs_objs = database.list_drs_objects()
+        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers)
+        if resp.status_code == 200:
+            experiment_drs_objs = resp.json()
     else:
-        experiment_drs_objs = database.list_drs_objects(program)
+        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, params={"program_id": program})
+        if resp.status_code == 200:
+            experiment_drs_objs = resp.json()
     experiments = list(map(lambda y: y["id"], filter(lambda x: x["description"] in ["wgs", "wts"], experiment_drs_objs)))
     result = []
     experiments_by_program = {}
     return _get_experiments(experiments), 200
+
+
+# This is specific to our particular use case: a DRS object that represents a
+# particular experiment can have a variant or read file and an associated index file.
+# We need to query DRS to get the bundling object, which should contain links to
+# two contents objects.
+def get_pysam_obj(object_id, headers=None):
+    result = {'status_code': 200}
+    index_path = None
+    main_path = None
+
+    if headers is None:
+        headers = connexion.request.headers
+    drs_obj = _describe_drs_object(object_id, headers=headers)
+    if drs_obj is None or 'message' in drs_obj:
+        return { "message": f"{object_id} not found", "status_code": 404}
+    resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}", headers=headers)
+    if resp.status_code == 200:
+        index_path = _get_file_path(resp.json())
+        result['type'] = drs_obj['type']
+        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}", headers=headers)
+        if resp.status_code == 200:
+            main_path = _get_file_path(resp.json())
+    if index_path is not None and main_path is not None:
+        ## this is for migration: experiments used to be samples
+        if "samples" in drs_obj:
+            result['experiments'] = drs_obj['samples']
+        elif "experiments" in drs_obj:
+            result['experiments'] = drs_obj['experiments']
+        try:
+            result['file_format'] = drs_obj['format']
+            if drs_obj['type'] == 'read':
+                result['file'] = AlignmentFile(main_path, index_filename=index_path)
+            else:
+                result['file'] = VariantFile(main_path, index_filename=index_path)
+        except Exception as e:
+            return { "message": str(e), "status_code": 500, "method": f"get_pysam_obj({object_id})"}
+    else:
+        return {"status_code": 404, "message": "could not locate index or analysis file"}
+    return result
 
 
 def _get_experiments(experiments):
@@ -291,10 +317,8 @@ def _get_experiments(experiments):
             if res["program"] not in experiments_by_program:
                 experiments_by_program[res["program"]] = []
             experiments_by_program[res["program"]].append(res)
-    authz_programs = authz.get_authorized_programs(connexion.request)
-    for program in authz_programs:
-        if program in experiments_by_program:
-            result.extend(experiments_by_program[program])
+    for program in experiments_by_program.keys():
+        result.extend(experiments_by_program[program])
     return result
 
 
@@ -308,21 +332,28 @@ def _get_experiment(id_=None):
     }
 
     # Get the ExperimentDrsObject. It will have a contents array of AnalysisContentsObjects > AnalysisDrsObjects.
-    experiment_drs_obj = database.get_drs_object(id_)
-    if experiment_drs_obj is not None and "contents" in experiment_drs_obj and experiment_drs_obj["description"] in ["wgs", "wts"]:
-        if experiment_drs_obj["description"] == "wgs":
-            result["genomes"].append(experiment_drs_obj["id"])
-        elif experiment_drs_obj["description"] == "wts":
-            result["transcriptomes"].append(experiment_drs_obj["id"])
-        result["program"] = experiment_drs_obj["program"]
-        for contents_obj in experiment_drs_obj["contents"]:
-            drs_obj = drs_operations._describe_drs_object(contents_obj["id"])
-            if drs_obj is not None and "type" in drs_obj:
-                if drs_obj["type"] == "variant":
-                    result["variants"].append(drs_obj["name"])
-                elif drs_obj["type"] == "read":
-                    result["reads"].append(drs_obj["name"])
-        return result, 200
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{id_}", headers=headers)
+    if resp.status_code == 200:
+        experiment_drs_obj = resp.json()
+        if experiment_drs_obj is not None and "contents" in experiment_drs_obj and experiment_drs_obj["description"] in ["wgs", "wts"]:
+            if experiment_drs_obj["description"] == "wgs":
+                result["genomes"].append(experiment_drs_obj["id"])
+            elif experiment_drs_obj["description"] == "wts":
+                result["transcriptomes"].append(experiment_drs_obj["id"])
+            result["program"] = experiment_drs_obj["program"]
+            for contents_obj in experiment_drs_obj["contents"]:
+                drs_obj = _describe_drs_object(contents_obj["id"])
+                if drs_obj is not None and "type" in drs_obj:
+                    if drs_obj["type"] == "variant":
+                        result["variants"].append(drs_obj["name"])
+                    elif drs_obj["type"] == "read":
+                        result["reads"].append(drs_obj["name"])
+            return result, 200
+    else:
+        return resp.text, resp.status_code
 
 
 def _get_htsget_url(id, reference_name, slice_start, slice_end, file_type, data=True):
@@ -443,7 +474,7 @@ def _get_data(id_, reference_name=None, start=None, end=None, class_=None, forma
     file_name = f"{id_}.{format_}"
 
     # get a file and index from drs, based on the id_
-    gen_obj = drs_operations._get_analysis_obj(id_)
+    gen_obj = get_pysam_obj(id_)
     if gen_obj is not None:
         if "message" in gen_obj:
             return gen_obj['message'], gen_obj['status_code']
@@ -498,7 +529,7 @@ def _get_base_url(file_type, id, data=False, testing=False):
     return f"{url}/htsget/v1/{file_type}s/{id}"
 
 
-def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None):
+def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=None, headers=None):
     """
     Searches for file from ID and Return URLS for Read/Variant
 
@@ -524,7 +555,9 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
     if file_type not in ["variant", "read"]:
         raise ValueError("File type must be 'variant' or 'read'")
 
-    drs_obj = drs_operations._describe_drs_object(id)
+    if headers is None:
+        headers = connexion.request.headers
+    drs_obj = _describe_drs_object(id, headers=headers)
     if drs_obj is not None and "status_code" not in drs_obj:
         if "format" not in drs_obj:
             raise Exception(f"no format: {drs_obj}")
@@ -543,21 +576,23 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
         index = drs_obj["index"]
         response['htsget']['urls'].extend(_get_htsget_urls(id, reference_name, start, end, file_type))
         return response, 200
-    return {"message": f"No {file_type} found for id: {id}, try using the other endpoint"}, 404
+    return drs_obj["message"], drs_obj["status_code"]
 
 
 def _verify_analysis_drs_object(id_):
     # get the listed experiments that the AnalysisDrsObject says should be in the file
-    gen_drs_obj = drs_operations._describe_drs_object(id_)
+    gen_drs_obj = _describe_drs_object(id_)
     if gen_drs_obj is None:
         raise Exception(f"Could not find object {id_}")
+    if "status_code" in gen_drs_obj:
+        raise Exception(f"Error getting drs object: {gen_drs_obj}")
     drs_experiments = set(gen_drs_obj['experiments'].keys())
     if 'type' not in gen_drs_obj:
         raise Exception(f"Object {id_} should be a AnalysisDrsObject, but does not link to a variant or read file")
     file_type = gen_drs_obj['type']
 
     # get the experiments that are in the linked files
-    gen_obj = drs_operations._get_analysis_obj(id_)
+    gen_obj = get_pysam_obj(id_)
     if gen_obj is None:
         raise Exception(f"No analysis object with id {id_} exists")
     if "message" in gen_obj:
@@ -579,3 +614,104 @@ def _verify_analysis_drs_object(id_):
         if len(drs_experiments) > 1:
             raise Exception(f"AnalysisDrsObject {id_} lists multiple experiments, but only one can be in the read file")
     return None
+
+
+# describe an htsget DRS object, but don't open it
+def _describe_drs_object(object_id, headers=None):
+    if headers is None:
+        headers = connexion.request.headers
+    resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{object_id}", headers=headers)
+    if resp.status_code == 200:
+        drs_obj = resp.json()
+
+        if drs_obj is None:
+            return None
+        result = {
+            "name": object_id,
+            "program": drs_obj["program"],
+            "drs_obj": drs_obj
+        }
+        # drs_obj should have a main contents, index contents, and experiment contents
+        if "contents" in drs_obj:
+            for contents in drs_obj["contents"]:
+                # get each drs object (should be the analysis file and its index)
+                # if sub_obj.name matches an index file regex, it's an index file
+                index_match = re.fullmatch(r'.+\.(...*i)$', contents["name"])
+
+                # if sub_obj.name matches a bam/sam/cram file regex, it's a read file
+                read_match = re.fullmatch(r'.+\.(.+?am)$', contents["name"])
+
+                # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
+                variant_match = re.fullmatch(r'.+\.(.cf)(\.gz)*$', contents["name"])
+
+                if read_match is not None:
+                    result['format'] = read_match.group(1).upper()
+                    result['type'] = "read"
+                    result['main'] = contents['name']
+                elif variant_match is not None:
+                    result['format'] = variant_match.group(1).upper()
+                    result['type'] = "variant"
+                    result['main'] = contents['name']
+                elif index_match is not None:
+                    result['index'] = contents['name']
+                else:
+                    ## this is for migration: experiments used to be samples
+                    if "samples" in result:
+                        result["experiments"] = result["samples"]
+                    if "experiments" not in result:
+                        result['experiments'] = {}
+                    result['experiments'][contents['id']] = contents['name']
+    else:
+        return {"message": resp.text, "status_code": resp.status_code}
+    if 'type' not in result:
+        return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
+    return result
+
+
+def _get_file_path(drs_file_obj):
+    for method in drs_file_obj["access_methods"]:
+        if "access_id" in method and method["access_id"] != "":
+            # we need to go to the access endpoint to get the url and file
+            headers = {
+                "X-Service-Token": create_service_token()
+            }
+            url_obj, status_code = _get_access_url(method["access_id"])
+            if status_code < 300:
+                return url_obj["url"]
+        elif method["type"] == "file":
+            # the access_url has all the info we need
+            url_pieces = urlparse(method["access_url"]["url"])
+            if url_pieces.scheme == "file":
+                if url_pieces.netloc == "" or url_pieces.netloc == "localhost":
+                    result = os.path.abspath(url_pieces.path)
+                    if os.path.exists(result):
+                        return result
+    return None
+
+def _get_access_url(access_id):
+    logger.debug(f"looking for url {access_id}")
+    id_parse = re.match(r"((https*:\/\/)*.+?)\/(.+?)\/(.+?)(\?(.+))*$", access_id)
+    if id_parse is not None:
+        endpoint = id_parse.group(1)
+        bucket = id_parse.group(3)
+        object_name = id_parse.group(4)
+        url = None
+        if id_parse.group(5) is None:
+            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name)
+        else:
+            keys = parse_qs(id_parse.group(6))
+            access = None
+            secret = None
+            public = False
+            if 'access' in keys:
+                access = keys['access'].pop()
+            if 'secret' in keys:
+                secret = keys['secret'].pop()
+            if 'public' in keys:
+                public = True
+            url, status_code = authz.get_s3_url(s3_endpoint=endpoint, bucket=bucket, object_id=object_name, access_key=access, secret_key=secret, public=public)
+        if status_code == 200:
+            return url, status_code
+        return url, 500
+    else:
+        return {"message": f"Malformed access_id {access_id}: should be in the form endpoint/bucket/item", "method": "_get_access_url"}, 400

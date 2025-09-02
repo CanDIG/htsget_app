@@ -5,7 +5,7 @@ pysam==0.22.0
 sqlalchemy==1.4.44
 connexion==3.1.0
 MarkupSafe==2.1.1
-candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@v2.7.3
+candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@v2.8.5
 candigv2-logging@git+https://github.com/CanDIG/candigv2-logging.git@v1.0.1
 pytest==8.3.3
 connexion[swagger-ui]
@@ -17,3 +17,4 @@ uvicorn[standard]==0.30.6
 werkzeug>=3.1.0 # not directly required, pinned by Snyk to avoid a vulnerability
 zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
 urllib3>=2.2.2 # not directly required, pinned by Snyk to avoid a vulnerability
+requests==2.32.4

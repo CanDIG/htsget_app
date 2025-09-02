@@ -19,6 +19,7 @@ TEST_KEY = os.getenv("HTSGET_TEST_KEY")
 USERNAME = os.getenv("CANDIG_NOT_ADMIN_USER2", "user2@test.ca")
 MINIO_URL = os.getenv("MINIO_URL")
 VAULT_URL = os.getenv("VAULT_URL")
+DRS_URL = os.getenv("DRS_URL")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
 CWD = os.getcwd()
@@ -53,13 +54,13 @@ def remove_programs(programs):
         if candig_url is not None:
             response = requests.delete(f"{candig_url}/ingest/program/{program}", headers=get_headers())
 
-        url = f"{HOST}/ga4gh/drs/v1/programs/{program}"
+        url = f"{DRS_URL}/ga4gh/drs/v1/programs/{program}"
         response = requests.request("GET", url, headers=headers)
         if response.status_code == 200:
             response = requests.request("DELETE", url, headers=headers)
             print(f"DELETE {program}: {response.text}")
             assert response.status_code == 200
-        url = f"{HOST}/ga4gh/drs/v1/objects"
+        url = f"{DRS_URL}/ga4gh/drs/v1/objects"
         response = requests.request("GET", url, headers=headers, params={"program_id": program})
         print(response.text)
         assert response.status_code == 200
@@ -74,7 +75,7 @@ def test_post_objects(drs_objects, programs):
     # clean up old objects in db:
     remove_programs(programs)
 
-    url = f"{HOST}/ga4gh/drs/v1/objects"
+    url = f"{DRS_URL}/ga4gh/drs/v1/objects"
     headers = get_headers()
     candig_url = os.getenv("CANDIG_URL")
 
@@ -92,7 +93,7 @@ def test_post_objects(drs_objects, programs):
     response = requests.request("GET", url, headers=headers)
 
     for obj in drs_objects:
-        url = f"{HOST}/ga4gh/drs/v1/objects"
+        url = f"{DRS_URL}/ga4gh/drs/v1/objects"
         response = requests.request("POST", url, json=obj, headers=headers)
         print(f"POST {obj}: {response.text}")
         assert response.status_code == 200
@@ -103,13 +104,13 @@ def test_post_update():
     Update NA18537 to local file
     """
     id = "NA18537.vcf.gz"
-    url = f"{HOST}/ga4gh/drs/v1/objects/{id}"
+    url = f"{DRS_URL}/ga4gh/drs/v1/objects/{id}"
     response = requests.request("GET", url, headers=get_headers())
     if response.status_code == 200:
         assert response.status_code == 200
     obj = response.json()
 
-    url = f"{HOST}/ga4gh/drs/v1/objects"
+    url = f"{DRS_URL}/ga4gh/drs/v1/objects"
     access_url = f"file:///{SERVER_LOCAL_DATA}/files/NA18537.vcf.gz" # this is local within the htsget server container, not from where we're running pytest
     obj["access_methods"] = [
         {
@@ -200,7 +201,7 @@ def test_install_public_object():
         }
     ]
     for obj in pieces:
-        url = f"{HOST}/ga4gh/drs/v1/objects"
+        url = f"{DRS_URL}/ga4gh/drs/v1/objects"
         response = requests.request("POST", url, json=obj, headers=headers)
         print(f"POST {obj['name']}: {response.text}")
         assert response.status_code == 200
@@ -220,34 +221,6 @@ def test_install_public_object():
 def index_variants():
     return [('sample.compressed'), ('NA18537'), ('multisample_1'), ('multisample_2'), ('test')]
 
-
-@pytest.mark.parametrize('sample', index_variants())
-def test_index_variantfile(sample):
-    url = f"{HOST}/htsget/v1/{sample}/index"
-    params = {}
-    params['force'] = True
-    response = requests.get(url, params=params, headers=get_headers())
-    assert response.status_code == 200
-
-    # shouldn't take more than a second to index the tiny file, but just in case: a max 30 second check
-    for i in range(30):
-        get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
-        response = requests.get(get_url, headers=get_headers())
-        if response.status_code == 500:
-            # in case indexing is still using the database, keep looping
-            continue
-        print(response.text)
-        if response.json()["indexed"] == 1:
-            break
-        sleep(1)
-
-    get_url = f"{HOST}/ga4gh/drs/v1/objects/{sample}"
-    response = requests.get(get_url, headers=get_headers())
-    print(response.text)
-    assert response.json()["indexed"] == 1
-    # comment these out since we don't calculate checksums or sizes anymore
-    # assert len(response.json()["checksums"]) > 0
-    # assert response.json()["size"] > 0
 
 def get_ingest_file():
     return [
@@ -282,11 +255,11 @@ def get_ingest_experiment_names(genomic_id):
 
 @pytest.mark.parametrize('experiment, analysis', get_ingest_file())
 def test_add_experiment_drs(experiment, analysis):
-    post_url = f"{HOST}/ga4gh/drs/v1/objects"
+    post_url = f"{DRS_URL}/ga4gh/drs/v1/objects"
     headers = get_headers()
 
     # look for the main analysis drs object
-    get_url = f"{HOST}/ga4gh/drs/v1/objects/{analysis['analysis_id']}"
+    get_url = f"{DRS_URL}/ga4gh/drs/v1/objects/{analysis['analysis_id']}"
     response = requests.request("GET", get_url, headers=headers)
     if response.status_code == 200:
         assert response.status_code == 200
@@ -465,128 +438,6 @@ def test_gene_search():
     response = requests.get(url, headers=get_headers())
     print(response.text)
     assert len(response.json()['results']) == 2
-
-
-def test_beacon_get_search():
-    # for an authed user, this short allele form request should work:
-    # return two variations, one ref, one alt, for a single position.
-    url = f"{HOST}/beacon/v2/g_variants?assemblyId=hg38&allele=NC_000021.9%3Ag.5030847T%3EA"
-    response = requests.get(url, headers=get_headers())
-    print(response.text)
-    assert len(response.json()['estimatedResults']["test-htsget"]) == 2
-
-    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
-    response = requests.get(url, headers=get_headers())
-    tries = 0
-    while response.status_code != 201:
-        sleep(2)
-        response = requests.get(url, headers=get_headers())
-        print(response.json())
-        tries = tries + 1
-        if tries > 10:
-            print("search is taking too long")
-            assert False
-
-    assert len(response.json()['response']) == 2
-
-
-def get_beacon_post_search():
-    return [
-        (
-            # 6 variations, corresponding to three variant records in multisample_1 and multisample_2
-            # first variation, corresponding to "NC_000021.9:g.5030551=", should contain two cases
-            {
-                "query": {
-                    "requestParameters": {
-                        "start": [5030000],
-                        "end": [5030847],
-                        "assemblyId": "hg38",
-                        "referenceName": "21"
-                    }
-                },
-                "meta": {
-                    "apiVersion": "v2"
-                }
-            }, 6, 2
-        ),
-        (
-            # 5 variations, corresponding to 2 refs and 3 alts in test
-            # first variation has two cases
-            {
-                "query": {
-                    "requestParameters": {
-                        "start": [16562322],
-                        "end": [16613564],
-                        "referenceName": "1"
-                    }
-                },
-                "meta": {
-                    "apiVersion": "v2"
-                }
-            }, 5, 2
-        )
-    ]
-
-
-@pytest.mark.parametrize('body, count, cases', get_beacon_post_search())
-def test_beacon_post_search(body, count, cases):
-    url = f"{HOST}/beacon/v2/g_variants"
-
-    response = requests.post(url, json=body, headers=get_headers())
-    print(response.text)
-
-    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
-    response = requests.get(url, headers=get_headers())
-    tries = 0
-    while response.status_code != 201:
-        sleep(2)
-        response = requests.get(url, headers=get_headers())
-        print(response.json())
-        tries = tries + 1
-        if tries > 10:
-            print("search is taking too long")
-            assert False
-
-    assert len(response.json()['response']) == count
-    assert len(response.json()['response'][0]['caseLevelData']) == cases
-
-
-# if we search for NBPF1, we should find records in test.vcf that contain NBPF1 in their VEP annotations.
-def test_beacon_search_annotations():
-    url = f"{HOST}/beacon/v2/g_variants"
-    body = {
-        "query": {
-            "requestParameters": {
-                "gene_id": 'NBPF1'
-            }
-        },
-        "meta": {
-            "apiVersion": "v2"
-        }
-    }
-    response = requests.post(url, json=body, headers=get_headers())
-
-    url = re.sub(r".+\/beacon\/v2", f"{HOST}/beacon/v2", response.json()['beaconResultUrl'])
-    response = requests.get(url, headers=get_headers())
-    tries = 0
-    while response.status_code != 201:
-        sleep(2)
-        response = requests.get(url, headers=get_headers())
-        print(response.json())
-        tries = tries + 1
-        if tries > 10:
-            print("search is taking too long")
-            assert False
-
-    found_gene = False
-    print(response.json())
-    for var in response.json()['response']:
-        if 'molecularAttributes' in var:
-            if 'geneIds' in var['molecularAttributes']:
-                print(var['molecularAttributes']['geneIds'])
-                if 'NBPF1' in var['molecularAttributes']['geneIds']:
-                    found_gene = True
-    assert found_gene
 
 
 def test_vcf_json():

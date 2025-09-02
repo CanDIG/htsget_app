@@ -1,8 +1,6 @@
-import drs_operations
+import htsget_operations
 import database
 from config import INDEXING_PATH, INDEXING_SWITCH_FILE
-from pysam import VariantFile, AlignmentFile
-import argparse
 import os
 import sys
 from watchdog.observers import Observer
@@ -13,27 +11,21 @@ import datetime
 from candigv2_logging.logging import initialize, CanDIGLogger
 from time import sleep
 from random import randint
-
+import requests
+from authx.auth import create_service_token
+import json
 
 logger = CanDIGLogger(__file__)
 
 initialize()
 
 
-def index_variants(file_name=None):
-    # split file name into program and drs_obj_id
-    file_parse = re.match(r"(.*?)~(.+)", file_name)
-    if file_parse is not None:
-        program = file_parse.group(1)
-        drs_obj_id = file_parse.group(2)
-    else:
-        return {"message": f"Format of file name is wrong: {file_name}"}, 500
+def index_variants(drs_obj_id, program):
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
 
-    logger.info(f"adding stats to {drs_obj_id}")
-    # calculate_stats(drs_obj_id) Don't calculate checksums, too slow
-    logger.info(f"{drs_obj_id} stats done")
-
-    gen_obj = drs_operations._get_analysis_obj(drs_obj_id)
+    gen_obj = htsget_operations.get_pysam_obj(drs_obj_id, headers=headers)
     if gen_obj is None:
         return {"message": f"No id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
@@ -43,6 +35,7 @@ def index_variants(file_name=None):
         return {"message": f"Read object {drs_obj_id} stats calculated"}, 200
 
     logger.info(f"{drs_obj_id} starting indexing")
+    write_index_status(drs_obj_id, f"{datetime.datetime.today()} starting indexing")
 
     headers = str(gen_obj['file'].header).split('\n')
 
@@ -81,10 +74,23 @@ def index_variants(file_name=None):
 
     logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
     write_pos_bucket(res, drs_obj_id)
-    database.mark_variantfile_as_indexed(drs_obj_id)
+    mark_as_indexed(drs_obj_id)
     logger.info(f"{drs_obj_id} indexing done")
 
     return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200
+
+
+def mark_as_indexed(drs_obj_id):
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
+    if response.status_code == 200:
+        obj = response.json()
+        obj["metadata"]["indexed"] = 1
+        if "index_status" in obj["metadata"]:
+            obj["metadata"].pop("index_status")
+        response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
 def write_pos_bucket(obj, object_id, tries=1):
@@ -135,67 +141,40 @@ def create_position(obj):
     return obj
 
 
-## Given a DrsObject in json, compute its size and checksums
-# This block doesn't run as we have disabled it by commenting line 31, see DIG-1718
-def calculate_stats(obj_id):
-    drs_json = database.get_drs_object(obj_id)
-    # a DrsObject either has access methods or contents
-    if "access_methods" in drs_json:
-        # if there are access methods, it's a file object
-        file_obj = drs_operations._get_file_path(drs_json["id"])
-
-        if file_obj["checksum"] is None:
-            logger.debug(f"calculating checksum for {drs_json['id']}")
-            checksum = []
-            with open(file_obj["path"], "rb") as f:
-                bytes = f.read()  # read file as bytes
-                checksum = [{
-                    "type": "sha-256",
-                    "checksum": hashlib.sha256(bytes).hexdigest()
-                }]
-            logger.debug(f"done calculating checksum for {drs_json['id']}")
-            drs_json["checksums"] = checksum
-        else:
-            drs_json["checksums"] = [file_obj["checksum"]]
-        drs_json["size"] = file_obj["size"]
-    elif "contents" in drs_json:
-        drs_json["size"] = 0
-        checksum = {
-            "type": "sha-256",
-            "checksum": ""
-        }
-        # if it's a sample drs object, its checksum will be ""
-        if drs_json["description"] != "sample":
-            # for each contents, find drs_obj for its drs_uri
-            raw_checksums = []
-            for c in drs_json["contents"]:
-                c_obj = calculate_stats(c["name"])
-                if len(c_obj["checksums"]) > 0:
-                    raw_checksums.append(c_obj["checksums"][0]["checksum"])
-                drs_json["size"] += c_obj["size"]
-            # sort raw checksums, concat, then take sha256:
-            raw_checksums.sort()
-            checksum["checksum"] = hashlib.sha256("".join(raw_checksums).encode()).hexdigest()
-        drs_json["checksums"] = [checksum]
-    return database.create_drs_object(drs_json)
-
-
 ## When a file is created, index the variant with the ID of that filename.
 ## These are created at htsget_operations.index_variants.
 def index_touch_file(file_path):
     try:
         name = file_path.replace(INDEXING_PATH, "").replace("/", "")
         logger.info(f"indexing {name}, {str(len(os.listdir(INDEXING_PATH)))} files left in indexing queue. For full list of files to index, run: `docker exec candigv2_htsget_1 ls {INDEXING_PATH}`")
-        response, status_code = index_variants(file_name=name)
-        if status_code != 200:
-            with open(file_path, "a") as f:
-                f.write(f"{datetime.datetime.today()} {response['message']}")
-        logger.info(response)
-        os.remove(file_path)
+
+        # split file name into program and drs_obj_id
+        file_parse = re.match(r"(.*?)~(.+)", name)
+        if file_parse is not None:
+            program = file_parse.group(1)
+            drs_obj_id = file_parse.group(2)
+            response, status_code = index_variants(drs_obj_id, program)
+            if status_code != 200:
+                write_index_status(drs_obj_id, f"{datetime.datetime.today()} {response['message']}")
+            logger.info(response)
+            os.remove(file_path)
+        else:
+            raise Exception(f"Format of file name is wrong: {name}")
+
     except Exception as e:
-        with open(file_path, "a") as f:
-            f.write(f"{datetime.datetime.today()} {str(e)}")
+        write_index_status(drs_obj_id, f"{datetime.datetime.today()} {str(e)}")
         logger.warning(f"indexing error! {type(e)} {str(e)}")
+
+
+def write_index_status(drs_obj_id, message):
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
+    if response.status_code == 200:
+        obj = response.json()
+        obj["metadata"]["index_status"] = message
+        response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
@@ -204,26 +183,6 @@ class IndexingHandler(watchdog.events.FileSystemEventHandler):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="index variant files")
-
-    parser.add_argument("--id", help="drs object id", required=False)
-    parser.add_argument("--genome", help="reference genome", default="hg38", required=False)
-
-    args = parser.parse_args()
-
-    ## If this has been called on a single ID, index it and exit.
-    if args.id is not None:
-        drs_obj = database.get_drs_object(args.id)
-        if drs_obj is None:
-            print(f"No DRS object with id {args.id}")
-            sys.exit()
-        program = ""
-        if "program" in drs_obj:
-            program = drs_obj["program"]
-        varfile = database.create_variantfile({"id": args.id, "reference_genome": args.genome})
-        index_variants(drs_obj_id=f"{program}_{args.id}")
-        sys.exit()
-
     ## if the indexing_on file is not present, exit
     if not os.path.isfile(INDEXING_SWITCH_FILE):
         logger.debug(f"{INDEXING_SWITCH_FILE} is not present; exiting")

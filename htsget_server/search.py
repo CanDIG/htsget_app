@@ -6,6 +6,7 @@ from candigv2_logging.logging import initialize, CanDIGLogger
 import json
 from beacon_operations import full_beacon_search
 from time import time
+from authx.auth import create_service_token
 
 
 logger = CanDIGLogger(__file__)
@@ -23,7 +24,7 @@ def search_file(file_path):
             json_data = json.load(f)
         if json_data is not None:
             logger.info(f"Searching {file_path}")
-            results["result"] = full_beacon_search(json_data)
+            results["result"] = full_beacon_search(json_data, headers={"X-Service-Token": create_service_token()})
             results["complete"] = True
         os.remove(file_path)
     except Exception as e:
