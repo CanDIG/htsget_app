@@ -80,7 +80,8 @@ def get_search(
     variant_max_length=None,
     allele=None,
     gene_id=None,
-    filters=None
+    filters=None,
+    full_search=False
 ):
     req = {
         "includeResultsetResponses": include_result_set_responses,
@@ -115,6 +116,8 @@ def get_search(
         req['query']['requestParameters']['variant_max_length'] = variant_max_length
     if variant_min_length is not None:
         req['query']['requestParameters']['variant_min_length'] = variant_min_length
+    if full_search:
+        req['query']['requestParameters']['full_search'] = True
 
     try:
         result = search(req)
@@ -274,8 +277,11 @@ def search(raw_req):
             "meta": meta,
             "authed_programs": authed_programs
         }
-        queue_id = add_to_queue(search_json)
-        response["beaconResultUrl"] = f"{HTSGET_URL}/beacon/v2/result/{queue_id}"
+
+        # only send to queue if a full search was requested:
+        if 'full_search' in actual_params and actual_params['full_search'] == True:
+            queue_id = add_to_queue(search_json)
+            response["beaconResultUrl"] = f"{HTSGET_URL}/beacon/v2/result/{queue_id}"
 
         # set up quick beacon results:
         response["estimatedSearchParameters"] = {
