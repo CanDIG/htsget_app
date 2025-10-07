@@ -206,7 +206,7 @@ components:
     fullSearch:
       in: query
       name: fullSearch
-      description: Set to true if a full beacon search is desired.
+      description: Set to true if a full beacon search is desired; default is to return estimated variant count.
       schema:
         type: boolean
     geneId:
