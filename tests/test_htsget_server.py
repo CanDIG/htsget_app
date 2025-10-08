@@ -557,7 +557,8 @@ def test_beacon_search_annotations():
     body = {
         "query": {
             "requestParameters": {
-                "gene_id": 'NBPF1'
+                "gene_id": 'NBPF1',
+                "full_search": True
             }
         },
         "meta": {
