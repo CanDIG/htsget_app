@@ -531,7 +531,7 @@ def get_beacon_post_search():
 @pytest.mark.parametrize('body, count, cases', get_beacon_post_search())
 def test_beacon_post_search(body, count, cases):
     url = f"{HOST}/beacon/v2/g_variants"
-
+    body["query"]["requestParameters"]["fullSearch"] = True
     response = requests.post(url, json=body, headers=get_headers())
     print(response.text)
 
