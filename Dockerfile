@@ -10,8 +10,6 @@ RUN groupadd -r candig && useradd -rm candig -g candig
 
 RUN apt-get update && apt-get -y install \
 	cron \
-	libpcre3  \
-	libpcre3-dev \
 	sqlite3 \
 	postgresql-client \
     postgresql
