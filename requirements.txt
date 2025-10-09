@@ -6,7 +6,7 @@ sqlalchemy==1.4.44
 connexion==3.1.0
 MarkupSafe==2.1.1
 candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@v2.8.5
-candigv2-logging@git+https://github.com/CanDIG/candigv2-logging.git@v1.0.1
+candigv2-logging@git+https://github.com/CanDIG/candigv2-logging.git@v1.0.3
 pytest==8.3.3
 connexion[swagger-ui]
 connexion[flask]
