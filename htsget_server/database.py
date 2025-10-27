@@ -163,11 +163,11 @@ class VariantFile(ObjectDBBase):
 
 class PositionBucket(ObjectDBBase):
     __tablename__ = 'pos_bucket'
-    id = Column(Integer, primary_key=True)
-    pos_bucket_id = Column(Integer) # each bucket contains 10 bp of positions
-
+    pos_bucket_id = Column(Integer, primary_key=True) # each bucket contains 10 bp of positions
     # a pos_bucket is part of a single contig
-    contig_id = Column(String, ForeignKey('contig.id'))
+    contig_id = Column(String, ForeignKey('contig.id'), primary_key=True)
+    id = Column(Integer)
+
     contig = relationship(
         "Contig",
         back_populates="pos_buckets",
@@ -180,7 +180,6 @@ class PositionBucket(ObjectDBBase):
     )
     def __repr__(self):
         result = {
-            'id': self.id,
             'contig_id': self.contig_id,
             'pos_bucket_id': self.pos_bucket_id,
             'variantfiles': []
