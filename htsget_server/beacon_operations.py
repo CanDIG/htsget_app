@@ -365,7 +365,7 @@ def full_beacon_search(search_json, headers=None):
 
     try:
         variants_by_file = variants.find_variants_in_files(potential_hits, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'], headers=headers)
-        resultset = compile_beacon_resultset(variants_by_file, actual_params['reference_genome'], authed_programs)
+        resultset = compile_beacon_resultset(variants_by_file, actual_params['reference_name'], actual_params['reference_genome'], authed_programs)
     except Exception as e:
         raise Exception(f"exception in compile_beacon_resultset for {actual_params}: {type(e)} {str(e)}")
     # others are for filtering after:
@@ -456,7 +456,7 @@ def full_beacon_search(search_json, headers=None):
     return response
 
 
-def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_programs=None):
+def compile_beacon_resultset(variants_by_obj, reference_name=None, reference_genome="hg38", authed_programs=None):
     """
     Each beacon result describes a variation at a specific position:
     resultset = [
@@ -491,6 +491,10 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_pr
         }
       ]
     """
+
+    # find the correct sequence_id for the chromosome:
+    seqid = database.get_refseq_for_chromosome(reference_genome=reference_genome, contig=database.normalize_contig(reference_name))
+
     resultset = {}
     for drs_obj in variants_by_obj.keys():
         # check to see if this drs_object is authorized:
@@ -507,7 +511,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_pr
                 continue
             for variant in variants_by_obj[drs_obj]['variants']:
                 # parse the variants beacon-style
-                variant['variations'] = compile_variations_from_record(ref=variant.pop('ref'), alt=variant.pop('alt'), chrom=variant.pop('chrom'), pos=variant.pop('pos'), reference_genome=reference_genome)
+                variant['variations'] = compile_variations_from_record(ref=variant.pop('ref'), alt=variant.pop('alt'), pos=variant.pop('pos'), seqid=seqid)
                 assign_info_to_variations(variant)
 
                 # the variations in each variant need to be copied out first:
@@ -594,7 +598,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_pr
     return final_resultset
 
 
-def compile_variations_from_record(ref="", alt=[""], chrom="", pos="", reference_genome="hg38"):
+def compile_variations_from_record(ref="", alt=[""], pos="", seqid=None):
     start = int(pos)
     end = int(pos)
     variations = [
@@ -622,8 +626,6 @@ def compile_variations_from_record(ref="", alt=[""], chrom="", pos="", reference
         }
     ]
 
-    # find the correct sequence_id for the chromosome:
-    seqid = database.get_refseq_for_chromosome(reference_genome=reference_genome, contig=database.normalize_contig(chrom))
     hgvsid_base = ""
     if seqid is not None:
         variations[0]['location']['sequence_id'] = "refseq:" + seqid
