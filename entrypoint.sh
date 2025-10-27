@@ -11,7 +11,6 @@ if [[ -f "initial_setup" ]]; then
     sed -i s@\<AGGREGATE_COUNT_THRESHOLD\>@$AGGREGATE_COUNT_THRESHOLD@ config.ini
     sed -i s@\<POSTGRES_USERNAME\>@$POSTGRES_USERNAME@ config.ini
 
-    bash create_db.sh
     mkdir -p $INDEXING_PATH
     mkdir -p $SEARCH_PATH/results
     mkdir -p $SEARCH_PATH/to_search
@@ -19,6 +18,7 @@ if [[ -f "initial_setup" ]]; then
     rm initial_setup
 fi
 
+bash create_db.sh
 python -c "import candigv2_logging.logging
 candigv2_logging.logging.initialize()"
 
