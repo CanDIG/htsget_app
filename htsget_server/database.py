@@ -662,8 +662,9 @@ def search(obj, tries=1):
     try:
         with Session() as session:
             vfile = aliased(VariantFile)
-            q = select(vfile.drs_object_id, vfile.reference_genome, PositionBucket.id, PositionBucket.pos_bucket_id).select_from(PositionBucket).join(vfile.associated_pos_buckets).join(vfile.associated_headers)
+            q = select(vfile.drs_object_id, vfile.reference_genome, PositionBucket.id, PositionBucket.pos_bucket_id).select_from(PositionBucket).join(vfile.associated_pos_buckets)
             if 'headers' in obj:
+                q = q.join(vfile.associated_headers)
                 for header in obj['headers']:
                     q = q.where(Header.text.like(f"%{header}%"))
             if 'region' in obj:
