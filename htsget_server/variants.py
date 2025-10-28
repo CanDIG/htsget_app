@@ -266,9 +266,10 @@ def parse_vep_annotation(info, csq_header):
             for j in range(len(info_pieces)):
                 if info_pieces[j] is not None and info_pieces[j] != '':
                     this_info[csq_parts[j]] = info_pieces[j]
-        if this_info['Allele'] not in result:
-            result[this_info['Allele']] = []
-        result[this_info['Allele']].append(this_info)
+        if 'Allele' in this_info:
+            if this_info['Allele'] not in result:
+                result[this_info['Allele']] = []
+            result[this_info['Allele']].append(this_info)
     return result
 
 
