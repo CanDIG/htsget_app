@@ -100,9 +100,10 @@ CREATE TABLE variantfile (
 	-- FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );
 CREATE TABLE pos_bucket (
-	id SERIAL PRIMARY KEY,
+	id SERIAL UNIQUE NOT NULL,
 	pos_bucket_id INTEGER NOT NULL,
 	contig_id VARCHAR,
+	PRIMARY KEY (contig_id, pos_bucket_id),
 	FOREIGN KEY(contig_id) REFERENCES contig (id)
 );
 CREATE TABLE header (
