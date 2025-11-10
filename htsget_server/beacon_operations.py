@@ -1,6 +1,5 @@
 from flask import Flask
 import variants
-import drs_operations
 import htsget_operations
 import database
 import json
@@ -13,6 +12,8 @@ import tempfile
 import os
 from config import AGGREGATE_COUNT_THRESHOLD, SEARCH_PATH, HTSGET_URL, BUCKET_SIZE
 from candigv2_logging.logging import CanDIGLogger
+import requests
+from authx.auth import create_service_token, get_opa_datasets
 
 
 logger = CanDIGLogger(__file__)
@@ -79,7 +80,8 @@ def get_search(
     variant_max_length=None,
     allele=None,
     gene_id=None,
-    filters=None
+    filters=None,
+    full_search=False
 ):
     req = {
         "includeResultsetResponses": include_result_set_responses,
@@ -114,6 +116,8 @@ def get_search(
         req['query']['requestParameters']['variant_max_length'] = variant_max_length
     if variant_min_length is not None:
         req['query']['requestParameters']['variant_min_length'] = variant_min_length
+    if full_search:
+        req['query']['requestParameters']['full_search'] = True
 
     try:
         result = search(req)
@@ -239,8 +243,7 @@ def search(raw_req):
                 actual_params['alt'] = allele_loc['alt']
 
     if 'reference_name' in actual_params and actual_params['reference_name'] is not None:
-        authed_programs = authz.get_authorized_programs(connexion.request)
-
+        authed_programs = get_opa_datasets(connexion.request)
         # if there is no end specified, assume the end is same as start:
         if 'end' not in actual_params:
             actual_params['end'] = actual_params['start']
@@ -253,15 +256,20 @@ def search(raw_req):
         for i in range(len(potential_hits)):
             drs_obj_id = potential_hits[i]['drs_object_id']
             # look for experiments and programs for all drs objects, even if user is not authorized
-            drs_obj = database.get_drs_object(drs_obj_id)
-            if "program" in drs_obj:
-                if drs_obj["program"] not in results:
-                    results[drs_obj["program"]] = []
-                for c in drs_obj["contents"]:
-                    if c["id"] not in ["analysis", "index"]:
-                        # this is a ExperimentContentObject
-                        res = {"submitter_sample_id": c["name"], "variant_count": potential_hits[i]["variantcount"]}
-                        results[drs_obj["program"]].append(res)
+            headers = {
+                "X-Service-Token": create_service_token()
+            }
+            resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
+            if resp.status_code == 200:
+                drs_obj = resp.json()
+                if "program" in drs_obj:
+                    if drs_obj["program"] not in results:
+                        results[drs_obj["program"]] = []
+                    for c in drs_obj["contents"]:
+                        if c["id"] not in ["analysis", "index"]:
+                            # this is a ExperimentContentObject
+                            res = {"submitter_sample_id": c["name"], "variant_count": potential_hits[i]["variantcount"]}
+                            results[drs_obj["program"]].append(res)
 
         search_json = {
             "potential_hits": potential_hits,
@@ -269,8 +277,11 @@ def search(raw_req):
             "meta": meta,
             "authed_programs": authed_programs
         }
-        queue_id = add_to_queue(search_json)
-        response["beaconResultUrl"] = f"{HTSGET_URL}/beacon/v2/result/{queue_id}"
+
+        # only send to queue if a full search was requested:
+        if 'full_search' in actual_params and actual_params['full_search'] == True:
+            queue_id = add_to_queue(search_json)
+            response["beaconResultUrl"] = f"{HTSGET_URL}/beacon/v2/result/{queue_id}"
 
         # set up quick beacon results:
         response["estimatedSearchParameters"] = {
@@ -335,11 +346,14 @@ def get_full_result(queue_id):
         return {"error": f"no such queue_id {queue_id}: {type(e)} {str(e)}"}, 404
 
 
-def full_beacon_search(search_json):
+def full_beacon_search(search_json, headers=None):
     potential_hits = search_json["potential_hits"]
     actual_params = search_json["actual_params"]
     meta = search_json["meta"]
     authed_programs = search_json["authed_programs"]
+
+    if headers is None:
+        headers = connexion.request.headers
 
     response = {
         'meta': meta,
@@ -350,8 +364,8 @@ def full_beacon_search(search_json):
     }
 
     try:
-        variants_by_file = variants.find_variants_in_files(potential_hits, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
-        resultset = compile_beacon_resultset(variants_by_file, actual_params['reference_genome'], authed_programs)
+        variants_by_file = variants.find_variants_in_files(potential_hits, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'], headers=headers)
+        resultset = compile_beacon_resultset(variants_by_file, actual_params['reference_name'], actual_params['reference_genome'], authed_programs)
     except Exception as e:
         raise Exception(f"exception in compile_beacon_resultset for {actual_params}: {type(e)} {str(e)}")
     # others are for filtering after:
@@ -398,31 +412,38 @@ def full_beacon_search(search_json):
     response['beaconHandovers'] = []
     for drs_obj_id in variants_by_file.keys():
         # look for experiments and programs for all drs objects, even if user is not authorized
-        drs_obj = database.get_drs_object(drs_obj_id)
-        if "program" in drs_obj:
-            download_handovers = []
-            for c in drs_obj["contents"]:
-                if c["id"] in ["analysis", "index"]:
-                    # this is a file that we should create a download url for
-                    file_drs_obj = database.get_drs_object(c["name"])
-                    download_handover = {
-                        'handoverType': {'id': 'CUSTOM', 'label': 'DOWNLOAD'},
-                        'url': drs_operations._get_download_url(file_drs_obj['id'])
-                    }
-                    if 'size' in file_drs_obj:
-                        download_handover['size'] = file_drs_obj['size']
-                    download_handovers.append(download_handover)
-            if drs_obj["program"] in authed_programs:
-                # fill in htsget handover data
-                try:
-                    htsget_handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'])
-                except Exception as e:
-                    raise Exception(f"exception in get_variants for {drs_obj_id}: {type(e)} {str(e)}")
-                if htsget_handover is not None:
-                    htsget_handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
-                    response['beaconHandovers'].append(htsget_handover)
-                if len(download_handovers) > 0:
-                    response['beaconHandovers'].extend(download_handovers)
+        headers = {
+            "X-Service-Token": create_service_token()
+        }
+        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
+        if resp.status_code == 200:
+            drs_obj = resp.json()
+            if "program" in drs_obj:
+                download_handovers = []
+                for c in drs_obj["contents"]:
+                    if c["id"] in ["analysis", "index"]:
+                        # this is a file that we should create a download url for
+                        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{c["name"]}", headers=headers)
+                        if resp.status_code == 200:
+                            file_drs_obj = resp.json()
+                            download_handover = {
+                                'handoverType': {'id': 'CUSTOM', 'label': 'DOWNLOAD'},
+                                'url': f"{HTSGET_URL}/ga4gh/drs/v1/objects/{file_drs_obj['id']}/download"
+                            }
+                            if 'size' in file_drs_obj:
+                                download_handover['size'] = file_drs_obj['size']
+                            download_handovers.append(download_handover)
+                if drs_obj["program"] in authed_programs:
+                    # fill in htsget handover data
+                    try:
+                        htsget_handover, status_code = htsget_operations._get_urls("variant", drs_obj_id, reference_name=actual_params['reference_name'], start=actual_params['start'], end=actual_params['end'], headers=headers)
+                    except Exception as e:
+                        raise Exception(f"exception in full_beacon_search for {drs_obj_id}: {type(e)} {str(e)}")
+                    if htsget_handover is not None:
+                        htsget_handover['handoverType'] = {'id': 'CUSTOM', 'label': 'HTSGET'}
+                        response['beaconHandovers'].append(htsget_handover)
+                    if len(download_handovers) > 0:
+                        response['beaconHandovers'].extend(download_handovers)
     if len(response['beaconHandovers']) > 0 and meta['returnedGranularity'] == 'record':
         response['response'] = resultset
         if len(resultset) > 0: # use true number if we're authorized, even if below AGGREGATE_COUNT_THRESHOLD
@@ -435,7 +456,7 @@ def full_beacon_search(search_json):
     return response
 
 
-def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_programs=None):
+def compile_beacon_resultset(variants_by_obj, reference_name=None, reference_genome="hg38", authed_programs=None):
     """
     Each beacon result describes a variation at a specific position:
     resultset = [
@@ -470,93 +491,102 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_pr
         }
       ]
     """
+
+    # find the correct sequence_id for the chromosome:
+    seqid = database.get_refseq_for_chromosome(reference_genome=reference_genome, contig=database.normalize_contig(reference_name))
+
     resultset = {}
     for drs_obj in variants_by_obj.keys():
         # check to see if this drs_object is authorized:
-        x = database.get_drs_object(drs_obj)
-        is_authed = False
-        if x["program"] in authed_programs:
-            is_authed = True
-        if database.get_variantfile(drs_obj)['reference_genome'] != reference_genome:
-            continue
-        for variant in variants_by_obj[drs_obj]['variants']:
-            # parse the variants beacon-style
-            variant['variations'] = compile_variations_from_record(ref=variant.pop('ref'), alt=variant.pop('alt'), chrom=variant.pop('chrom'), pos=variant.pop('pos'), reference_genome=reference_genome)
-            assign_info_to_variations(variant)
+        headers = {
+            "X-Service-Token": create_service_token()
+        }
+        response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj}", headers=headers)
+        if response.status_code == 200:
+            x = response.json()
+            is_authed = False
+            if x["program"] in authed_programs:
+                is_authed = True
+            if database.get_variantfile(drs_obj)['reference_genome'] != reference_genome:
+                continue
+            for variant in variants_by_obj[drs_obj]['variants']:
+                # parse the variants beacon-style
+                variant['variations'] = compile_variations_from_record(ref=variant.pop('ref'), alt=variant.pop('alt'), pos=variant.pop('pos'), seqid=seqid)
+                assign_info_to_variations(variant)
 
-            # the variations in each variant need to be copied out first:
-            resultset[drs_obj] = []
-            for var in variant['variations']:
-                resultset[drs_obj].append(var['hgvsid'])
-                if var['hgvsid'] not in resultset:
-                    resultset[var['hgvsid']] = {
-                        'variation': {
-                            "location": var.pop('location'),
-                            "state": var.pop('state'),
-                            "type": var.pop('type')
-                        },
-                        "identifiers": {
-                            "genomicHGVSId": var['hgvsid']
+                # the variations in each variant need to be copied out first:
+                resultset[drs_obj] = []
+                for var in variant['variations']:
+                    resultset[drs_obj].append(var['hgvsid'])
+                    if var['hgvsid'] not in resultset:
+                        resultset[var['hgvsid']] = {
+                            'variation': {
+                                "location": var.pop('location'),
+                                "state": var.pop('state'),
+                                "type": var.pop('type')
+                            },
+                            "identifiers": {
+                                "genomicHGVSId": var['hgvsid']
+                            }
                         }
-                    }
-                # move allele-specific info to the variant, like CSQ annotations
-                if 'info' in var:
-                    if 'CSQ' in var['info']:
-                        if 'molecularAttributes' not in resultset[var['hgvsid']]:
-                            compile_molecular_attributes_from_csq(resultset[var['hgvsid']], var['info'].pop('CSQ'))
+                    # move allele-specific info to the variant, like CSQ annotations
+                    if 'info' in var:
+                        if 'CSQ' in var['info']:
+                            if 'molecularAttributes' not in resultset[var['hgvsid']]:
+                                compile_molecular_attributes_from_csq(resultset[var['hgvsid']], var['info'].pop('CSQ'))
 
-            # now process the samples into the variations:
-            if 'samples' in variant and len(variant['samples']) > 0:
-                for k in variant['samples'].keys():
-                    sample = variant['samples'][k]
-                    # Begin creating a Case Level Data object
-                    cld = {
-                        'genotype': {
-                            'value': sample['GT']
-                        }
-                    }
-                    # check to see that we should be processing the actual sample data:
-                    if is_authed:
-                        cld['analysisId'] = drs_obj
-                        cld['biosampleId'] = f"{x['program']}~{k}"
-                    alleles = sample['GT'].split('/')
-                    if len(alleles) < 2:
-                        alleles = sample['GT'].split('|')
-                    # put a copy of this cld in each variation:
-                    cld['genotype']['secondaryAlleleIds'] = [resultset[drs_obj][int(alleles[0])], resultset[drs_obj][int(alleles[1])]]
-                    if alleles[0] == alleles[1]:
-                        cld['genotype']['zygosity'] = {
-                            'id': 'GENO:0000136',
-                            'label': 'homozygous'
-                        }
-                        cld['genotype'].pop('secondaryAlleleIds')
-                        if alleles[0].isdigit():
-                            var = resultset[drs_obj][int(alleles[0])]
-                            if 'caseLevelData' not in resultset[var]:
-                                resultset[var]['caseLevelData'] = []
-                            resultset[var]['caseLevelData'].append(json.loads(json.dumps(cld)))
-                    else:
-                        if alleles[0] == '0' or alleles[1] == '0':
-                            cld['genotype']['zygosity'] = {
-                                'id': 'GENO:0000458',
-                                'label': 'simple heterozygous'
+                # now process the samples into the variations:
+                if 'samples' in variant and len(variant['samples']) > 0:
+                    for k in variant['samples'].keys():
+                        sample = variant['samples'][k]
+                        # Begin creating a Case Level Data object
+                        cld = {
+                            'genotype': {
+                                'value': sample['GT']
                             }
-                        else:
+                        }
+                        # check to see that we should be processing the actual sample data:
+                        if is_authed:
+                            cld['analysisId'] = drs_obj
+                            cld['biosampleId'] = f"{x['program']}~{k}"
+                        alleles = sample['GT'].split('/')
+                        if len(alleles) < 2:
+                            alleles = sample['GT'].split('|')
+                        # put a copy of this cld in each variation:
+                        cld['genotype']['secondaryAlleleIds'] = [resultset[drs_obj][int(alleles[0])], resultset[drs_obj][int(alleles[1])]]
+                        if alleles[0] == alleles[1]:
                             cld['genotype']['zygosity'] = {
-                                'id': 'GENO:0000402',
-                                'label': 'compound heterozygous'
+                                'id': 'GENO:0000136',
+                                'label': 'homozygous'
                             }
-                        for a in alleles:
-                            if a.isdigit():
-                                var = resultset[drs_obj][int(a)]
-                                # make a copy cld for the other allele's variant
-                                second_cld = json.loads(json.dumps(cld))
-                                # this allele should not be in cld's secondaryAlleleIds,
-                                # and the second allele should not be in second_cld's secondaryAlleleIds
-                                second_cld['genotype']['secondaryAlleleIds'].remove(resultset[drs_obj][int(a)])
+                            cld['genotype'].pop('secondaryAlleleIds')
+                            if alleles[0].isdigit():
+                                var = resultset[drs_obj][int(alleles[0])]
                                 if 'caseLevelData' not in resultset[var]:
                                     resultset[var]['caseLevelData'] = []
-                                resultset[var]['caseLevelData'].append(second_cld)
+                                resultset[var]['caseLevelData'].append(json.loads(json.dumps(cld)))
+                        else:
+                            if alleles[0] == '0' or alleles[1] == '0':
+                                cld['genotype']['zygosity'] = {
+                                    'id': 'GENO:0000458',
+                                    'label': 'simple heterozygous'
+                                }
+                            else:
+                                cld['genotype']['zygosity'] = {
+                                    'id': 'GENO:0000402',
+                                    'label': 'compound heterozygous'
+                                }
+                            for a in alleles:
+                                if a.isdigit():
+                                    var = resultset[drs_obj][int(a)]
+                                    # make a copy cld for the other allele's variant
+                                    second_cld = json.loads(json.dumps(cld))
+                                    # this allele should not be in cld's secondaryAlleleIds,
+                                    # and the second allele should not be in second_cld's secondaryAlleleIds
+                                    second_cld['genotype']['secondaryAlleleIds'].remove(resultset[drs_obj][int(a)])
+                                    if 'caseLevelData' not in resultset[var]:
+                                        resultset[var]['caseLevelData'] = []
+                                    resultset[var]['caseLevelData'].append(second_cld)
         resultset.pop(drs_obj)
     final_resultset = []
     # only include variants that are actually seen in the data (not things like ref alleles that are not in any samples)
@@ -568,7 +598,7 @@ def compile_beacon_resultset(variants_by_obj, reference_genome="hg38", authed_pr
     return final_resultset
 
 
-def compile_variations_from_record(ref="", alt=[""], chrom="", pos="", reference_genome="hg38"):
+def compile_variations_from_record(ref="", alt=[""], pos="", seqid=None):
     start = int(pos)
     end = int(pos)
     variations = [
@@ -596,8 +626,6 @@ def compile_variations_from_record(ref="", alt=[""], chrom="", pos="", reference
         }
     ]
 
-    # find the correct sequence_id for the chromosome:
-    seqid = database.get_refseq_for_chromosome(reference_genome=reference_genome, contig=database.normalize_contig(chrom))
     hgvsid_base = ""
     if seqid is not None:
         variations[0]['location']['sequence_id'] = "refseq:" + seqid

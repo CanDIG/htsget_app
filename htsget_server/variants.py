@@ -1,8 +1,10 @@
 import os
 import re
 import database
-import drs_operations
+import htsget_operations
 from candigv2_logging.logging import CanDIGLogger
+import requests
+from authx.auth import create_service_token
 
 
 logger = CanDIGLogger(__file__)
@@ -21,7 +23,7 @@ def find_variants_in_database(reference_name=None, start=None, end=None):
 """
 finds variant records in vcf files, returns an array of VcfJson objects
 """
-def find_variants_in_files(raw_result, reference_name=None, start=None, end=None):
+def find_variants_in_files(raw_result, reference_name=None, start=None, end=None, headers=None):
     # raw_result = [{'drs_object_id', 'variantcount', 'reference_genome'}]
     # fetch all relevant results:
     #   group results by variant (chr:start-end)
@@ -29,7 +31,7 @@ def find_variants_in_files(raw_result, reference_name=None, start=None, end=None
     #   resultsets require more processing
     variants_by_file = {}
     for result in raw_result:
-        variants_by_file[result['drs_object_id']] = parse_vcf_file(result['drs_object_id'], reference_name, start, end)
+        variants_by_file[result['drs_object_id']] = parse_vcf_file(result['drs_object_id'], reference_name, start, end, headers=headers)
     # if a file has no variants in it, we don't need to return it:
     final_variants_by_file = {}
     for file in variants_by_file.keys():
@@ -38,8 +40,10 @@ def find_variants_in_files(raw_result, reference_name=None, start=None, end=None
     return final_variants_by_file
 
 
-def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
-    analysis_obj = drs_operations._get_analysis_obj(drs_object_id)
+def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None, headers=None):
+
+    analysis_obj = htsget_operations.get_pysam_obj(drs_object_id, headers)
+
     if "message" in analysis_obj:
         raise Exception(f"error parsing vcf file for {drs_object_id}: {analysis_obj['message']}")
     if reference_name is not None:
@@ -68,17 +72,26 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None):
         variants_by_file['alt'] = headers.pop('ALT')
     if 'contig' in headers:
         variants_by_file['contig'] = headers.pop('contig')
+    experiment_dict = {}
     for r in records:
         experiments = []
         for vcf_sample in r.samples:
             # samples in analysis_obj are listed as {vcf_sample: experiment_id}
             if "experiments" in analysis_obj and vcf_sample in analysis_obj['experiments']:
                 experiment_id = analysis_obj['experiments'][vcf_sample]
-                experiment_obj = database.get_drs_object(experiment_id)
-                if experiment_obj is not None:
-                    experiments.append(experiment_obj["name"])
-                else:
-                    experiments.append(experiment_id)
+                if experiment_id not in experiment_dict:
+                    experiment_id = analysis_obj['experiments'][vcf_sample]
+                    headers = {
+                        "X-Service-Token": create_service_token()
+                    }
+                    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{experiment_id}", headers=headers)
+                    experiment_obj = None
+                    if response.status_code == 200:
+                        experiment_obj = response.json()
+                        experiment_dict[experiment_id] = experiment_obj["name"]
+                    else:
+                        experiment_dict[experiment_id] = experiment_id
+                experiments.append(experiment_dict[experiment_id])
             else:
                 experiments.append(vcf_sample)
         variant_record = parse_variant_record(str(r), experiments, variants_by_file['info'])
@@ -256,9 +269,10 @@ def parse_vep_annotation(info, csq_header):
             for j in range(len(info_pieces)):
                 if info_pieces[j] is not None and info_pieces[j] != '':
                     this_info[csq_parts[j]] = info_pieces[j]
-        if this_info['Allele'] not in result:
-            result[this_info['Allele']] = []
-        result[this_info['Allele']].append(this_info)
+        if 'Allele' in this_info:
+            if this_info['Allele'] not in result:
+                result[this_info['Allele']] = []
+            result[this_info['Allele']].append(this_info)
     return result
 
 

@@ -44,4 +44,5 @@ psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_315.sql >>setup_out.tx
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_339.sql >>setup_out.txt
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_341.sql >>setup_out.txt
 psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_352.sql >>setup_out.txt
+psql --quiet -h "$db" -U $PGUSER -d genomic -a -f data/pr_374.sql >>setup_out.txt
 echo "...done"

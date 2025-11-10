@@ -1,8 +1,10 @@
 from flask import Flask
 from flask_cors import CORS
 import connexion
-from config import PORT, DEBUG_MODE
+from config import PORT, DB_PATH, DEBUG_MODE
 import candigv2_logging.logging
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import create_engine
 
 candigv2_logging.logging.initialize()
 
@@ -11,8 +13,14 @@ app = connexion.App(__name__, specification_dir='./')
 CORS(app.app)
 
 app.add_api('htsget_openapi.yaml', pythonic_params=True)
-app.add_api('drs_openapi.yaml', pythonic_params=True, strict_validation=True)
 app.add_api('beacon_openapi.yaml', pythonic_params=True, strict_validation=True)
+
+
+engine = create_engine(DB_PATH, echo=True, pool_timeout=5, pool_size=10)
+ObjectDBBase = declarative_base()
+ObjectDBBase.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
+
 
 # Just leaving this here as a note: these are all of the pythonic params that
 # will get shadowed by pythonic_params:

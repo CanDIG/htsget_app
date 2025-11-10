@@ -10,11 +10,8 @@ RUN groupadd -r candig && useradd -rm candig -g candig
 
 RUN apt-get update && apt-get -y install \
 	cron \
-	libpcre3  \
-	libpcre3-dev \
-	sqlite3 \
 	postgresql-client \
-    postgresql
+  postgresql
 
 COPY requirements.txt /app/htsget_server/requirements.txt
 
@@ -23,6 +20,8 @@ RUN pip install --no-cache-dir -r /app/htsget_server/requirements.txt
 COPY . /app/htsget_server
 
 WORKDIR /app/htsget_server
+
+COPY data/files /data/
 
 RUN chown -R candig:candig /app/htsget_server
 

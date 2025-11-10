@@ -147,6 +147,7 @@ paths:
         - $ref: '#/components/parameters/genomicAlleleShortForm'
         - $ref: '#/components/parameters/geneId'
         - $ref: '#/components/parameters/filters'
+        - $ref: '#/components/parameters/fullSearch'
       responses:
         '200':
           $ref: '#/components/responses/ResultsOKResponse'
@@ -202,6 +203,12 @@ components:
         type: array
         items:
           type: string
+    fullSearch:
+      in: query
+      name: fullSearch
+      description: Set to true if a full beacon search is desired; default is to return estimated variant count.
+      schema:
+        type: boolean
     geneId:
       example: BRAF
       in: query
@@ -709,6 +716,9 @@ components:
         - requestedGranularity
     RequestParameters:
       properties:
+        fullSearch:
+          description: Set to true if full search of files is desired
+          type: boolean
         alternateBases:
           $ref: '#/components/schemas/AlternateBases'
         aminoacidChange:

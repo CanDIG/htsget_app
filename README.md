@@ -20,35 +20,17 @@ Thank you to [gel-htsget](https://github.com/genomicsengland/gel-htsget) for bei
 - Python 3
 - [Pysam](https://pysam.readthedocs.io/en/latest/api.html)
 - Pytest
-- Travis-CI
 
 ## Installation
 
-The server software can be installed in a virtual environment:
-```
-python setup.py install
-```
-
-## Running
-
-This application can be configured by way of the config.ini file in the root of the project.
-The server can be run with: 
-
-```
-python htsget_server/server.py
-```
-
-This application can also be set up in a docker container. A docker-compose file and Dockerfile are provided.
+The server is meant to be run in the context of the [CanDIG stack](https://candig.github.io/CanDIGv2/deployment/local/).
 
 The default MinIO location specified in the config.ini file is the sandbox at MinIO, but a different location can be specified there as well. Be sure to update the access key and secret key values in config.ini.
 
 
 ## Testing
 
-For testing, a small test suite under tests/test_htsget_server.py can be run by starting the server and running:
-
+An automated test suite is provided, but can only be run in the docker container stack context. If you are running the CanDIG stack, you can run the tests with
 ```
-pytest
+docker exec candigv2_htsget_1 pytest
 ```
-
-For automated testing, activate the repo with [Travis-CI](https://travis-ci.com/getting_started)
