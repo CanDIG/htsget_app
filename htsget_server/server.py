@@ -16,7 +16,7 @@ app.add_api('htsget_openapi.yaml', pythonic_params=True)
 app.add_api('beacon_openapi.yaml', pythonic_params=True, strict_validation=True)
 
 
-engine = create_engine(DB_PATH, echo=True, pool_timeout=5, pool_size=10)
+engine = create_engine(DB_PATH, echo=False, pool_timeout=5, pool_size=10)
 ObjectDBBase = declarative_base()
 ObjectDBBase.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
