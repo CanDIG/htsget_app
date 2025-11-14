@@ -253,23 +253,29 @@ def search(raw_req):
             raise Exception(f"exception in search for {actual_params}: {type(e)} {str(e)}")
 
         results = {}
+        # look for experiments and programs for all drs objects, even if user is not authorized
+        headers = {
+            "X-Service-Token": create_service_token()
+        }
+        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers)
+        drs_obj_dict = {}
+        if resp.status_code == 200:
+            drs_objects = resp.json()
+            for obj in drs_objects:
+                drs_obj_dict[obj["id"]] = obj
+
         for i in range(len(potential_hits)):
             drs_obj_id = potential_hits[i]['drs_object_id']
-            # look for experiments and programs for all drs objects, even if user is not authorized
-            headers = {
-                "X-Service-Token": create_service_token()
-            }
-            resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
-            if resp.status_code == 200:
-                drs_obj = resp.json()
-                if "program" in drs_obj:
-                    if drs_obj["program"] not in results:
-                        results[drs_obj["program"]] = []
-                    for c in drs_obj["contents"]:
-                        if c["id"] not in ["analysis", "index"]:
-                            # this is a ExperimentContentObject
-                            res = {"submitter_sample_id": c["name"], "variant_count": potential_hits[i]["variantcount"]}
-                            results[drs_obj["program"]].append(res)
+
+            drs_obj = drs_obj_dict[drs_obj_id]
+            if "program" in drs_obj:
+                if drs_obj["program"] not in results:
+                    results[drs_obj["program"]] = []
+                for c in drs_obj["contents"]:
+                    if c["id"] not in ["analysis", "index"]:
+                        # this is a ExperimentContentObject
+                        res = {"submitter_sample_id": c["name"], "variant_count": potential_hits[i]["variantcount"]}
+                        results[drs_obj["program"]].append(res)
 
         search_json = {
             "potential_hits": potential_hits,
