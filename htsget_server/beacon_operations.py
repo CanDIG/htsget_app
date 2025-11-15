@@ -264,6 +264,7 @@ def search(raw_req):
             for obj in drs_objects:
                 drs_obj_dict[obj["id"]] = obj
 
+        hits_to_search = []
         for i in range(len(potential_hits)):
             drs_obj_id = potential_hits[i]['drs_object_id']
 
@@ -276,9 +277,10 @@ def search(raw_req):
                         # this is a ExperimentContentObject
                         res = {"submitter_sample_id": c["name"], "variant_count": potential_hits[i]["variantcount"]}
                         results[drs_obj["program"]].append(res)
+                        hits_to_search.append(potential_hits[i])
 
         search_json = {
-            "potential_hits": potential_hits,
+            "potential_hits": hits_to_search,
             "actual_params": actual_params,
             "meta": meta,
             "authed_programs": authed_programs
