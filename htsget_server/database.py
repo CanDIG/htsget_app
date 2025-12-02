@@ -575,6 +575,13 @@ def create_pos_buckets_for_variantfile(obj):
         session.bulk_insert_mappings(PositionBucketVariantFileAssociation, pbvfs_to_add)
         session.commit()
 
+    with Session() as session:
+        new_variantfile = session.query(VariantFile).filter_by(id=variantfile_id).one_or_none()
+        if new_variantfile is not None:
+            new_variantfile.indexed = 1
+            session.add(new_variantfile)
+            session.commit()
+
     return None
 
 
