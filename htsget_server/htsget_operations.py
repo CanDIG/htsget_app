@@ -352,8 +352,8 @@ def _get_experiment(id_=None):
                     elif drs_obj["type"] == "read":
                         result["reads"].append(drs_obj["name"])
             return result, 200
-    else:
-        return resp.text, resp.status_code
+        return f"{id_} is not an Experiment", 404
+    return resp.text, resp.status_code
 
 
 def _get_htsget_url(id, reference_name, slice_start, slice_end, file_type, data=True):
