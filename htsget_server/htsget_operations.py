@@ -238,6 +238,8 @@ def get_matching_transcripts(id_=None):
 
 @app.route('/experiments/<path:id_>')
 def get_experiment(id_=None):
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to get experiments"}, 403
     result, status_code = _get_experiment(id_)
     if status_code == 200:
         return result, 200
@@ -245,6 +247,8 @@ def get_experiment(id_=None):
 
 
 async def get_multiple_experiments():
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to get experiments"}, 403
     req = await connexion.request.json()
     if "experiments" in req:
         return _get_experiments(req["experiments"]), 200
@@ -267,6 +271,8 @@ def get_program_experiments(program=None):
     result = []
     experiments_by_program = {}
     return _get_experiments(experiments), 200
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to get experiments"}, 403
 
 
 # This is specific to our particular use case: a DRS object that represents a
