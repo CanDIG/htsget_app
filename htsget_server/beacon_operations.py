@@ -418,11 +418,12 @@ def full_beacon_search(search_json, headers=None):
 
     # if the request granularity was "record", check to see that the user is actually authorized to see any programs:
     response['beaconHandovers'] = []
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+
     for drs_obj_id in variants_by_file.keys():
         # look for experiments and programs for all drs objects, even if user is not authorized
-        headers = {
-            "X-Service-Token": create_service_token()
-        }
         resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
         if resp.status_code == 200:
             drs_obj = resp.json()
