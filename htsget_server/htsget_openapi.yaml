@@ -377,7 +377,7 @@ paths:
             description: Get MoH-relevant genomic information about an experiment
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
-                - $ref: "#/components/parameters/idPathParam"
+                - $ref: "#/components/parameters/sampleIdPathParam"
             responses:
                 200:
                     description: Success
@@ -924,6 +924,14 @@ components:
             in: path
             name: id
             description: read or variant object identifier
+            required: true
+            schema:
+                type: string
+                format: path
+        sampleIdPathParam:
+            in: path
+            name: id
+            description: a submitter_sample_id from the MoHCCN schema
             required: true
             schema:
                 type: string
