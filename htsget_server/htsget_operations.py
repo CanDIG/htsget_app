@@ -255,24 +255,12 @@ async def get_multiple_experiments():
     return _get_experiments(None), 200
 
 def get_program_experiments(program=None):
-    headers = {
-        "X-Service-Token": create_service_token()
-    }
-    experiment_drs_objs = []
-    if program is None:
-        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers)
-        if resp.status_code == 200:
-            experiment_drs_objs = resp.json()
-    else:
-        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, params={"program_id": program})
-        if resp.status_code == 200:
-            experiment_drs_objs = resp.json()
-    experiments = list(map(lambda y: y["id"], filter(lambda x: x["description"] in ["wgs", "wts"], experiment_drs_objs)))
-    result = []
-    experiments_by_program = {}
-    return _get_experiments(experiments), 200
     if not authz.has_full_authz(connexion.request):
         return {"message": "User is not authorized to get experiments"}, 403
+    experiments = _get_experiments(None, program=program)
+    if len(experiments) > 0:
+        return experiments, 200
+    return {"message": f"No experiments found for {program}"}, 404
 
 
 # This is specific to our particular use case: a DRS object that represents a
@@ -315,7 +303,7 @@ def get_pysam_obj(object_id, headers=None):
     return result
 
 
-def _get_experiments(experiments):
+def _get_experiments(experiments, program=None):
     result = []
     headers = {
         "X-Service-Token": create_service_token()
@@ -330,6 +318,10 @@ def _get_experiments(experiments):
             if res["program"] not in experiments_by_program:
                 experiments_by_program[res["program"]] = []
             experiments_by_program[res["program"]].append(res)
+        if program is not None:
+            if program in experiments_by_program:
+                return experiments_by_program[program]
+            return result
         for program in experiments_by_program.keys():
             result.extend(experiments_by_program[program])
     return result
