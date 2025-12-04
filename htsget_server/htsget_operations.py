@@ -347,7 +347,7 @@ def _get_experiment(id_=None):
     if resp.status_code == 200:
         if len(resp.json()) == 0:
             return f"{id_} is not an Experiment", 404
-        return resp.json(), 200
+        return resp.json().pop(), 200
     return resp.text, resp.status_code
 
 
