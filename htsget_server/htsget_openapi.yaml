@@ -855,12 +855,12 @@ components:
                 program:
                     type: string
                     description: MoH program ID
-                genome:
+                genomes:
                     type: array
                     description: An array of associated AnalysisDrsObjects that describe reads, e.g. fastqs.
                     items:
                         type: string
-                transcriptome:
+                transcriptomes:
                     type: array
                     description: An array of associated AnalysisDrsObjects that describe transcriptome data.
                     items:
