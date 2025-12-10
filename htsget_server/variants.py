@@ -51,8 +51,7 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None, hea
         records = analysis_obj['file'].fetch(contig=ref_name, start=int(start), end=int(end))
     else:
         records = analysis_obj['file'].fetch()
-    headers = parse_headers(database.get_headers({'variantfile_id': drs_object_id}))
-
+    headers = parse_headers(str(analysis_obj['file'].header).split("\n"))
     variants_by_file = {
         "id": drs_object_id,
         "headers": headers,
@@ -73,6 +72,9 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None, hea
     if 'contig' in headers:
         variants_by_file['contig'] = headers.pop('contig')
     experiment_dict = {}
+    req_headers = {
+        "X-Service-Token": create_service_token()
+    }
     for r in records:
         experiments = []
         for vcf_sample in r.samples:
@@ -81,10 +83,7 @@ def parse_vcf_file(drs_object_id, reference_name=None, start=None, end=None, hea
                 experiment_id = analysis_obj['experiments'][vcf_sample]
                 if experiment_id not in experiment_dict:
                     experiment_id = analysis_obj['experiments'][vcf_sample]
-                    headers = {
-                        "X-Service-Token": create_service_token()
-                    }
-                    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{experiment_id}", headers=headers)
+                    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{experiment_id}", headers=req_headers)
                     experiment_obj = None
                     if response.status_code == 200:
                         experiment_obj = response.json()

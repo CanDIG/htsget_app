@@ -317,14 +317,13 @@ def test_add_experiment_drs(experiment, analysis):
 def test_experiment_stats(experiment, analysis):
     headers = get_headers()
 
-    experiment = experiment['experiment_id']
     # look for the experiment
-    get_url = f"{HOST}/htsget/v1/experiments/{experiment}"
+    get_url = f"{HOST}/htsget/v1/experiments/{experiment['submitter_sample_id']}"
     response = requests.request("GET", get_url, headers=headers)
     assert response.status_code == 200
 
-    # genomes in a program will be experiments, which are listed by sample_registration_id
-    assert experiment in response.json()['genomes']
+    # genomes in a program will be experiments, which are listed by experiment_id
+    assert experiment['experiment_id'] in response.json()['genomes']
 
 
 def test_program_experiments():

@@ -238,6 +238,8 @@ def get_matching_transcripts(id_=None):
 
 @app.route('/experiments/<path:id_>')
 def get_experiment(id_=None):
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to get experiments"}, 403
     result, status_code = _get_experiment(id_)
     if status_code == 200:
         return result, 200
@@ -245,27 +247,20 @@ def get_experiment(id_=None):
 
 
 async def get_multiple_experiments():
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to get experiments"}, 403
     req = await connexion.request.json()
-    return _get_experiments(req["experiments"]), 200
-
+    if "experiments" in req:
+        return _get_experiments(req["experiments"]), 200
+    return _get_experiments(None), 200
 
 def get_program_experiments(program=None):
-    headers = {
-        "X-Service-Token": create_service_token()
-    }
-    experiment_drs_objs = []
-    if program is None:
-        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers)
-        if resp.status_code == 200:
-            experiment_drs_objs = resp.json()
-    else:
-        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, params={"program_id": program})
-        if resp.status_code == 200:
-            experiment_drs_objs = resp.json()
-    experiments = list(map(lambda y: y["id"], filter(lambda x: x["description"] in ["wgs", "wts"], experiment_drs_objs)))
-    result = []
-    experiments_by_program = {}
-    return _get_experiments(experiments), 200
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to get experiments"}, 403
+    experiments = _get_experiments(None, program=program)
+    if len(experiments) > 0:
+        return experiments, 200
+    return {"message": f"No experiments found for {program}"}, 404
 
 
 # This is specific to our particular use case: a DRS object that represents a
@@ -308,17 +303,27 @@ def get_pysam_obj(object_id, headers=None):
     return result
 
 
-def _get_experiments(experiments):
+def _get_experiments(experiments, program=None):
     result = []
-    experiments_by_program = {}
-    for experiment in experiments:
-        res, status_code = _get_experiment(experiment)
-        if status_code == 200:
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    if experiments is None:
+        resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/experiments", headers=headers, json={})
+    else:
+        resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/experiments", headers=headers, json={"submitter_sample_ids": experiments})
+    if resp.status_code == 200:
+        experiments_by_program = {}
+        for res in resp.json():
             if res["program"] not in experiments_by_program:
                 experiments_by_program[res["program"]] = []
             experiments_by_program[res["program"]].append(res)
-    for program in experiments_by_program.keys():
-        result.extend(experiments_by_program[program])
+        if program is not None:
+            if program in experiments_by_program:
+                return experiments_by_program[program]
+            return result
+        for program in experiments_by_program.keys():
+            result.extend(experiments_by_program[program])
     return result
 
 
@@ -335,24 +340,12 @@ def _get_experiment(id_=None):
     headers = {
         "X-Service-Token": create_service_token()
     }
-    resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{id_}", headers=headers)
+    resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/experiments", headers=headers, json={"submitter_sample_ids": [id_]})
+
     if resp.status_code == 200:
-        experiment_drs_obj = resp.json()
-        if experiment_drs_obj is not None and "contents" in experiment_drs_obj and experiment_drs_obj["description"] in ["wgs", "wts"]:
-            if experiment_drs_obj["description"] == "wgs":
-                result["genomes"].append(experiment_drs_obj["id"])
-            elif experiment_drs_obj["description"] == "wts":
-                result["transcriptomes"].append(experiment_drs_obj["id"])
-            result["program"] = experiment_drs_obj["program"]
-            for contents_obj in experiment_drs_obj["contents"]:
-                drs_obj = _describe_drs_object(contents_obj["id"])
-                if drs_obj is not None and "type" in drs_obj:
-                    if drs_obj["type"] == "variant":
-                        result["variants"].append(drs_obj["name"])
-                    elif drs_obj["type"] == "read":
-                        result["reads"].append(drs_obj["name"])
-            return result, 200
-        return f"{id_} is not an Experiment", 404
+        if len(resp.json()) == 0:
+            return f"{id_} is not an Experiment", 404
+        return resp.json().pop(), 200
     return resp.text, resp.status_code
 
 

@@ -257,27 +257,28 @@ def search(raw_req):
         headers = {
             "X-Service-Token": create_service_token()
         }
-        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers)
-        drs_obj_dict = {}
+        resp = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/experiments", headers=headers, json={})
+
+        exp_lookup = {}
         if resp.status_code == 200:
-            drs_objects = resp.json()
-            for obj in drs_objects:
-                drs_obj_dict[obj["id"]] = obj
+            for exp in resp.json():
+                for v in exp["variants"]:
+                    if v not in exp_lookup:
+                        exp_lookup[v] = []
+                    exp_lookup[v].append(exp)
+        else:
+            raise Exception(f"couldn't get experiments: {resp.text} {resp.status_code}")
 
         hits_to_search = []
         for i in range(len(potential_hits)):
             drs_obj_id = potential_hits[i]['drs_object_id']
-
-            drs_obj = drs_obj_dict[drs_obj_id]
-            if "program" in drs_obj:
-                if drs_obj["program"] not in results:
-                    results[drs_obj["program"]] = []
-                for c in drs_obj["contents"]:
-                    if c["id"] not in ["analysis", "index"]:
-                        # this is a ExperimentContentObject
-                        res = {"submitter_sample_id": c["name"], "variant_count": potential_hits[i]["variantcount"]}
-                        results[drs_obj["program"]].append(res)
-                        hits_to_search.append(potential_hits[i])
+            experiments = exp_lookup[drs_obj_id]
+            for experiment in experiments:
+                if experiment["program"] not in results:
+                    results[experiment["program"]] = []
+                res = {"submitter_sample_id": experiment["experiment_id"], "variant_count": potential_hits[i]["variantcount"]}
+                results[experiment["program"]].append(res)
+                hits_to_search.append(potential_hits[i])
 
         search_json = {
             "potential_hits": hits_to_search,
@@ -418,11 +419,12 @@ def full_beacon_search(search_json, headers=None):
 
     # if the request granularity was "record", check to see that the user is actually authorized to see any programs:
     response['beaconHandovers'] = []
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+
     for drs_obj_id in variants_by_file.keys():
         # look for experiments and programs for all drs objects, even if user is not authorized
-        headers = {
-            "X-Service-Token": create_service_token()
-        }
         resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
         if resp.status_code == 200:
             drs_obj = resp.json()
