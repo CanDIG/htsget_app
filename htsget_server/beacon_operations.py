@@ -272,13 +272,14 @@ def search(raw_req):
         hits_to_search = []
         for i in range(len(potential_hits)):
             drs_obj_id = potential_hits[i]['drs_object_id']
-            experiments = exp_lookup[drs_obj_id]
-            for experiment in experiments:
-                if experiment["program"] not in results:
-                    results[experiment["program"]] = []
-                res = {"submitter_sample_id": experiment["experiment_id"], "variant_count": potential_hits[i]["variantcount"]}
-                results[experiment["program"]].append(res)
-                hits_to_search.append(potential_hits[i])
+            if drs_obj_id in exp_lookup:
+                experiments = exp_lookup[drs_obj_id]
+                for experiment in experiments:
+                    if experiment["program"] not in results:
+                        results[experiment["program"]] = []
+                    res = {"submitter_sample_id": experiment["experiment_id"], "variant_count": potential_hits[i]["variantcount"]}
+                    results[experiment["program"]].append(res)
+                    hits_to_search.append(potential_hits[i])
 
         search_json = {
             "potential_hits": hits_to_search,
