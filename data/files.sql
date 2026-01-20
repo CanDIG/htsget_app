@@ -96,6 +96,7 @@ CREATE TABLE variantfile (
 	indexed INTEGER,
 	chr_prefix VARCHAR,
 	reference_genome VARCHAR,
+	analysis_date DATE,
 	PRIMARY KEY (id)
 	-- FOREIGN KEY(drs_object_id) REFERENCES drs_object (id)
 );

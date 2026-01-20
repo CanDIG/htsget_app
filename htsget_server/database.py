@@ -1,9 +1,9 @@
 from sqlalchemy.orm import relationship, aliased
-from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, ForeignKey, Table, select
+from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, Date, ForeignKey, Table, select
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, date
 from random import randint
 from time import sleep
 from config import BUCKET_SIZE, HTSGET_URL, MAX_TRIES
@@ -117,6 +117,7 @@ class VariantFile(ObjectDBBase):
     indexed = Column(Integer)
     chr_prefix = Column(String)
     reference_genome = Column(String)
+    analysis_date = Column(Date)
 
     # a variantfile maps to a drs object
     drs_object_id = Column(String)
@@ -156,7 +157,8 @@ class VariantFile(ObjectDBBase):
         }
         for sample in self.samples:
             result['samples'].append(sample.sample_id)
-
+        if self.analysis_date is not None:
+            result['analysis_date'] = self.analysis_date.strftime("%Y-%m-%d")
         return json.dumps(result)
 
 
@@ -328,6 +330,7 @@ def create_variantfile(obj, tries=1):
                 new_variantfile = VariantFile()
                 new_variantfile.indexed = 0
                 new_variantfile.chr_prefix = ''
+                new_variantfile.analysis_date = None
             new_variantfile.id = obj['id']
             new_variantfile.reference_genome = obj['reference_genome']
             headers = {
