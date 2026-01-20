@@ -3,6 +3,8 @@ from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, Date, F
 import json
 import os
 import re
+import dateparser
+import dateparser.search
 from datetime import datetime, date
 from random import randint
 from time import sleep
@@ -458,9 +460,17 @@ def add_header_for_variantfile(obj):
         headertexts = map(lambda x: x.strip(), obj['texts'])
     with Session() as session:
         new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
+        possible_dates = []
         for headertext in headertexts:
             if headertext == '' or headertext.startswith("#CHROM"):
                 continue
+            # look for datelike things
+            date_parse = re.match(r"(.+[Dd]ate)=(.+)\s", headertext)
+            if date_parse is not None:
+                if date_parse.group(1) == "##fileDate":
+                    possible_dates.insert(0, date_parse.group(2))
+                else:
+                    possible_dates.append(date_parse.group(2))
             q = select(Header).filter_by(text=headertext).limit(1)
             new_header = session.scalars(q).first()
 
@@ -469,8 +479,24 @@ def add_header_for_variantfile(obj):
                 new_header.text = headertext
             new_header.associated_variantfiles.append(new_variantfile)
             session.add(new_header)
+
+        # process datelike things
+        analysis_date = None
+        while len(possible_dates) > 0:
+            possible_date = possible_dates.pop(0)
+            analysis_date = dateparser.parse(possible_date, date_formats=['%Y%m%d'])
+            if analysis_date is None:
+                analysis_date = dateparser.search.search_dates(possible_date)
+                if analysis_date is not None:
+                    analysis_date = analysis_date[0][1]
+            if analysis_date is not None:
+                break
+
+        # save the analysis date
+        new_variantfile.analysis_date = analysis_date
+
         session.commit()
-    return None
+        return json.loads(str(new_variantfile))
 
 
 def delete_header(text):
