@@ -39,8 +39,11 @@ def index_variants(drs_obj_id, program):
 
     headers = str(gen_obj['file'].header).split('\n')
 
-    database.add_header_for_variantfile({'texts': headers, 'variantfile_id': drs_obj_id})
+    variantfile = database.add_header_for_variantfile({'texts': headers, 'variantfile_id': drs_obj_id})
     logger.info(f"{drs_obj_id} indexed {len(headers)} headers")
+
+    if "analysis_date" in variantfile:
+        write_analysis_date(drs_obj_id, variantfile["analysis_date"])
 
     samples = list(gen_obj['file'].header.samples)
     for sample in samples:
@@ -174,6 +177,17 @@ def write_index_status(drs_obj_id, message):
     if response.status_code == 200:
         obj = response.json()
         obj["metadata"]["index_status"] = message
+        response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
+
+
+def write_analysis_date(drs_obj_id, analysis_date):
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
+    if response.status_code == 200:
+        obj = response.json()
+        obj["metadata"]["analysis_date"] = analysis_date
         response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
