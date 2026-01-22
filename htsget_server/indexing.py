@@ -21,11 +21,11 @@ initialize()
 
 
 def index_variants(drs_obj_id, program):
-    headers = {
+    service_headers = {
         "X-Service-Token": create_service_token()
     }
 
-    gen_obj = htsget_operations.get_pysam_obj(drs_obj_id, headers=headers)
+    gen_obj = htsget_operations.get_pysam_obj(drs_obj_id, headers=service_headers)
     if gen_obj is None:
         return {"message": f"No id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
@@ -35,7 +35,7 @@ def index_variants(drs_obj_id, program):
         return {"message": f"Read object {drs_obj_id} stats calculated"}, 200
 
     logger.info(f"{drs_obj_id} starting indexing")
-    write_index_status(drs_obj_id, f"{datetime.datetime.today()} starting indexing")
+    write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} starting indexing")
 
     headers = str(gen_obj['file'].header).split('\n')
 
@@ -43,7 +43,7 @@ def index_variants(drs_obj_id, program):
     logger.info(f"{drs_obj_id} indexed {len(headers)} headers")
 
     if "analysis_date" in variantfile:
-        write_analysis_date(drs_obj_id, variantfile["analysis_date"])
+        write_analysis_date(drs_obj_id, service_headers, variantfile["analysis_date"])
 
     samples = list(gen_obj['file'].header.samples)
     for sample in samples:
@@ -77,16 +77,13 @@ def index_variants(drs_obj_id, program):
 
     logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
     write_pos_bucket(res, drs_obj_id)
-    mark_as_indexed(drs_obj_id)
+    mark_as_indexed(drs_obj_id, service_headers)
     logger.info(f"{drs_obj_id} indexing done")
 
     return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200
 
 
-def mark_as_indexed(drs_obj_id):
-    headers = {
-        "X-Service-Token": create_service_token()
-    }
+def mark_as_indexed(drs_obj_id, headers):
     response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
     if response.status_code == 200:
         obj = response.json()
@@ -169,10 +166,7 @@ def index_touch_file(file_path):
         logger.warning(f"indexing error! {type(e)} {str(e)}")
 
 
-def write_index_status(drs_obj_id, message):
-    headers = {
-        "X-Service-Token": create_service_token()
-    }
+def write_index_status(drs_obj_id, headers, message):
     response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
     if response.status_code == 200:
         obj = response.json()
@@ -180,10 +174,7 @@ def write_index_status(drs_obj_id, message):
         response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
-def write_analysis_date(drs_obj_id, analysis_date):
-    headers = {
-        "X-Service-Token": create_service_token()
-    }
+def write_analysis_date(drs_obj_id, headers, analysis_date):
     response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
     if response.status_code == 200:
         obj = response.json()
