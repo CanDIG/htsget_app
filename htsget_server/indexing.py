@@ -42,8 +42,12 @@ def index_variants(drs_obj_id, program):
     variantfile = database.add_header_for_variantfile({'texts': headers, 'variantfile_id': drs_obj_id})
     logger.info(f"{drs_obj_id} indexed {len(headers)} headers")
 
-    if "analysis_date" in variantfile:
-        write_analysis_date(drs_obj_id, service_headers, variantfile["analysis_date"])
+    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=service_headers)
+    if response.status_code == 200:
+        obj = response.json()
+        if "analysis_date" not in obj["metadata"] and "analysis_date" in variantfile:
+            obj["metadata"]["analysis_date"] = variantfile["analysis_date"]
+            response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=service_headers, json=obj)
 
     samples = list(gen_obj['file'].header.samples)
     for sample in samples:
@@ -171,14 +175,6 @@ def write_index_status(drs_obj_id, headers, message):
     if response.status_code == 200:
         obj = response.json()
         obj["metadata"]["index_status"] = message
-        response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
-
-
-def write_analysis_date(drs_obj_id, headers, analysis_date):
-    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
-    if response.status_code == 200:
-        obj = response.json()
-        obj["metadata"]["analysis_date"] = analysis_date
         response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
