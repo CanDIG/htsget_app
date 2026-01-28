@@ -460,6 +460,11 @@ def add_header_for_variantfile(obj):
         headertexts = map(lambda x: x.strip(), obj['texts'])
     with Session() as session:
         new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
+        analysis_date = get_analysis_date_from_headers(headertexts)
+        # save the analysis date
+        new_variantfile.analysis_date = analysis_date
+        session.add(new_variantfile)
+
         for headertext in headertexts:
             if headertext == '' or headertext.startswith("#CHROM"):
                 continue
@@ -471,10 +476,6 @@ def add_header_for_variantfile(obj):
                 new_header.text = headertext
             new_header.associated_variantfiles.append(new_variantfile)
             session.add(new_header)
-
-        analysis_date = get_analysis_date_from_headers(headertexts)
-        # save the analysis date
-        new_variantfile.analysis_date = analysis_date
 
         session.commit()
         return json.loads(str(new_variantfile))
@@ -500,6 +501,7 @@ def get_analysis_date_from_headers(headertexts):
                 possible_dates.append(date_parse.group(2))
 
     # process datelike things
+    logger.info(possible_dates)
     analysis_date = None
     while len(possible_dates) > 0:
         possible_date = possible_dates.pop(0)
@@ -509,6 +511,7 @@ def get_analysis_date_from_headers(headertexts):
             if analysis_date is not None:
                 analysis_date = analysis_date[0][1]
         if analysis_date is not None:
+            logger.info(analysis_date)
             return analysis_date
     return None
 
