@@ -493,7 +493,7 @@ def get_analysis_date_from_headers(headertexts):
     possible_dates = []
     for headertext in headertexts:
         # look for datelike things
-        date_parse = re.match(r"(.+[Dd]ate)=(.+)\s", headertext)
+        date_parse = re.match(r"(.+[Dd]ate)=(.+)", headertext)
         if date_parse is not None:
             if date_parse.group(1) == "##fileDate":
                 possible_dates.insert(0, date_parse.group(2))
@@ -501,7 +501,7 @@ def get_analysis_date_from_headers(headertexts):
                 possible_dates.append(date_parse.group(2))
 
     # process datelike things
-    logger.info(possible_dates)
+    logger.debug(possible_dates)
     analysis_date = None
     while len(possible_dates) > 0:
         possible_date = possible_dates.pop(0)
@@ -511,7 +511,7 @@ def get_analysis_date_from_headers(headertexts):
             if analysis_date is not None:
                 analysis_date = analysis_date[0][1]
         if analysis_date is not None:
-            logger.info(analysis_date)
+            logger.debug(analysis_date)
             return analysis_date
     return None
 
