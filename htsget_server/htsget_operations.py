@@ -597,6 +597,9 @@ def _verify_analysis_drs_object(id_):
         # the AnalysisDrsObject's listed ExperimentContentsObjects should match the samples in the VCF file.
         if len(test) > 0:
             raise Exception(f"AnalysisDrsObject {id_} lists experiments {test} that are not in the linked analysis file")
+        # variant files should have an analysis_date
+        if database.get_analysis_date_from_headers(str(gen_obj['file'].header).split('\n')) is None:
+            raise Exception(f"AnalysisDrsObject {id_} does not have any associated analysis date")
     else:
         # for read files, we can test whether the linked file is readable by checking for references in the header.
         try:

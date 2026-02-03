@@ -1,9 +1,11 @@
 from sqlalchemy.orm import relationship, aliased
-from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, ForeignKey, Table, select
+from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, Date, ForeignKey, Table, select
 import json
 import os
 import re
-from datetime import datetime
+import dateparser
+import dateparser.search
+from datetime import datetime, date
 from random import randint
 from time import sleep
 from config import BUCKET_SIZE, HTSGET_URL, MAX_TRIES
@@ -117,6 +119,7 @@ class VariantFile(ObjectDBBase):
     indexed = Column(Integer)
     chr_prefix = Column(String)
     reference_genome = Column(String)
+    analysis_date = Column(Date)
 
     # a variantfile maps to a drs object
     drs_object_id = Column(String)
@@ -156,7 +159,8 @@ class VariantFile(ObjectDBBase):
         }
         for sample in self.samples:
             result['samples'].append(sample.sample_id)
-
+        if self.analysis_date is not None:
+            result['analysis_date'] = self.analysis_date.strftime("%Y-%m-%d")
         return json.dumps(result)
 
 
@@ -328,6 +332,7 @@ def create_variantfile(obj, tries=1):
                 new_variantfile = VariantFile()
                 new_variantfile.indexed = 0
                 new_variantfile.chr_prefix = ''
+                new_variantfile.analysis_date = None
             new_variantfile.id = obj['id']
             new_variantfile.reference_genome = obj['reference_genome']
             headers = {
@@ -455,6 +460,11 @@ def add_header_for_variantfile(obj):
         headertexts = map(lambda x: x.strip(), obj['texts'])
     with Session() as session:
         new_variantfile = session.query(VariantFile).filter_by(id=obj['variantfile_id']).one_or_none()
+        analysis_date = get_analysis_date_from_headers(headertexts)
+        # save the analysis date
+        new_variantfile.analysis_date = analysis_date
+        session.add(new_variantfile)
+
         for headertext in headertexts:
             if headertext == '' or headertext.startswith("#CHROM"):
                 continue
@@ -466,8 +476,9 @@ def add_header_for_variantfile(obj):
                 new_header.text = headertext
             new_header.associated_variantfiles.append(new_variantfile)
             session.add(new_header)
+
         session.commit()
-    return None
+        return json.loads(str(new_variantfile))
 
 
 def delete_header(text):
@@ -476,6 +487,33 @@ def delete_header(text):
         session.delete(new_object)
         session.commit()
         return json.loads(str(new_object))
+
+
+def get_analysis_date_from_headers(headertexts):
+    possible_dates = []
+    for headertext in headertexts:
+        # look for datelike things
+        date_parse = re.match(r"(.+[Dd]ate)=(.+)", headertext)
+        if date_parse is not None:
+            if date_parse.group(1) == "##fileDate":
+                possible_dates.insert(0, date_parse.group(2))
+            else:
+                possible_dates.append(date_parse.group(2))
+
+    # process datelike things
+    logger.debug(possible_dates)
+    analysis_date = None
+    while len(possible_dates) > 0:
+        possible_date = possible_dates.pop(0)
+        analysis_date = dateparser.parse(possible_date, date_formats=['%Y%m%d'])
+        if analysis_date is None:
+            analysis_date = dateparser.search.search_dates(possible_date)
+            if analysis_date is not None:
+                analysis_date = analysis_date[0][1]
+        if analysis_date is not None:
+            logger.debug(analysis_date)
+            return analysis_date
+    return None
 
 
 # for efficiency, positions are bucketed into 10 bp sets: pos_bucket_id == base pair position/10, rounded down
