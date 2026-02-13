@@ -236,31 +236,31 @@ def get_matching_transcripts(id_=None):
     return get_matching_genes(id_=id_, type="transcript_name")
 
 
-@app.route('/experiments/<path:id_>')
-def get_experiment(id_=None):
+@app.route('/biosamples/<path:id_>')
+def get_biosample(id_=None):
     if not authz.has_full_authz(connexion.request):
-        return {"message": "User is not authorized to get experiments"}, 403
-    result, status_code = _get_experiment(id_)
+        return {"message": "User is not authorized to get biosamples"}, 403
+    result, status_code = _get_biosample(id_)
     if status_code == 200:
         return result, 200
-    return {"message": f"Could not get experiment {id_}: {result}"}, status_code
+    return {"message": f"Could not get biosample {id_}: {result}"}, status_code
 
 
-async def get_multiple_experiments():
+async def get_multiple_biosamples():
     if not authz.has_full_authz(connexion.request):
-        return {"message": "User is not authorized to get experiments"}, 403
+        return {"message": "User is not authorized to get biosamples"}, 403
     req = await connexion.request.json()
-    if "experiments" in req:
-        return _get_experiments(req["experiments"]), 200
-    return _get_experiments(None), 200
+    if "biosamples" in req:
+        return _get_biosamples(req["biosamples"]), 200
+    return _get_biosamples(None), 200
 
-def get_program_experiments(program=None):
+def get_program_biosamples(program=None):
     if not authz.has_full_authz(connexion.request):
-        return {"message": "User is not authorized to get experiments"}, 403
-    experiments = _get_experiments(None, program=program)
-    if len(experiments) > 0:
-        return experiments, 200
-    return {"message": f"No experiments found for {program}"}, 404
+        return {"message": "User is not authorized to get biosamples"}, 403
+    biosamples = _get_biosamples(None, program=program)
+    if len(biosamples) > 0:
+        return biosamples, 200
+    return {"message": f"No biosamples found for {program}"}, 404
 
 
 # This is specific to our particular use case: a DRS object that represents a
@@ -303,48 +303,39 @@ def get_pysam_obj(object_id, headers=None):
     return result
 
 
-def _get_experiments(experiments, program=None):
+def _get_biosamples(biosamples, program=None):
     result = []
     headers = {
         "X-Service-Token": create_service_token()
     }
-    if experiments is None:
-        resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/experiments", headers=headers, json={})
+    if biosamples is None:
+        resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/biosamples", headers=headers, json={})
     else:
-        resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/experiments", headers=headers, json={"submitter_sample_ids": experiments})
+        resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/biosamples", headers=headers, json={"submitter_sample_ids": biosamples})
     if resp.status_code == 200:
-        experiments_by_program = {}
+        biosamples_by_program = {}
         for res in resp.json():
-            if res["program"] not in experiments_by_program:
-                experiments_by_program[res["program"]] = []
-            experiments_by_program[res["program"]].append(res)
+            if res["program"] not in biosamples_by_program:
+                biosamples_by_program[res["program"]] = []
+            biosamples_by_program[res["program"]].append(res)
         if program is not None:
-            if program in experiments_by_program:
-                return experiments_by_program[program]
+            if program in biosamples_by_program:
+                return biosamples_by_program[program]
             return result
-        for program in experiments_by_program.keys():
-            result.extend(experiments_by_program[program])
+        for program in biosamples_by_program.keys():
+            result.extend(biosamples_by_program[program])
     return result
 
 
-def _get_experiment(id_=None):
-    result = {
-        "experiment_id": id_,
-        "genomes": [],
-        "transcriptomes": [],
-        "variants": [],
-        "reads": []
-    }
-
-    # Get the ExperimentDrsObject. It will have a contents array of AnalysisContentsObjects > AnalysisDrsObjects.
+def _get_biosample(id_=None):
     headers = {
         "X-Service-Token": create_service_token()
     }
-    resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/experiments", headers=headers, json={"submitter_sample_ids": [id_]})
+    resp = requests.post(f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/biosamples", headers=headers, json={"submitter_sample_ids": [id_]})
 
     if resp.status_code == 200:
         if len(resp.json()) == 0:
-            return f"{id_} is not an Experiment", 404
+            return f"{id_} is not an Biosample", 404
         return resp.json().pop(), 200
     return resp.text, resp.status_code
 
