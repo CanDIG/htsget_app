@@ -253,32 +253,33 @@ def search(raw_req):
             raise Exception(f"exception in search for {actual_params}: {type(e)} {str(e)}")
 
         results = {}
-        # look for experiments and programs for all drs objects, even if user is not authorized
+        # look for biosamples and programs for all drs objects, even if user is not authorized
         headers = {
             "X-Service-Token": create_service_token()
         }
-        resp = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/experiments", headers=headers, json={})
+        resp = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/biosamples", headers=headers, json={})
 
-        exp_lookup = {}
+        biosample_lookup = {}
         if resp.status_code == 200:
-            for exp in resp.json():
-                for v in exp["variants"]:
-                    if v not in exp_lookup:
-                        exp_lookup[v] = []
-                    exp_lookup[v].append(exp)
+            for biosample in resp.json():
+                if "sequence_variation" in biosample["analyses"]:
+                    for v in biosample["analyses"]["sequence_variation"]:
+                        if v not in biosample_lookup:
+                            biosample_lookup[v] = []
+                        biosample_lookup[v].append(biosample)
         else:
-            raise Exception(f"couldn't get experiments: {resp.text} {resp.status_code}")
+            raise Exception(f"couldn't get biosamples: {resp.text} {resp.status_code}")
 
         hits_to_search = []
         for i in range(len(potential_hits)):
             drs_obj_id = potential_hits[i]['drs_object_id']
-            if drs_obj_id in exp_lookup:
-                experiments = exp_lookup[drs_obj_id]
-                for experiment in experiments:
-                    if experiment["program"] not in results:
-                        results[experiment["program"]] = []
-                    res = {"submitter_sample_id": experiment["experiment_id"], "variant_count": potential_hits[i]["variantcount"]}
-                    results[experiment["program"]].append(res)
+            if drs_obj_id in biosample_lookup:
+                biosamples = biosample_lookup[drs_obj_id]
+                for biosample in biosamples:
+                    if biosample["program"] not in results:
+                        results[biosample["program"]] = []
+                    res = {"submitter_sample_id": biosample["biosample_id"], "variant_count": potential_hits[i]["variantcount"]}
+                    results[biosample["program"]].append(res)
                     hits_to_search.append(potential_hits[i])
 
         search_json = {
@@ -425,7 +426,7 @@ def full_beacon_search(search_json, headers=None):
     }
 
     for drs_obj_id in variants_by_file.keys():
-        # look for experiments and programs for all drs objects, even if user is not authorized
+        # look for biosamples and programs for all drs objects, even if user is not authorized
         resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
         if resp.status_code == 200:
             drs_obj = resp.json()

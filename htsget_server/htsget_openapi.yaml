@@ -370,11 +370,11 @@ paths:
                                 type: object
                                 $ref: '#/components/schemas/GeneSearchResultsTicket'
 
-    /experiments/{id}:
+    /biosamples/{id}:
         get:
-            summary: Get metadata about a experiment
-            operationId: htsget_operations.get_experiment
-            description: Get MoH-relevant genomic information about an experiment
+            summary: Get metadata about a biosample
+            operationId: htsget_operations.get_biosample
+            description: Get MoH-relevant genomic information about an biosample
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: "#/components/parameters/sampleIdPathParam"
@@ -384,12 +384,12 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ExperimentTicket'
-    /experiments:
+                                $ref: '#/components/schemas/BiosampleTicket'
+    /biosamples:
         get:
-            summary: Get metadata about experiments in a program
-            operationId: htsget_operations.get_program_experiments
-            description: Get MoH-relevant genomic information about all experiments in a program
+            summary: Get metadata about biosamples in a program
+            operationId: htsget_operations.get_program_biosamples
+            description: Get MoH-relevant genomic information about all biosamples in a program
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
                 - $ref: '#/components/parameters/programParam'
@@ -401,15 +401,15 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: '#/components/schemas/ExperimentTicket'
+                                    $ref: '#/components/schemas/BiosampleTicket'
         post:
-            summary: Get metadata about multiple experiments
-            operationId: htsget_operations.get_multiple_experiments
-            description: Get MoH-relevant genomic information about a list of experiments
+            summary: Get metadata about multiple biosamples
+            operationId: htsget_operations.get_multiple_biosamples
+            description: Get MoH-relevant genomic information about a list of biosamples
             parameters:
                 - $ref: '#/components/parameters/authHeaderParam'
             requestBody:
-                $ref: '#/components/requestBodies/ExperimentsRequestBody'
+                $ref: '#/components/requestBodies/BiosamplesRequestBody'
             responses:
                 200:
                     description: Success
@@ -418,7 +418,7 @@ paths:
                             schema:
                                 type: array
                                 items:
-                                    $ref: '#/components/schemas/ExperimentTicket'
+                                    $ref: '#/components/schemas/BiosampleTicket'
 
 tags:
     - name: Reads
@@ -846,36 +846,30 @@ components:
                                                 - hg38
                                         region:
                                             $ref: '#/components/schemas/Region'
-        ExperimentTicket:
+        BiosampleTicket:
             type: object
             properties:
-                experiment_id:
+                biosample_id:
                     type: string
                     description: MoH submitter_sample_id from a Sample Registration associated with a specimen.
                 program:
                     type: string
                     description: MoH program ID
-                genomes:
+                experiments:
                     type: array
-                    description: An array of associated AnalysisDrsObjects that describe reads, e.g. fastqs.
+                    description: An array of associated ExperimentDrsObjects derived from the biosample.
                     items:
                         type: string
-                transcriptomes:
+                runs:
                     type: array
-                    description: An array of associated AnalysisDrsObjects that describe transcriptome data.
+                    description: An array of associated RunDrsObjects that describe raw reads derived from biosample.
                     items:
                         type: string
-                variants:
+                analyses:
                     type: array
-                    description: An array of associated AnalysisDataDrsObjects that describe variant files.
+                    description: An array of associated AnalysisDrsObjects based on the biosample.
                     items:
                         type: string
-                reads:
-                    type: array
-                    description: An array of associated AnalysisDataDrsObjects that describe read files, e.g. bams.
-                    items:
-                        type: string
-
 
         # ERROR SCHEMAS
         Error:
@@ -1083,15 +1077,15 @@ components:
                 application/json:
                     schema:
                         $ref: '#/components/schemas/ReadsRequestBody'
-        ExperimentsRequestBody:
-            description: List of experiments requested
+        BiosamplesRequestBody:
+            description: List of biosamples requested
             required: false
             content:
                 application/json:
                     schema:
                         type: object
                         properties:
-                            experiments:
+                            biosamples:
                                 type: array
                                 items:
                                     type: string
