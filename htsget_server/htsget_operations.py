@@ -585,7 +585,7 @@ def _verify_analysis_drs_object(id_):
         # for variant files, we can test whether the linked file is readable by querying it for its experiments.
         file_samples = set(gen_obj['file'].header.samples)
         test = drs_experiments.difference(file_samples)
-        # the AnalysisDrsObject's listed ExperimentContentsObjects should match the samples in the VCF file.
+        # the AnalysisDrsObject's listed ContentsObjects > ExperimentDrsObjects should match the samples in the VCF file.
         if len(test) > 0:
             raise Exception(f"AnalysisDrsObject {id_} lists experiments {test} that are not in the linked analysis file")
         # variant files should have an analysis_date
@@ -613,6 +613,10 @@ def _describe_drs_object(object_id, headers=None):
 
         if drs_obj is None:
             return None
+
+        if drs_obj["description"] not in ["reference_alignment", "sequence_variation"]:
+            return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
+
         result = {
             "name": object_id,
             "program": drs_obj["program"],
