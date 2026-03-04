@@ -12,7 +12,7 @@ import variants
 import indexing
 from pathlib import Path
 from candigv2_logging.logging import CanDIGLogger
-from pysam import VariantFile, AlignmentFile
+from pysam import VariantFile, AlignmentFile, FastxFile
 import requests
 from authx.auth import create_service_token
 
@@ -277,29 +277,41 @@ def get_pysam_obj(object_id, headers=None):
     drs_obj = _describe_drs_object(object_id, headers=headers)
     if drs_obj is None or 'message' in drs_obj:
         return { "message": f"{object_id} not found", "status_code": 404}
-    resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}", headers=headers)
-    if resp.status_code == 200:
-        index_path = _get_file_path(resp.json())
-        result['type'] = drs_obj['type']
-        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}", headers=headers)
+    if 'index' in drs_obj:
+        resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}", headers=headers)
         if resp.status_code == 200:
-            main_path = _get_file_path(resp.json())
-    if index_path is not None and main_path is not None:
-        ## this is for migration: experiments used to be samples
-        if "samples" in drs_obj:
-            result['experiments'] = drs_obj['samples']
-        elif "experiments" in drs_obj:
-            result['experiments'] = drs_obj['experiments']
-        try:
-            result['file_format'] = drs_obj['format']
-            if drs_obj['type'] == 'read':
-                result['file'] = AlignmentFile(main_path, index_filename=index_path)
-            else:
-                result['file'] = VariantFile(main_path, index_filename=index_path)
-        except Exception as e:
-            return { "message": str(e), "status_code": 500, "method": f"get_pysam_obj({object_id})"}
+            index_path = _get_file_path(resp.json())
+    result['type'] = drs_obj['type']
+    resp = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}", headers=headers)
+    if resp.status_code == 200:
+        main_path = _get_file_path(resp.json())
+
+    if "samples" in drs_obj:
+        result['experiments'] = drs_obj['samples']
+    elif "experiments" in drs_obj:
+        result['experiments'] = drs_obj['experiments']
+
+    if main_path is not None:
+        if drs_obj['type'] == "fastx":
+            try:
+                result['file_format'] = drs_obj['format']
+                result['file'] = FastxFile(main_path)
+            except Exception as e:
+                return { "message": str(e), "status_code": 500, "method": f"get_pysam_obj({object_id})"}
+        elif index_path is not None:
+            ## this is for migration: experiments used to be samples
+            try:
+                result['file_format'] = drs_obj['format']
+                if drs_obj['type'] == 'read':
+                    result['file'] = AlignmentFile(main_path, index_filename=index_path)
+                else:
+                    result['file'] = VariantFile(main_path, index_filename=index_path)
+            except Exception as e:
+                return { "message": str(e), "status_code": 500, "method": f"get_pysam_obj({object_id})"}
+        else:
+            return {"status_code": 404, "message": "could not locate index or analysis file"}
     else:
-        return {"status_code": 404, "message": "could not locate index or analysis file"}
+        return {"status_code": 404, "message": "could not locate main file"}
     return result
 
 
@@ -585,12 +597,19 @@ def _verify_analysis_drs_object(id_):
         # for variant files, we can test whether the linked file is readable by querying it for its experiments.
         file_samples = set(gen_obj['file'].header.samples)
         test = drs_experiments.difference(file_samples)
-        # the AnalysisDrsObject's listed ExperimentContentsObjects should match the samples in the VCF file.
+        # the AnalysisDrsObject's listed ContentsObjects > ExperimentDrsObjects should match the samples in the VCF file.
         if len(test) > 0:
             raise Exception(f"AnalysisDrsObject {id_} lists experiments {test} that are not in the linked analysis file")
         # variant files should have an analysis_date
         if database.get_analysis_date_from_headers(str(gen_obj['file'].header).split('\n')) is None:
             raise Exception(f"AnalysisDrsObject {id_} does not have any associated analysis date")
+    elif file_type == "fastx":
+        # pysam doesn't seem to throw exceptions if you try to create a fastxfile from something not fastx, so we'll have to try to grab an entry. Apparently it will always iterate at least once, so a valid entry will have more than one entry in it.
+        num_entries = 0
+        for entry in gen_obj['file']:
+            num_entries = num_entries + 1
+        if num_entries <= 1:
+            raise Exception(f"RunDrsObject {id_} does not seem a valid fastx file")
     else:
         # for read files, we can test whether the linked file is readable by checking for references in the header.
         try:
@@ -613,6 +632,10 @@ def _describe_drs_object(object_id, headers=None):
 
         if drs_obj is None:
             return None
+
+        if drs_obj["description"] not in ["reference_alignment", "sequence_variation", "raw_reads"]:
+            return {"message": f"drs object {object_id} does not represent an htsget object", "status_code": 404}
+
         result = {
             "name": object_id,
             "program": drs_obj["program"],
@@ -631,6 +654,9 @@ def _describe_drs_object(object_id, headers=None):
                 # if sub_obj.name matches a vcf/bcf file regex, it's a variant file
                 variant_match = re.fullmatch(r'.+\.(.cf)(\.gz)*$', contents["name"])
 
+                # if sub_obj.name matches a fastx file regex, it's a fastx file
+                fastx_match = re.fullmatch(r'.+\.(f[aq](st.)*)(\.gz)*$', contents["name"])
+
                 if read_match is not None:
                     result['format'] = read_match.group(1).upper()
                     result['type'] = "read"
@@ -641,6 +667,14 @@ def _describe_drs_object(object_id, headers=None):
                     result['main'] = contents['name']
                 elif index_match is not None:
                     result['index'] = contents['name']
+                elif fastx_match is not None:
+                    result['format'] = fastx_match.group(1).upper()
+                    if result['format'] == 'fa':
+                        result['format'] = 'fasta'
+                    elif result['format'] == 'fq':
+                        result['format'] == 'fastq'
+                    result['type'] = "fastx"
+                    result['main'] = contents['name']
                 else:
                     ## this is for migration: experiments used to be samples
                     if "samples" in result:
