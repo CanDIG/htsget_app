@@ -655,7 +655,7 @@ def _describe_drs_object(object_id, headers=None):
                 variant_match = re.fullmatch(r'.+\.(.cf)(\.gz)*$', contents["name"])
 
                 # if sub_obj.name matches a fastx file regex, it's a fastx file
-                fastx_match = re.fullmatch(r'.+\.(fast.)(\.gz)*$', contents["name"])
+                fastx_match = re.fullmatch(r'.+\.(f[aq](st.)*)(\.gz)*$', contents["name"])
 
                 if read_match is not None:
                     result['format'] = read_match.group(1).upper()
@@ -669,6 +669,10 @@ def _describe_drs_object(object_id, headers=None):
                     result['index'] = contents['name']
                 elif fastx_match is not None:
                     result['format'] = fastx_match.group(1).upper()
+                    if result['format'] == 'fa':
+                        result['format'] = 'fasta'
+                    elif result['format'] == 'fq':
+                        result['format'] == 'fastq'
                     result['type'] = "fastx"
                     result['main'] = contents['name']
                 else:
