@@ -153,7 +153,7 @@ def index_touch_file(file_path):
         logger.info(f"indexing {name}, {str(len(os.listdir(INDEXING_PATH)))} files left in indexing queue. For full list of files to index, run: `docker exec candigv2_htsget_1 ls {INDEXING_PATH}`")
 
         # split file name into program and drs_obj_id
-        file_parse = re.match(r"(.*?)~(.+)", name)
+        file_parse = re.match(r"(.*)~(.+)", name)
         if file_parse is not None:
             program = file_parse.group(1)
             drs_obj_id = file_parse.group(2)
