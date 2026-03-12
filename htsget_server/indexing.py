@@ -20,11 +20,7 @@ logger = CanDIGLogger(__file__)
 initialize()
 
 
-def index_variants(drs_obj_id, program):
-    service_headers = {
-        "X-Service-Token": create_service_token()
-    }
-
+def index_variants(drs_obj_id, service_headers, program):
     gen_obj = htsget_operations.get_pysam_obj(drs_obj_id, headers=service_headers)
     if gen_obj is None:
         return {"message": f"No id {drs_obj_id} exists"}, 404
@@ -148,25 +144,29 @@ def create_position(obj):
 ## When a file is created, index the variant with the ID of that filename.
 ## These are created at htsget_operations.index_variants.
 def index_touch_file(file_path):
+    service_headers = {
+        "X-Service-Token": create_service_token()
+    }
+
     try:
         name = file_path.replace(INDEXING_PATH, "").replace("/", "")
         logger.info(f"indexing {name}, {str(len(os.listdir(INDEXING_PATH)))} files left in indexing queue. For full list of files to index, run: `docker exec candigv2_htsget_1 ls {INDEXING_PATH}`")
 
         # split file name into program and drs_obj_id
-        file_parse = re.match(r"(.*?)~(.+)", name)
+        file_parse = re.match(r"(.*)~(.+)", name)
         if file_parse is not None:
             program = file_parse.group(1)
             drs_obj_id = file_parse.group(2)
-            response, status_code = index_variants(drs_obj_id, program)
+            response, status_code = index_variants(drs_obj_id, service_headers, program)
             if status_code != 200:
-                write_index_status(drs_obj_id, f"{datetime.datetime.today()} {response['message']}")
+                write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} {response['message']}")
             logger.info(response)
             os.remove(file_path)
         else:
             raise Exception(f"Format of file name is wrong: {name}")
 
     except Exception as e:
-        write_index_status(drs_obj_id, f"{datetime.datetime.today()} {str(e)}")
+        write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} {str(e)}")
         logger.warning(f"indexing error! {type(e)} {str(e)}")
 
 
