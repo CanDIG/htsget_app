@@ -1,6 +1,6 @@
 import htsget_operations
 import database
-from config import INDEXING_PATH, INDEXING_SWITCH_FILE
+from config import INDEXING_PATH, INDEXING_SWITCH_FILE, FAILURE_PATH
 import os
 import sys
 from watchdog.observers import Observer
@@ -167,6 +167,7 @@ def index_touch_file(file_path):
 
     except Exception as e:
         write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} {str(e)}")
+        os.renames(file_path, file_path.replace(INDEXING_PATH, FAILURE_PATH))
         logger.warning(f"indexing error! {type(e)} {str(e)}")
 
 
