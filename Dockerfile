@@ -10,6 +10,7 @@ RUN groupadd -r candig && useradd -rm candig -g candig
 
 RUN apt-get update && apt-get -y install \
 	cron \
+	vim \
 	postgresql-client \
   postgresql
 
