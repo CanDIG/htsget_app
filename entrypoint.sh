@@ -12,6 +12,7 @@ if [[ -f "initial_setup" ]]; then
     sed -i s@\<POSTGRES_USERNAME\>@$POSTGRES_USERNAME@ config.ini
 
     mkdir -p $INDEXING_PATH
+    mkdir -p $FAILURE_PATH
     mkdir -p $SEARCH_PATH/results
     mkdir -p $SEARCH_PATH/to_search
     touch $INDEXING_SWITCH_FILE
