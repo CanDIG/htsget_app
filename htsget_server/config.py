@@ -36,5 +36,6 @@ if os.getenv("DEBUG_MODE", "1") == "1":
     DEBUG_MODE = True
 
 INDEXING_PATH = os.getenv("INDEXING_PATH", "~/tmp/indexing")
+FAILURE_PATH = os.getenv("FAILURE_PATH", "~/tmp/failed")
 SEARCH_PATH = os.getenv("SEARCH_PATH", "~/tmp/search")
 INDEXING_SWITCH_FILE = os.getenv("INDEXING_SWITCH_FILE", "~/indexing_on")
