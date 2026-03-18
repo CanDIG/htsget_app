@@ -302,7 +302,7 @@ def search(raw_req):
         }
 
         response["estimatedResults"] = {}
-        if authz.request_is_from_query(connexion.request):
+        if authz.request_is_from_query(connexion.request) or authz.request_is_from_candig_api(connexion.request):
             response["estimatedResults"] = results
         elif len(authed_programs) > 0:
             for program in authed_programs:
