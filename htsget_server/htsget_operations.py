@@ -163,6 +163,9 @@ def index_analysis(id_=None, force=False, genome='hg38'):
                             drs_obj["drs_obj"]["metadata"] = {}
                         if "indexed" not in drs_obj["drs_obj"]["metadata"]:
                             drs_obj["drs_obj"]["metadata"]["indexed"] = 1
+                            # make sure any analysis_date we found in the headers during indexing is in the drs_object
+                            if "analysis_date" not in drs_obj["drs_obj"]["metadata"] and "analysis_date" in varfile:
+                                drs_obj["drs_obj"]["metadata"]["analysis_date"] = varfile["analysis_date"]
                             resp = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=drs_obj["drs_obj"])
                         return varfile, 200
             Path(f"{INDEXING_PATH}/{program}~{id_}").touch()
