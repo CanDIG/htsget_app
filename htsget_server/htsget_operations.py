@@ -15,6 +15,7 @@ from candigv2_logging.logging import CanDIGLogger
 from pysam import VariantFile, AlignmentFile, FastxFile
 import requests
 from authx.auth import create_service_token
+from datetime import datetime
 
 
 logger = CanDIGLogger(__file__)
@@ -579,49 +580,70 @@ def _get_urls(file_type, id, reference_name=None, start=None, end=None, _class=N
 
 
 def _verify_analysis_drs_object(id_):
-    # get the listed experiments that the AnalysisDrsObject says should be in the file
-    gen_drs_obj = _describe_drs_object(id_)
-    if gen_drs_obj is None:
-        raise Exception(f"Could not find object {id_}")
-    if "status_code" in gen_drs_obj:
-        raise Exception(f"Error getting drs object: {gen_drs_obj}")
-    drs_experiments = set(gen_drs_obj['experiments'].keys())
-    if 'type' not in gen_drs_obj:
-        raise Exception(f"Object {id_} should be a AnalysisDrsObject, but does not link to a variant or read file")
-    file_type = gen_drs_obj['type']
+    error_message = None
+    try:
+        # get the listed experiments that the AnalysisDrsObject says should be in the file
+        gen_drs_obj = _describe_drs_object(id_)
+        if gen_drs_obj is None:
+            raise Exception(f"Could not find object {id_}")
+        if "status_code" in gen_drs_obj:
+            raise Exception(f"Error getting drs object: {gen_drs_obj}")
+        drs_experiments = set(gen_drs_obj['experiments'].keys())
+        if 'type' not in gen_drs_obj:
+            raise Exception(f"Object {id_} should be a AnalysisDrsObject, but does not link to a variant or read file")
+        file_type = gen_drs_obj['type']
 
-    # get the experiments that are in the linked files
-    gen_obj = get_pysam_obj(id_)
-    if gen_obj is None:
-        raise Exception(f"No analysis object with id {id_} exists")
-    if "message" in gen_obj:
-        raise Exception(f"{gen_obj['message']}")
-    if file_type == "variant":
-        # for variant files, we can test whether the linked file is readable by querying it for its experiments.
-        file_samples = set(gen_obj['file'].header.samples)
-        test = drs_experiments.difference(file_samples)
-        # the AnalysisDrsObject's listed ContentsObjects > ExperimentDrsObjects should match the samples in the VCF file.
-        if len(test) > 0:
-            raise Exception(f"AnalysisDrsObject {id_} lists experiments {test} that are not in the linked analysis file")
-        # variant files should have an analysis_date
-        if database.get_analysis_date_from_headers(str(gen_obj['file'].header).split('\n')) is None:
-            raise Exception(f"AnalysisDrsObject {id_} does not have any associated analysis date")
-    elif file_type == "fastx":
-        # pysam doesn't seem to throw exceptions if you try to create a fastxfile from something not fastx, so we'll have to try to grab an entry. Apparently it will always iterate at least once, so a valid entry will have more than one entry in it.
-        num_entries = 0
-        for entry in gen_obj['file']:
-            num_entries = num_entries + 1
-        if num_entries <= 1:
-            raise Exception(f"RunDrsObject {id_} does not seem a valid fastx file")
+        # get the experiments that are in the linked files
+        gen_obj = get_pysam_obj(id_)
+        if gen_obj is None:
+            raise Exception(f"No analysis object with id {id_} exists")
+        if "message" in gen_obj:
+            raise Exception(f"{gen_obj['message']}")
+        if file_type == "variant":
+            # for variant files, we can test whether the linked file is readable by querying it for its experiments.
+            file_samples = set(gen_obj['file'].header.samples)
+            test = drs_experiments.difference(file_samples)
+            # the AnalysisDrsObject's listed ContentsObjects > ExperimentDrsObjects should match the samples in the VCF file.
+            if len(test) > 0:
+                raise Exception(f"AnalysisDrsObject {id_} lists experiments {test} that are not in the linked analysis file")
+            # variant files should have an analysis_date
+            if database.get_analysis_date_from_headers(str(gen_obj['file'].header).split('\n')) is None:
+                if "analysis_date" not in gen_drs_obj["drs_obj"]["metadata"]:
+                    raise Exception(f"AnalysisDrsObject {id_} does not have any associated analysis date")
+        elif file_type == "fastx":
+            # pysam doesn't seem to throw exceptions if you try to create a fastxfile from something not fastx, so we'll have to try to grab an entry. Apparently it will always iterate at least once, so a valid entry will have more than one entry in it.
+            num_entries = 0
+            for entry in gen_obj['file']:
+                num_entries = num_entries + 1
+            if num_entries <= 1:
+                raise Exception(f"RunDrsObject {id_} does not seem a valid fastx file")
+        else:
+            # for read files, we can test whether the linked file is readable by checking for references in the header.
+            try:
+                if len(gen_obj['file'].header.references) == 0:
+                    raise Exception(f"AnalysisDrsObject {id_} links to a read file with no reference sequences")
+            except Exception as e:
+                raise Exception(f"AnalysisDrsObject {id_} links to a read file that could not be read: {str(e)}")
+            if len(drs_experiments) > 1:
+                raise Exception(f"AnalysisDrsObject {id_} lists multiple experiments, but only one can be in the read file")
+    except Exception as e:
+        error_message = str(e)
+
+    if error_message is None:
+        # timestamp this verification in the AnalysisDrsObject:
+        gen_drs_obj["drs_obj"]["metadata"]["last_verified"] = str(datetime.now())
     else:
-        # for read files, we can test whether the linked file is readable by checking for references in the header.
-        try:
-            if len(gen_obj['file'].header.references) == 0:
-                raise Exception(f"AnalysisDrsObject {id_} links to a read file with no reference sequences")
-        except Exception as e:
-            raise Exception(f"AnalysisDrsObject {id_} links to a read file that could not be read: {str(e)}")
-        if len(drs_experiments) > 1:
-            raise Exception(f"AnalysisDrsObject {id_} lists multiple experiments, but only one can be in the read file")
+        # remove last verification
+        gen_drs_obj["drs_obj"]["metadata"]["last_verified"] = ""
+
+    headers = {
+        "X-Service-Token": create_service_token()
+    }
+    response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", json=gen_drs_obj["drs_obj"], headers=headers)
+
+    if error_message is not None:
+        raise Exception(error_message)
+
     return None
 
 
