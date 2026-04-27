@@ -640,6 +640,8 @@ def _verify_analysis_drs_object(id_):
         "X-Service-Token": create_service_token()
     }
     response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", json=gen_drs_obj["drs_obj"], headers=headers)
+    if response.status_code != 200:
+        logger.debug(f"Error updating DRS object {id_}: {response.status_code} {response.text}")
 
     if error_message is not None:
         raise Exception(error_message)
