@@ -26,6 +26,7 @@ paths:
     /indexer:
         get:
             operationId: "htsget_operations.indexer_status"
+            summary: Get the status of the indexer
             description: Get the status of the indexer
             responses:
                 200:
@@ -36,6 +37,7 @@ paths:
                                 type: object
         post:
             operationId: "htsget_operations.indexer_switch"
+            summary: Set the indexer on or off
             description: Set the indexer on or off
             parameters:
                 - in: query
