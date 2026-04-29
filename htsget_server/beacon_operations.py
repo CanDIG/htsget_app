@@ -440,7 +440,7 @@ def full_beacon_search(search_json, headers=None):
                             file_drs_obj = resp.json()
                             download_handover = {
                                 'handoverType': {'id': 'CUSTOM', 'label': 'DOWNLOAD'},
-                                'url': f"{HTSGET_URL}/ga4gh/drs/v1/objects/{file_drs_obj['id']}/download"
+                                'url': f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{file_drs_obj['id']}/download"
                             }
                             if 'size' in file_drs_obj:
                                 download_handover['size'] = file_drs_obj['size']
