@@ -13,6 +13,7 @@ servers:
 paths:
   /service-info:
     get:
+      summary: Get information about the beacon
       description: Get information about the beacon using GA4GH ServiceInfo format
       operationId: beacon_operations.get_beacon_service_info
       responses:
@@ -117,6 +118,7 @@ paths:
         schema:
           type: string
     get:
+      summary: Get full Beacon result for a search
       description: Get full Beacon result for a search
       operationId: beacon_operations.get_full_result
       responses:
@@ -130,6 +132,7 @@ paths:
           description: Not Found
   /g_variants:
     get:
+      summary: Search for variants
       description: Search for variants
       operationId: beacon_operations.get_search
       parameters:
