@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 candigv2_logging.logging.initialize()
 
 # Create the application instance
-app = connexion.App(__name__, specification_dir='./')
+app = connexion.FlaskApp(__name__, specification_dir='./')
 CORS(app.app)
 
 app.add_api('htsget_openapi.yaml', pythonic_params=True)
