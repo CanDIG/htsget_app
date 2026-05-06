@@ -9,7 +9,7 @@ info:
   version: '2.0.0'
 openapi: 3.0.2
 servers:
-- url: /genomics/beacon/v2
+- url: https://your-candig-domain/genomics/beacon/v2
 paths:
   /service-info:
     get:
