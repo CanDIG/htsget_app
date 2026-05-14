@@ -1,4 +1,4 @@
-ARG venv_python=3.12
+ARG venv_python=3.14
 FROM python:${venv_python}
 
 LABEL Maintainer="CanDIG Project"
