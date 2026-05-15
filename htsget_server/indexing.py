@@ -66,19 +66,22 @@ def index_variants(drs_obj_id, service_headers, program):
     positions = []
     normalized_contigs = []
     to_create = {'variantfile_id': drs_obj_id, 'positions': positions, 'normalized_contigs': normalized_contigs}
-    for record in gen_obj['file'].fetch():
-        normalized_contig_id = contigs[record.contig]
-        if normalized_contig_id is not None:
-            positions.append(record.pos)
-            normalized_contigs.append(normalized_contig_id)
-        else:
-            logger.warning(f"referenceName {record.contig} in {drs_obj_id} does not correspond to a known chromosome.")
-    res = create_position(to_create)
+    try:
+        for record in gen_obj['file'].fetch():
+            normalized_contig_id = contigs[record.contig]
+            if normalized_contig_id is not None:
+                positions.append(record.pos)
+                normalized_contigs.append(normalized_contig_id)
+            else:
+                logger.warning(f"referenceName {record.contig} in {drs_obj_id} does not correspond to a known chromosome.")
+        res = create_position(to_create)
 
-    logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
-    write_pos_bucket(res, drs_obj_id)
-    mark_as_indexed(drs_obj_id, service_headers)
-    logger.info(f"{drs_obj_id} indexing done")
+        logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
+        write_pos_bucket(res, drs_obj_id)
+        mark_as_indexed(drs_obj_id, service_headers)
+        logger.info(f"{drs_obj_id} indexing done")
+    except Exception as e:
+        raise Exception(f"({type(e)} {str(e)}) got as far as {normalized_contigs[-1]} {positions[-1]} in {drs_obj_id}")
 
     return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200
 
