@@ -4,8 +4,8 @@ pysam==0.24.0
 sqlalchemy==1.4.54
 connexion==3.3.0
 MarkupSafe==3.0.3
-candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@v2.9.0
-candigv2-logging@git+https://github.com/CanDIG/candigv2-logging.git@v1.0.3
+candigv2-authx@git+https://github.com/CanDIG/candigv2-authx.git@v2.9.1
+candigv2-logging@git+https://github.com/CanDIG/candigv2-logging.git@v1.0.4
 pytest==9.0.3
 connexion[swagger-ui]
 connexion[flask]
