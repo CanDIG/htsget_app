@@ -31,7 +31,7 @@ jobs:
                 print(f'PR_NUMBER={pr_number}', file=fh)
       - name: Create PR in CanDIGv2
         id: make_pr
-        uses: CanDIG/github-action-pr-expanded@v4
+        uses: CanDIG/github-action-pr-expanded@v5
         with:
           github_token: ${{ secrets.SUBMODULE_PR }}
           parent_repository: ${{ env.PARENT_REPOSITORY }}
@@ -67,7 +67,7 @@ jobs:
                 print(f'PR_NUMBER={pr_number}', file=fh)
       - name: Create PR in CanDIGv3
         id: make_pr
-        uses: CanDIG/github-action-pr-expanded@v4
+        uses: CanDIG/github-action-pr-expanded@v5
         with:
           github_token: ${{ secrets.SUBMODULE_PR }}
           parent_repository: ${{ env.PARENT_REPOSITORY }}
