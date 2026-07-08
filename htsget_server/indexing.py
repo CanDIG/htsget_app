@@ -5,7 +5,6 @@ import os
 import sys
 from watchdog.observers import Observer
 import watchdog.events
-import hashlib
 import re
 import datetime
 from candigv2_logging.logging import initialize, CanDIGLogger
