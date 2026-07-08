@@ -13,6 +13,11 @@ from random import randint
 import requests
 from authx.auth import create_service_token
 import json
+import tempfile
+import httpx
+from pysam import VariantFile
+from contextlib import contextmanager
+
 
 logger = CanDIGLogger(__file__)
 
@@ -20,7 +25,8 @@ initialize()
 
 
 def index_variants(drs_obj_id, service_headers, program):
-    gen_obj = htsget_operations.get_pysam_obj(drs_obj_id, headers=service_headers)
+    gen_obj = htsget_operations._describe_drs_object(drs_obj_id, headers=service_headers)
+
     if gen_obj is None:
         return {"message": f"No id {drs_obj_id} exists"}, 404
     if "message" in gen_obj:
@@ -34,55 +40,56 @@ def index_variants(drs_obj_id, service_headers, program):
     logger.info(f"{drs_obj_id} starting indexing")
     write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} starting indexing")
 
-    headers = str(gen_obj['file'].header).split('\n')
+    with get_local_variantfile(drs_obj_id, service_headers) as local_variantfile:
+        headers = str(local_variantfile.header).split('\n')
 
-    variantfile = database.add_header_for_variantfile({'texts': headers, 'variantfile_id': drs_obj_id})
-    logger.info(f"{drs_obj_id} indexed {len(headers)} headers")
+        db_variantfile = database.add_header_for_variantfile({'texts': headers, 'variantfile_id': drs_obj_id})
+        logger.info(f"{drs_obj_id} indexed {len(headers)} headers")
 
-    response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=service_headers)
-    if response.status_code == 200:
-        obj = response.json()
-        if "analysis_date" not in obj["metadata"] and "analysis_date" in variantfile:
-            obj["metadata"]["analysis_date"] = variantfile["analysis_date"]
-            response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=service_headers, json=obj)
+        response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=service_headers)
+        if response.status_code == 200:
+            obj = response.json()
+            if "analysis_date" not in obj["metadata"] and "analysis_date" in db_variantfile:
+                obj["metadata"]["analysis_date"] = db_variantfile["analysis_date"]
+                response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=service_headers, json=obj)
 
-    samples = list(gen_obj['file'].header.samples)
-    for sample in samples:
-        if database.create_sample({'id': sample, 'variantfile_id': drs_obj_id}) is None:
-            logger.warning(f"Could not add sample {sample} to variantfile {drs_obj_id}")
+        samples = list(local_variantfile.header.samples)
+        for sample in samples:
+            if database.create_sample({'id': sample, 'variantfile_id': drs_obj_id}) is None:
+                logger.warning(f"Could not add sample {sample} to variantfile {drs_obj_id}")
 
-    logger.info(f"{drs_obj_id} indexed {len(samples)} samples in file")
+        logger.info(f"{drs_obj_id} indexed {len(samples)} samples in file")
 
-    contigs = {}
-    for contig in list(gen_obj['file'].header.contigs):
-        contigs[contig] = database.normalize_contig(contig)
+        contigs = {}
+        for contig in list(local_variantfile.header.contigs):
+            contigs[contig] = database.normalize_contig(contig)
 
-    # find first normalized contig and set the chr_prefix:
-    for raw_contig in contigs.keys():
-        if contigs[raw_contig] is not None:
-            prefix = database.get_contig_prefix(raw_contig)
-            varfile = database.set_variantfile_prefix({"variantfile_id": drs_obj_id, "chr_prefix": prefix})
-            break
+        # find first normalized contig and set the chr_prefix:
+        for raw_contig in contigs.keys():
+            if contigs[raw_contig] is not None:
+                prefix = database.get_contig_prefix(raw_contig)
+                varfile = database.set_variantfile_prefix({"variantfile_id": drs_obj_id, "chr_prefix": prefix})
+                break
 
-    positions = []
-    normalized_contigs = []
-    to_create = {'variantfile_id': drs_obj_id, 'positions': positions, 'normalized_contigs': normalized_contigs}
-    try:
-        for record in gen_obj['file'].fetch():
-            normalized_contig_id = contigs[record.contig]
-            if normalized_contig_id is not None:
-                positions.append(record.pos)
-                normalized_contigs.append(normalized_contig_id)
-            else:
-                logger.warning(f"referenceName {record.contig} in {drs_obj_id} does not correspond to a known chromosome.")
-        res = create_position(to_create)
+        positions = []
+        normalized_contigs = []
+        to_create = {'variantfile_id': drs_obj_id, 'positions': positions, 'normalized_contigs': normalized_contigs}
+        try:
+            for record in local_variantfile.fetch():
+                normalized_contig_id = contigs[record.contig]
+                if normalized_contig_id is not None:
+                    positions.append(record.pos)
+                    normalized_contigs.append(normalized_contig_id)
+                else:
+                    logger.warning(f"referenceName {record.contig} in {drs_obj_id} does not correspond to a known chromosome.")
+            res = create_position(to_create)
 
-        logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
-        write_pos_bucket(res, drs_obj_id)
-        mark_as_indexed(drs_obj_id, service_headers)
-        logger.info(f"{drs_obj_id} indexing done")
-    except Exception as e:
-        raise Exception(f"({type(e)} {str(e)}) got as far as {normalized_contigs[-1]} {positions[-1]} in {drs_obj_id}")
+            logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
+            write_pos_bucket(res, drs_obj_id)
+            mark_as_indexed(drs_obj_id, service_headers)
+            logger.info(f"{drs_obj_id} indexing done")
+        except Exception as e:
+            raise Exception(f"({type(e)} {str(e)}) got as far as {normalized_contigs[-1]} {positions[-1]} in {drs_obj_id}")
 
     return {"message": f"Indexing complete for variantfile {drs_obj_id}"}, 200
 
@@ -181,6 +188,40 @@ def write_index_status(drs_obj_id, headers, message):
         obj = response.json()
         obj["metadata"]["index_status"] = message
         response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
+
+
+@contextmanager
+def get_local_variantfile(drs_obj_id, headers):
+    drs_obj = htsget_operations._describe_drs_object(drs_obj_id, headers=headers)
+
+    # download the main file
+    main_file = tempfile.NamedTemporaryFile(delete=False)
+    with httpx.stream("GET", url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}/download", headers=headers) as response:
+        response.raise_for_status()
+        total_size = int(response.headers.get("content-length", 0))
+        with (open(main_file.name, "wb") as f):
+            for chunk in response.iter_raw():
+                bytes_written = f.write(chunk)
+        main_file.close()
+
+    # download the index file
+    index_file = tempfile.NamedTemporaryFile(delete=False)
+    with httpx.stream("GET", url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}/download", headers=headers) as response:
+        response.raise_for_status()
+        total_size = int(response.headers.get("content-length", 0))
+        with (open(index_file.name, "wb") as f):
+            for chunk in response.iter_raw():
+                bytes_written = f.write(chunk)
+        index_file.close()
+
+    var_obj = VariantFile(main_file.name, index_filename=index_file.name)
+
+    try:
+        yield var_obj
+    finally:
+        var_obj.close()
+        os.remove(main_file.name)
+        os.remove(index_file.name)
 
 
 class IndexingHandler(watchdog.events.FileSystemEventHandler):
