@@ -9,7 +9,6 @@ from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH, IND
 from markupsafe import escape
 import connexion
 import variants
-import indexing
 from pathlib import Path
 from candigv2_logging.logging import CanDIGLogger
 from pysam import VariantFile, AlignmentFile, FastxFile
