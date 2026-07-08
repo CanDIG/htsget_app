@@ -192,32 +192,34 @@ def write_index_status(drs_obj_id, headers, message):
 
 @contextmanager
 def get_local_variantfile(drs_obj_id, headers):
-    drs_obj = htsget_operations._describe_drs_object(drs_obj_id, headers=headers)
-
-    # download the main file
-    main_file = tempfile.NamedTemporaryFile(delete=False)
-    with httpx.stream("GET", url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}/download", headers=headers) as response:
-        response.raise_for_status()
-        total_size = int(response.headers.get("content-length", 0))
-        with (open(main_file.name, "wb") as f):
-            for chunk in response.iter_raw():
-                bytes_written = f.write(chunk)
-        main_file.close()
-
-    # download the index file
-    index_file = tempfile.NamedTemporaryFile(delete=False)
-    with httpx.stream("GET", url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}/download", headers=headers) as response:
-        response.raise_for_status()
-        total_size = int(response.headers.get("content-length", 0))
-        with (open(index_file.name, "wb") as f):
-            for chunk in response.iter_raw():
-                bytes_written = f.write(chunk)
-        index_file.close()
-
-    var_obj = VariantFile(main_file.name, index_filename=index_file.name)
-
     try:
+        drs_obj = htsget_operations._describe_drs_object(drs_obj_id, headers=headers)
+
+        # download the main file
+        main_file = tempfile.NamedTemporaryFile(delete=False)
+        with httpx.stream("GET", url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}/download", headers=headers) as response:
+            response.raise_for_status()
+            total_size = int(response.headers.get("content-length", 0))
+            with (open(main_file.name, "wb") as f):
+                for chunk in response.iter_raw():
+                    bytes_written = f.write(chunk)
+            main_file.close()
+
+        # download the index file
+        index_file = tempfile.NamedTemporaryFile(delete=False)
+        with httpx.stream("GET", url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}/download", headers=headers) as response:
+            response.raise_for_status()
+            total_size = int(response.headers.get("content-length", 0))
+            with (open(index_file.name, "wb") as f):
+                for chunk in response.iter_raw():
+                    bytes_written = f.write(chunk)
+            index_file.close()
+
+        var_obj = VariantFile(main_file.name, index_filename=index_file.name)
+
         yield var_obj
+    except Exception as e:
+        write_index_status(drs_obj_id, headers, f"{type(e)} {str(e)}")
     finally:
         var_obj.close()
         os.remove(main_file.name)
