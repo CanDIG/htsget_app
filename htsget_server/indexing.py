@@ -28,6 +28,8 @@ def index_variants(drs_obj_id, service_headers, program):
 
     if gen_obj['type'] == 'read':
         return {"message": f"Read object {drs_obj_id} stats calculated"}, 200
+    if gen_obj['type'] == 'fastx':
+        return {"message": f"Fastx object {drs_obj_id} stats calculated"}, 200
 
     logger.info(f"{drs_obj_id} starting indexing")
     write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} starting indexing")
