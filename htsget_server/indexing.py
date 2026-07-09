@@ -38,13 +38,13 @@ def index_variants(drs_obj_id, service_headers, program):
         return {"message": f"Fastx object {drs_obj_id} stats calculated"}, 200
 
     logger.info(f"{drs_obj_id} starting indexing")
-    write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} starting indexing")
+    write_index_status(drs_obj_id, service_headers, f"starting indexing")
 
     with get_local_variantfile(drs_obj_id, service_headers) as local_variantfile:
         headers = str(local_variantfile.header).split('\n')
 
         db_variantfile = database.add_header_for_variantfile({'texts': headers, 'variantfile_id': drs_obj_id})
-        logger.info(f"{drs_obj_id} indexed {len(headers)} headers")
+        write_index_status(drs_obj_id, service_headers, f"indexed {len(headers)} headers")
 
         response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=service_headers)
         if response.status_code == 200:
@@ -58,7 +58,7 @@ def index_variants(drs_obj_id, service_headers, program):
             if database.create_sample({'id': sample, 'variantfile_id': drs_obj_id}) is None:
                 logger.warning(f"Could not add sample {sample} to variantfile {drs_obj_id}")
 
-        logger.info(f"{drs_obj_id} indexed {len(samples)} samples in file")
+        write_index_status(drs_obj_id, service_headers, f"indexed {len(samples)} samples in file")
 
         contigs = {}
         for contig in list(local_variantfile.header.contigs):
@@ -84,10 +84,9 @@ def index_variants(drs_obj_id, service_headers, program):
                     logger.warning(f"referenceName {record.contig} in {drs_obj_id} does not correspond to a known chromosome.")
             res = create_position(to_create)
 
-            logger.info(f"{drs_obj_id} writing {len(res['bucket_counts'])} entries to db")
+            write_index_status(drs_obj_id, service_headers, f"writing {len(res['bucket_counts'])} entries to db")
             write_pos_bucket(res, drs_obj_id)
             mark_as_indexed(drs_obj_id, service_headers)
-            logger.info(f"{drs_obj_id} indexing done")
         except Exception as e:
             raise Exception(f"({type(e)} {str(e)}) got as far as {normalized_contigs[-1]} {positions[-1]} in {drs_obj_id}")
 
@@ -170,14 +169,14 @@ def index_touch_file(file_path):
             drs_obj_id = file_parse.group(2)
             response, status_code = index_variants(drs_obj_id, service_headers, program)
             if status_code != 200:
-                write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} {response['message']}")
+                write_index_status(drs_obj_id, service_headers, f"{response['message']}")
             logger.info(response)
             os.remove(file_path)
         else:
             raise Exception(f"Format of file name is wrong: {name}")
 
     except Exception as e:
-        write_index_status(drs_obj_id, service_headers, f"{datetime.datetime.today()} {str(e)}")
+        write_index_status(drs_obj_id, service_headers, f"{type(e)} {str(e)}")
         os.rename(file_path, file_path.replace(INDEXING_PATH, FAILURE_PATH))
         logger.warning(f"indexing error! {type(e)} {str(e)}")
 
@@ -186,7 +185,7 @@ def write_index_status(drs_obj_id, headers, message):
     response = requests.get(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj_id}", headers=headers)
     if response.status_code == 200:
         obj = response.json()
-        obj["metadata"]["index_status"] = message
+        obj["metadata"]["index_status"] = f"{datetime.datetime.today()} {message}"
         response = requests.post(url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects", headers=headers, json=obj)
 
 
