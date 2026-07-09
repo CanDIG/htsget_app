@@ -199,7 +199,6 @@ def get_local_variantfile(drs_obj_id, headers):
         main_file = tempfile.NamedTemporaryFile(delete=False)
         with httpx.stream("GET", url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['main']}/download", headers=headers) as response:
             response.raise_for_status()
-            total_size = int(response.headers.get("content-length", 0))
             with (open(main_file.name, "wb") as f):
                 for chunk in response.iter_raw():
                     bytes_written = f.write(chunk)
@@ -209,7 +208,6 @@ def get_local_variantfile(drs_obj_id, headers):
         index_file = tempfile.NamedTemporaryFile(delete=False)
         with httpx.stream("GET", url=f"{os.getenv("DRS_URL")}/ga4gh/drs/v1/objects/{drs_obj['index']}/download", headers=headers) as response:
             response.raise_for_status()
-            total_size = int(response.headers.get("content-length", 0))
             with (open(index_file.name, "wb") as f):
                 for chunk in response.iter_raw():
                     bytes_written = f.write(chunk)
