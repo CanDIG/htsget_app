@@ -5,7 +5,7 @@ from flask import send_file, Flask
 from urllib.parse import urlencode, urlparse, parse_qs
 import database
 import authz
-from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH, INDEXING_SWITCH_FILE, FAILURE_PATH
+from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, INDEXING_PATH, INDEXING_SWITCH_FILE, FAILURE_PATH
 from markupsafe import escape
 import connexion
 import variants
