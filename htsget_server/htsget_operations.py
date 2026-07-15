@@ -5,7 +5,7 @@ from flask import send_file, Flask
 from urllib.parse import urlencode, urlparse, parse_qs
 import database
 import authz
-from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH, INDEXING_SWITCH_FILE
+from config import CHUNK_SIZE, HTSGET_URL, BUCKET_SIZE, PORT, INDEXING_PATH, INDEXING_SWITCH_FILE, FAILURE_PATH
 from markupsafe import escape
 import connexion
 import variants
@@ -72,8 +72,10 @@ def get_variant_service_info():
 
 
 def indexer_status():
+    if not authz.has_full_authz(connexion.request):
+        return {"message": "User is not authorized to switch indexer"}, 403
     if os.path.isfile(INDEXING_SWITCH_FILE):
-        return {"status": "ON"}, 200
+        return {"status": "ON", "pending": os.listdir(INDEXING_PATH), "failed": os.listdir(FAILURE_PATH)}, 200
     return {"status": "OFF"}, 200
 
 
