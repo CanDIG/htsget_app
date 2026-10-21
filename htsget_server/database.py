@@ -1,5 +1,5 @@
 from sqlalchemy.orm import relationship, aliased
-from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, Date, ForeignKey, Table, select
+from sqlalchemy import Column, Integer, String, JSON, Boolean, MetaData, Date, ForeignKey, Table, select, func
 import json
 import os
 import re
@@ -723,23 +723,23 @@ def search(obj, tries=1):
                 if 'end' in obj['region']:
                     q = q.where(PositionBucket.pos_bucket_id <= get_bucket_for_position(obj['region']['end']))
             q = q.distinct()
-            drs_obj_ids = set()
-            pos_bucket_ids = set()
-            raw_result = {}
-            results = []
+            buckets = set()
+            reference_genomes = {}
             for row in session.execute(q):
                 drs_obj = row._mapping['drs_object_id']
-                if drs_obj not in raw_result:
-                    raw_result[drs_obj] = []
-                raw_result[drs_obj].append(row._mapping['id'])
-            for drs_obj in raw_result.keys():
-                curr_result = {'drs_object_id': drs_obj, 'variantcount': 0}
-                curr_result['reference_genome'] = session.query(VariantFile).filter_by(id=drs_obj).one_or_none().reference_genome
-                bvs = session.query(PositionBucketVariantFileAssociation).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(raw_result[drs_obj])).where(PositionBucketVariantFileAssociation.variantfile_id == drs_obj).all()
-                if bvs is not None:
-                    for bv in bvs:
-                        curr_result['variantcount'] += bv.bucket_count
-                results.append(curr_result)
+                buckets.add(row._mapping['id'])
+                reference_genomes[drs_obj] = row._mapping['reference_genome']
+
+            results = []
+            aggregate_count = session.query(PositionBucketVariantFileAssociation, func.sum(PositionBucketVariantFileAssociation.bucket_count)).where(PositionBucketVariantFileAssociation.pos_bucket_id.in_(list(buckets))).where(PositionBucketVariantFileAssociation.variantfile_id.in_(reference_genomes.keys())).group_by(func.grouping_sets(PositionBucketVariantFileAssociation.variantfile_id, PositionBucketVariantFileAssociation.pos_bucket_id, PositionBucketVariantFileAssociation.bucket_count)).all()
+            for row in aggregate_count:
+                if row[0] is not None:
+                    drs_obj = row[0].variantfile_id
+                    if drs_obj is not None:
+                        curr_result = {'drs_object_id': drs_obj, 'variantcount': row[1], 'reference_genome': reference_genomes[drs_obj]}
+                        results.append(curr_result)
+                    else:
+                        break
             return results
     except Exception as e:
         logger.debug(f"Exception in search: {str(e)}, trying again")
