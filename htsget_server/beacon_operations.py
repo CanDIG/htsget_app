@@ -280,7 +280,8 @@ def search(raw_req):
                         results[biosample["program"]] = []
                     res = {"submitter_sample_id": biosample["biosample_id"], "variant_count": potential_hits[i]["variantcount"]}
                     results[biosample["program"]].append(res)
-                    hits_to_search.append(potential_hits[i])
+                    if biosample["program"] in authed_programs:
+                        hits_to_search.append(potential_hits[i])
 
         search_json = {
             "potential_hits": hits_to_search,
